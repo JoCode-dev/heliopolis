@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { MessageType } from '../../generated/prisma/enums.js';
+import { MessageType, ConversationMemberRole } from '../../generated/prisma/enums.js';
 
 @Injectable()
 export class MessagingService {
@@ -71,7 +71,7 @@ export class MessagingService {
   async sendMessage(
     conversationId: string,
     authorId: string,
-    data: { contenu?: string; type?: MessageType },
+    data: { contenu?: string; type?: MessageType; replyToId?: string },
   ) {
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -85,10 +85,12 @@ export class MessagingService {
         authorId,
         contenu: data.contenu,
         type: data.type ?? MessageType.TEXTE,
+        ...(data.replyToId ? { replyToId: data.replyToId } : {}),
       },
       include: {
-        author: {
-          select: { id: true, nom: true, prenoms: true, avatarUrl: true },
+        author: { select: { id: true, nom: true, prenoms: true, avatarUrl: true } },
+        replyTo: {
+          include: { author: { select: { id: true, nom: true, prenoms: true } } },
         },
       },
     });
@@ -99,6 +101,107 @@ export class MessagingService {
     });
 
     return message;
+  }
+
+  async getConversationDetails(conversationId: string, userId: string) {
+    await this.assertMember(conversationId, userId);
+    return this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        members: {
+          where: { leftAt: null },
+          include: {
+            user: {
+              select: { id: true, nom: true, prenoms: true, avatarUrl: true, role: true, parish: { select: { nom: true } } },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async addMember(conversationId: string, targetUserId: string, actorId: string) {
+    const actor = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId: actorId } },
+    });
+    if (!actor || actor.role !== ConversationMemberRole.OWNER) {
+      throw new ForbiddenException(`Seul l'administrateur peut gérer les membres`);
+    }
+    return this.prisma.conversationMember.upsert({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      create: { conversationId, userId: targetUserId, role: ConversationMemberRole.MEMBRE },
+      update: { leftAt: null },
+    });
+  }
+
+  async removeMember(conversationId: string, targetUserId: string, actorId: string) {
+    if (targetUserId === actorId) throw new ForbiddenException('Vous ne pouvez pas vous retirer');
+    const actor = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId: actorId } },
+    });
+    if (!actor || actor.role !== ConversationMemberRole.OWNER) {
+      throw new ForbiddenException(`Seul l'administrateur peut retirer des membres`);
+    }
+    return this.prisma.conversationMember.update({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      data: { leftAt: new Date() },
+    });
+  }
+
+  async togglePin(conversationId: string, userId: string) {
+    await this.assertMember(conversationId, userId);
+    const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    if (!conv) throw new NotFoundException('Conversation introuvable');
+    return this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { isPinned: !conv.isPinned },
+    });
+  }
+
+  async archiveConversation(conversationId: string, userId: string) {
+    await this.assertMember(conversationId, userId);
+    return this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { archivedAt: new Date() },
+    });
+  }
+
+  async createGroupConversation(creatorId: string, data: { nom: string; memberIds: string[] }) {
+    const allMembers = [...new Set([creatorId, ...data.memberIds])];
+    return this.prisma.conversation.create({
+      data: {
+        type: 'GROUPE',
+        nom: data.nom,
+        members: {
+          create: allMembers.map(uid => ({
+            user: { connect: { id: uid } },
+            role: uid === creatorId ? ConversationMemberRole.OWNER : ConversationMemberRole.MEMBRE,
+          })),
+        },
+      },
+    });
+  }
+
+  async editMessage(messageId: string, userId: string, contenu: string) {
+    const msg = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!msg) throw new NotFoundException('Message introuvable');
+    if (msg.authorId !== userId) throw new ForbiddenException('Non autorisé');
+    if (msg.deletedAt) throw new ForbiddenException('Message supprimé');
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { contenu, editedAt: new Date() },
+      include: { author: { select: { id: true, nom: true, prenoms: true, avatarUrl: true } } },
+    });
+  }
+
+  async deleteMessage(messageId: string, userId: string) {
+    const msg = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!msg) throw new NotFoundException('Message introuvable');
+    if (msg.authorId !== userId) throw new ForbiddenException('Non autorisé');
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date(), contenu: null },
+    });
   }
 
   async markRead(conversationId: string, userId: string) {

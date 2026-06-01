@@ -47,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="lg:hidden bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Link
               href="/dashboard/admin"
+              prefetch={false}
               className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
             >
               ‹

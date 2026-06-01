@@ -5,22 +5,31 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api';
 
-// 4 items principaux — stables sur toutes les pages admin + région
+// 4 items principaux — stables sur toutes les pages admin
 const PRIMARY = [
-  { href: '/dashboard/admin',           icon: '🏠', label: 'Accueil' },
-  { href: '/dashboard/admin/camps',     icon: '⛺', label: 'Camps' },
-  { href: '/dashboard/admin/messages',  icon: '💬', label: 'Messages' },
-  { href: '/dashboard/admin/doyennes',  icon: '🛡️', label: 'Doyennés' },
+  { href: '/dashboard/admin',              icon: '🏠', label: 'Accueil' },
+  { href: '/dashboard/admin/camps',        icon: '⛺', label: 'Camps' },
+  { href: '/dashboard/admin/messages',     icon: '💬', label: 'Messages' },
+  { href: '/dashboard/admin/participants', icon: '👥', label: 'Membres' },
 ];
 
 const DRAWER_SECTIONS = [
   {
-    group: 'Région',
+    group: 'Personnes',
     items: [
       { href: '/dashboard/admin/participants', icon: '👥', label: 'Participants' },
-      { href: '/dashboard/admin/paroisses',    icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/admin/defis',        icon: '🎯', label: 'Défis' },
-      { href: '/dashboard/admin/codex',        icon: '🪶', label: 'Codex' },
+      { href: '/dashboard/admin/gardiens',     icon: '🤝', label: 'Gardiens' },
+      { href: '/dashboard/admin/guides',       icon: '📖', label: 'Encadrants' },
+      { href: '/dashboard/admin/region',       icon: '🌍', label: 'Membres rég.' },
+    ],
+  },
+  {
+    group: 'Territoire',
+    items: [
+      { href: '/dashboard/admin/doyennes',  icon: '🛡️', label: 'Doyennés' },
+      { href: '/dashboard/admin/paroisses', icon: '⛪', label: 'Paroisses' },
+      { href: '/dashboard/admin/defis',     icon: '🎯', label: 'Défis' },
+      { href: '/dashboard/admin/codex',     icon: '🪶', label: 'Codex' },
     ],
   },
   {

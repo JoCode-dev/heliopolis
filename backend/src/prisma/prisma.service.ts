@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 
 function formatDatabaseTarget(connectionString: string | undefined) {
   if (!connectionString) return 'DATABASE_URL absent';
@@ -26,7 +26,7 @@ export class PrismaService
   private static readonly logger = new Logger(PrismaService.name);
   private readonly pool: Pool;
   private heartbeat: NodeJS.Timeout | null = null;
-  private keepAliveClient: PoolClient | null = null;
+  private pinging = false;
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;
@@ -36,11 +36,11 @@ export class PrismaService
 
     const pool = new Pool({
       connectionString,
-      max: 5,
-      idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 10_000,
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 15_000,
       keepAlive: true,
-      keepAliveInitialDelayMillis: 1_000,
+      keepAliveInitialDelayMillis: 5_000,
     });
 
     pool.on('error', (err) => {
@@ -67,43 +67,25 @@ export class PrismaService
       throw error;
     }
 
-    // Connexion dédiée au keep-alive : empêche la base de se mettre en veille
-    await this.acquireKeepAlive();
-
-    // Ping toutes les 5 s — maintient la connexion dédiée et détecte les coupures
-    this.heartbeat = setInterval(() => void this.pingKeepAlive(), 5_000);
+    // Ping toutes les 30 s via le pool normal — pas de connexion dédiée
+    this.heartbeat = setInterval(() => void this.ping(), 30_000);
   }
 
-  private async acquireKeepAlive() {
+  private async ping() {
+    if (this.pinging) return;
+    this.pinging = true;
     try {
-      this.keepAliveClient = await this.pool.connect();
-      await this.keepAliveClient.query('SELECT 1');
+      await this.$queryRaw`SELECT 1`;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      PrismaService.logger.warn(`Keep-alive initial échoué : ${msg}`);
-      this.keepAliveClient = null;
-    }
-  }
-
-  private async pingKeepAlive() {
-    if (!this.keepAliveClient) {
-      await this.acquireKeepAlive();
-      return;
-    }
-    try {
-      await this.keepAliveClient.query('SELECT 1');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      PrismaService.logger.warn(`Heartbeat DB échoué (${msg}), reconnexion…`);
-      try { this.keepAliveClient.release(true); } catch { /* ignore */ }
-      this.keepAliveClient = null;
-      await this.acquireKeepAlive();
+      PrismaService.logger.warn(`Heartbeat DB échoué : ${msg}`);
+    } finally {
+      this.pinging = false;
     }
   }
 
   async onModuleDestroy() {
     if (this.heartbeat) clearInterval(this.heartbeat);
-    try { this.keepAliveClient?.release(); } catch { /* ignore */ }
     await this.$disconnect();
     await this.pool.end();
   }

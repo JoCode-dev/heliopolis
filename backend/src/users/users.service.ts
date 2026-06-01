@@ -159,6 +159,7 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
       ...(actor && { AND: [this.scopeWhere(actor)] }),
+      ...(actor && { id: { not: actor.id } }),
     };
     if (filters?.role) where.role = filters.role;
     if (filters?.parishId) where.parishId = filters.parishId;

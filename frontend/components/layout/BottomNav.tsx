@@ -45,7 +45,7 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
     user?.role === 'ADMIN' || user?.role === 'REGION'
       ? [...GUIDE_BASE_ITEMS, { href: '/dashboard/region', icon: '📊', label: 'Region' }]
       : user?.role === 'SENTINELLE'
-        ? [...GUIDE_BASE_ITEMS, { href: '/dashboard/admin/export', icon: '📤', label: 'Export' }]
+        ? [...GUIDE_BASE_ITEMS, { href: '/dashboard/guide/adhesions', icon: '📋', label: 'Adhésions' }]
         : [...GUIDE_BASE_ITEMS, { href: '/', icon: '🏠', label: 'Accueil' }];
   const items =
     effectiveVariant === 'guest'

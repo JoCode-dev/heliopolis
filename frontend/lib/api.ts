@@ -98,9 +98,17 @@ export const badgesApi = {
 export const messagingApi = {
   conversations: () => api.get('/messaging/conversations'),
   messages: (id: string, page = 1) => api.get(`/messaging/conversations/${id}/messages`, { params: { page } }),
-  send: (id: string, contenu: string) => api.post(`/messaging/conversations/${id}/messages`, { contenu }),
+  send: (id: string, contenu: string, replyToId?: string) => api.post(`/messaging/conversations/${id}/messages`, { contenu, ...(replyToId ? { replyToId } : {}) }),
   markRead: (id: string) => api.post(`/messaging/conversations/${id}/read`),
   createPrivate: (userId: string) => api.post('/messaging/conversations/private', { userId }),
+  editMessage: (messageId: string, contenu: string) => api.patch(`/messaging/messages/${messageId}`, { contenu }),
+  deleteMessage: (messageId: string) => api.delete(`/messaging/messages/${messageId}`),
+  getConversation: (id: string) => api.get(`/messaging/conversations/${id}`),
+  addMember: (id: string, userId: string) => api.post(`/messaging/conversations/${id}/members`, { userId }),
+  removeMember: (id: string, userId: string) => api.delete(`/messaging/conversations/${id}/members/${userId}`),
+  togglePin: (id: string) => api.patch(`/messaging/conversations/${id}/pin`),
+  deleteConversation: (id: string) => api.delete(`/messaging/conversations/${id}`),
+  createGroup: (nom: string, memberIds: string[]) => api.post('/messaging/conversations/group', { nom, memberIds }),
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────

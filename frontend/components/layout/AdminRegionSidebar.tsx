@@ -6,7 +6,7 @@ import { LogoutButton } from '@/components/auth/LogoutButton';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
 
-const NAV_GROUPS = [
+const ADMIN_NAV_GROUPS = [
   {
     label: 'Administration',
     items: [
@@ -31,13 +31,41 @@ const NAV_GROUPS = [
   },
 ];
 
+const REGION_NAV_GROUPS = [
+  {
+    label: 'Tableau de bord',
+    items: [
+      { href: '/dashboard/region/camps',    icon: '🏠', label: 'Accueil' },
+      { href: '/dashboard/region/codex',    icon: '🪶', label: 'Modération' },
+      { href: '/dashboard/region/messages', icon: '💬', label: 'Messagerie' },
+      { href: '/dashboard/region/export',   icon: '📤', label: 'Exports' },
+    ],
+  },
+  {
+    label: 'Membres',
+    items: [
+      { href: '/dashboard/region/participants', icon: '👥', label: 'Participants' },
+      { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens' },
+      { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants' },
+      { href: '/dashboard/region/region',       icon: '🌍', label: 'Membres région' },
+      { href: '/dashboard/region/doyennes',     icon: '🛡️', label: 'Doyennés' },
+      { href: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses' },
+      { href: '/dashboard/region/defis',        icon: '🎯', label: 'Défis & soumissions' },
+    ],
+  },
+];
+
 interface AdminRegionSidebarProps {
   onProfileClick?: () => void;
+  variant?: 'admin' | 'region';
 }
 
-export function AdminRegionSidebar({ onProfileClick }: AdminRegionSidebarProps) {
+export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminRegionSidebarProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+
+  const navGroups = variant === 'region' ? REGION_NAV_GROUPS : ADMIN_NAV_GROUPS;
+  const rootHref = variant === 'region' ? '/dashboard/region' : '/dashboard/admin';
 
   return (
     <aside className="hidden lg:flex lg:flex-col w-60 bg-gradient-to-b from-[#1F1B2E] to-[#3a1d4d] text-white flex-shrink-0">
@@ -57,20 +85,21 @@ export function AdminRegionSidebar({ onProfileClick }: AdminRegionSidebarProps) 
 
       {/* Navigation groupée */}
       <nav className="flex-1 p-3 overflow-y-auto">
-        {NAV_GROUPS.map((group, gi) => (
+        {navGroups.map((group, gi) => (
           <div key={group.label} className={gi > 0 ? 'mt-4' : ''}>
             <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-3 mb-1">
               {group.label}
             </p>
             {group.items.map(item => {
               const active =
-                item.href === '/dashboard/admin' || item.href === '/dashboard/region'
+                item.href === rootHref
                   ? pathname === item.href
                   : pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
                     active
                       ? 'bg-gradient-to-r from-[#F58A4B]/30 to-[#C62828]/30 font-semibold text-white'

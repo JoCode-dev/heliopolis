@@ -6,28 +6,28 @@ import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api';
 
 const PRIMARY = [
-  { href: '/dashboard/admin',               icon: '🏠', label: 'Accueil' },
-  { href: '/dashboard/region/camps',        icon: '⛺', label: 'Camps' },
-  { href: '/dashboard/admin/messages',      icon: '💬', label: 'Messages' },
-  { href: '/dashboard/region/rapports',     icon: '📋', label: 'Rapports' },
+  { href: '/dashboard/region/camps',        icon: '🏠', label: 'Accueil',  prefetch: true  },
+  { href: '/dashboard/region/participants', icon: '👥', label: 'Membres',  prefetch: true  },
+  { href: '/dashboard/region/messages',     icon: '💬', label: 'Messages', prefetch: false },
+  { href: '/dashboard/region/defis',        icon: '🎯', label: 'Défis',    prefetch: true  },
 ];
 
 const DRAWER_SECTIONS = [
   {
-    group: 'Région',
+    group: 'Membres',
     items: [
-      { href: '/dashboard/region/participants', icon: '👥', label: 'Participants' },
-      { href: '/dashboard/region/doyennes',     icon: '🛡️', label: 'Doyennés' },
-      { href: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/region/defis',        icon: '🎯', label: 'Défis' },
-      { href: '/dashboard/region/codex',        icon: '🪶', label: 'Mur Codex' },
+      { href: '/dashboard/region/gardiens',  icon: '🤝', label: 'Gardiens',   prefetch: true },
+      { href: '/dashboard/region/guides',    icon: '📖', label: 'Encadrants', prefetch: true },
+      { href: '/dashboard/region/region',    icon: '🌍', label: 'Membres rég.', prefetch: true },
+      { href: '/dashboard/region/doyennes',  icon: '🛡️', label: 'Doyennés',   prefetch: true },
     ],
   },
   {
-    group: 'Outils',
+    group: 'Contenu & Outils',
     items: [
-      { href: '/dashboard/admin/export',        icon: '📤', label: 'Exports' },
-      { href: '/dashboard/admin/camps/nouveau', icon: '➕', label: 'Nouveau camp' },
+      { href: '/dashboard/region/paroisses', icon: '⛪', label: 'Paroisses',  prefetch: true },
+      { href: '/dashboard/region/codex',     icon: '🪶', label: 'Modération', prefetch: true },
+      { href: '/dashboard/region/export',    icon: '📤', label: 'Exports',    prefetch: false },
     ],
   },
 ];
@@ -89,6 +89,7 @@ export function RegionMobileNav() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={item.prefetch}
                       onClick={() => setOpen(false)}
                       className={`flex flex-col items-center gap-1.5 rounded-xl py-2.5 transition-colors ${
                         active
@@ -131,6 +132,7 @@ export function RegionMobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={item.prefetch}
               className={`flex flex-col items-center gap-0.5 py-2 flex-1 text-[10px] transition-colors ${
                 active ? 'text-[#1F1B2E]' : 'text-[#6b6b78]'
               }`}

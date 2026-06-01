@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('http://localhost:3000'),
   title: "Le Codex des Gardiens — Route en Joie 2026",
   description: "Plateforme de la Communauté Mahatma Gandhi · Région d'Abidjan",
   openGraph: {
