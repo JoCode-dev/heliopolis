@@ -1,8 +1,8 @@
 import { codexApi } from '@/lib/api';
 import type { Submission } from '@/types';
-import { CodexItem } from '@/components/codex/CodexItem';
 import { CodexAuthBanner } from '@/components/codex/CodexAuthBanner';
 import { CodexHeaderBadge } from '@/components/codex/CodexHeaderBadge';
+import { CodexWall } from '@/components/codex/CodexWall';
 
 async function getWall(): Promise<Submission[]> {
   try {
@@ -18,29 +18,31 @@ export default async function CodexPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#1F1B2E] to-[#2c1f4a] text-white px-4 pt-4 pb-4 flex-shrink-0 flex justify-between items-start">
-        <div>
-          <h1 className="text-xl font-bold">Mur du Codex</h1>
-          <p className="text-xs opacity-85 mt-0.5">Les actions des Gardiens de la Création</p>
-        </div>
-        <CodexHeaderBadge />
-      </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-[#f5eed8]">
-        {/* Banner adaptative selon l'état d'authentification */}
-        <CodexAuthBanner />
-
-        {posts.length === 0 ? (
-          <div className="text-center py-10 text-[#6b6b78] text-sm">
-            <div className="text-4xl mb-3">🪶</div>
-            <p>Aucune publication pour le moment.</p>
-            <p className="text-xs mt-1">
-              Les premières actions des Gardiens apparaîtront ici.
+      {/* ── Header ── */}
+      <div className="bg-gradient-to-br from-[#1F1B2E] to-[#2c1f4a] text-white px-4 pt-4 pb-5 flex-shrink-0">
+        <div className="flex justify-between items-start mb-1">
+          <div>
+            <h1 className="text-xl font-black tracking-tight">🪶 Mur du Codex</h1>
+            <p className="text-[11px] opacity-60 mt-0.5 uppercase tracking-widest">
+              Les actions des Gardiens de la Création
             </p>
           </div>
-        ) : (
-          posts.map((sub) => <CodexItem key={sub.id} submission={sub} />)
+          <CodexHeaderBadge />
+        </div>
+        {posts.length > 0 && (
+          <p className="text-[11px] text-white/50 mt-2">
+            {posts.length} publication{posts.length > 1 ? 's' : ''} validée{posts.length > 1 ? 's' : ''}
+          </p>
         )}
+      </div>
+
+      {/* ── Corps scrollable ── */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f5eed8]">
+        <div className="px-3 pt-3">
+          <CodexAuthBanner />
+        </div>
+        <CodexWall initialPosts={posts} />
       </div>
     </div>
   );

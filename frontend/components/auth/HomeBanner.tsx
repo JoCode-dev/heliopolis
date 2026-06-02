@@ -36,7 +36,7 @@ export function HomeBanner() {
         défis.
       </div>
       <Link
-        href="/activation"
+        href="/rejoindre"
         className="bg-[#C62828] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
       >
         Rejoindre →

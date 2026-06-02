@@ -2,8 +2,9 @@
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import { isManagementRole } from '@/lib/roles';
+import { ShareButton } from '@/components/camps/ShareButton';
 
-export function CampAuthCTA({ campId }: { campId: string }) {
+export function CampAuthCTA({ campId, campNom = 'Camp' }: { campId: string; campNom?: string }) {
   const { user } = useAuthStore();
 
   if (user && isManagementRole(user.role)) {
@@ -23,9 +24,7 @@ export function CampAuthCTA({ campId }: { campId: string }) {
         >
           📋 Sélectionner des participants
         </Link>
-        <button className="w-full text-center bg-white border border-[#e6e6ea] text-[#1F1B2E] font-semibold text-sm py-3.5 rounded-xl">
-          🤝 Partager le camp
-        </button>
+        <ShareButton campNom={campNom} />
       </>
     );
   }
@@ -47,9 +46,7 @@ export function CampAuthCTA({ campId }: { campId: string }) {
         >
           💬 Contacter mon Guide
         </Link>
-        <button className="w-full text-center bg-white border border-[#e6e6ea] text-[#1F1B2E] font-semibold text-sm py-3.5 rounded-xl">
-          🤝 Partager le camp
-        </button>
+        <ShareButton campNom={campNom} />
       </>
     );
   }
@@ -70,9 +67,7 @@ export function CampAuthCTA({ campId }: { campId: string }) {
       >
         ✨ Je veux rejoindre
       </Link>
-      <button className="w-full text-center bg-white border border-[#e6e6ea] text-[#1F1B2E] font-semibold text-sm py-3.5 rounded-xl">
-        🤝 Partager le camp
-      </button>
+      <ShareButton campNom={campNom} />
     </>
   );
 }

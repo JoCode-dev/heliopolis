@@ -32,7 +32,7 @@ export function CodexAuthBanner() {
           Mur du Codex — <strong>{user.prenoms}</strong>. Modère et valide les soumissions.
         </div>
         <Link
-          href="/admin"
+          href="/dashboard/guide/codex"
           className="bg-[#6A1B9A] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
         >
           Modérer →
