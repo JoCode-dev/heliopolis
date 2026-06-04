@@ -1,37 +1,78 @@
 /**
  * fix-prisma-client.mjs
  *
- * Prisma 7 génère des imports TypeScript sans extension (style "bundler"),
- * incompatibles avec Node.js ESM qui exige ".js".
- * Ce script corrige le fichier source généré après `prisma generate`.
+ * Filet de sécurité pour le client Prisma généré en ESM.
+ * Node.js exige ".js" sur les imports relatifs au runtime.
  *
  * Usage : node scripts/fix-prisma-client.mjs
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CLIENT_TS = join(__dirname, '..', 'generated', 'prisma', 'client.ts');
+const GENERATED_DIR = join(__dirname, '..', 'generated', 'prisma');
+const SOURCE_EXTENSIONS = new Set(['.ts', '.mts', '.cts']);
+
+function hasExtension(specifier) {
+  const lastSegment = specifier.split('/').pop() ?? '';
+  return /\.[^/.]+$/.test(lastSegment);
+}
+
+function withJsExtension(specifier) {
+  return hasExtension(specifier) ? specifier : `${specifier}.js`;
+}
+
+async function listSourceFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...(await listSourceFiles(path)));
+      continue;
+    }
+
+    if (entry.isFile() && SOURCE_EXTENSIONS.has(extname(entry.name))) {
+      files.push(path);
+    }
+  }
+
+  return files;
+}
 
 /** Ajoute .js aux imports/exports relatifs qui n'en ont pas encore. */
 function addExtensions(source) {
-  return source.replace(
-    /((?:import|export)[^'"]*from\s+['"])(\.\.?\/[^'"]+?)(['"]\s*;?)/g,
-    (_, prefix, specifier, suffix) => {
-      if (/\.[a-z]+$/.test(specifier)) return `${prefix}${specifier}${suffix}`;
-      return `${prefix}${specifier}.js${suffix}`;
-    },
-  );
+  return source
+    .replace(/\b(from\s+)(['"])(\.\.?\/[^'"]+)(\2)/g, (_, prefix, quote, specifier, suffix) => {
+      return `${prefix}${quote}${withJsExtension(specifier)}${suffix}`;
+    })
+    .replace(/\b(import\s+)(['"])(\.\.?\/[^'"]+)(\2)/g, (_, prefix, quote, specifier, suffix) => {
+      return `${prefix}${quote}${withJsExtension(specifier)}${suffix}`;
+    })
+    .replace(/\b(import\s*\(\s*)(['"])(\.\.?\/[^'"]+)(\2\s*\))/g, (_, prefix, quote, specifier, suffix) => {
+      return `${prefix}${quote}${withJsExtension(specifier)}${suffix}`;
+    });
 }
 
-const original = await readFile(CLIENT_TS, 'utf8');
-const fixed = addExtensions(original);
+const sourceFiles = await listSourceFiles(GENERATED_DIR);
+let changedFiles = 0;
 
-if (fixed === original) {
-  console.log('✅ generated/prisma/client.ts — extensions déjà présentes, rien à faire.');
+for (const file of sourceFiles) {
+  const original = await readFile(file, 'utf8');
+  const fixed = addExtensions(original);
+
+  if (fixed === original) continue;
+
+  await writeFile(file, fixed, 'utf8');
+  changedFiles += 1;
+}
+
+if (changedFiles === 0) {
+  console.log('✅ generated/prisma — extensions déjà présentes, rien à faire.');
 } else {
-  await writeFile(CLIENT_TS, fixed, 'utf8');
-  console.log('✅ generated/prisma/client.ts — extensions .js ajoutées aux imports relatifs.');
+  console.log(`✅ generated/prisma — extensions .js ajoutées dans ${changedFiles} fichier(s).`);
 }

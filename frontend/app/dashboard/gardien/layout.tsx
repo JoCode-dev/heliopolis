@@ -20,16 +20,20 @@ const NAV = [
   { href: '/dashboard/gardien/profil',     icon: '👤', label: 'Profil' },
 ];
 
+const HOME = '/dashboard/gardien';
+
 export default function GardienLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
 
+  const isHome = pathname === HOME;
   const currentSection = NAV.find(item =>
-    item.href === '/dashboard/gardien'
-      ? pathname === item.href
-      : pathname.startsWith(item.href),
+    item.href === HOME ? pathname === item.href : pathname.startsWith(item.href),
   );
+  const sectionLabel = currentSection
+    ? `${currentSection.icon} ${currentSection.label}`
+    : '🤝 Accueil';
 
   return (
     <AuthGuard roles={['GARDIEN']}>
@@ -47,7 +51,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
 
           <nav className="flex-1 p-2 overflow-y-auto">
             {NAV.map(item => {
-              const active = item.href === '/dashboard/gardien'
+              const active = item.href === HOME
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
               return (
@@ -67,7 +71,6 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
               <button
                 onClick={() => setProfileOpen(true)}
                 className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-left"
-                title="Modifier mon profil"
               >
                 <UserAvatar
                   avatarUrl={user?.avatarUrl}
@@ -81,7 +84,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
                   <div className="text-[10px] opacity-60">{user?.matricule}</div>
                 </div>
               </button>
-              <LogoutButton className="text-white/60 hover:text-white transition-colors flex-shrink-0" />
+              <LogoutButton confirm className="text-white/60 hover:text-white transition-colors flex-shrink-0 text-lg p-1" />
             </div>
           </div>
         </aside>
@@ -89,37 +92,45 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
         {/* ── Contenu principal ── */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
-          {/* Top bar mobile */}
-          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
-            <Link
-              href="/dashboard/gardien"
-              className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
-            >
-              ‹
-            </Link>
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] opacity-70 uppercase tracking-wider">Gardien</div>
-              <div className="text-sm font-bold truncate">
-                {currentSection
-                  ? `${currentSection.icon} ${currentSection.label}`
-                  : '🤝 Accueil'}
-              </div>
+          {/* ── Top bar mobile ── */}
+          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
+
+            {/* Bouton retour — masqué sur l'accueil */}
+            {isHome ? (
+              <div className="w-8 h-8 flex-shrink-0" />
+            ) : (
+              <Link href={HOME}
+                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0 hover:bg-white/25 transition">
+                ‹
+              </Link>
+            )}
+
+            {/* Titre centré */}
+            <div className="flex-1 text-center">
+              <div className="text-[10px] opacity-60 uppercase tracking-wider leading-none mb-0.5">Gardien</div>
+              <div className="text-sm font-bold leading-tight">{sectionLabel}</div>
             </div>
-            <button
-              onClick={() => setProfileOpen(true)}
-              className="rounded-full hover:ring-2 hover:ring-white/50 transition-all flex-shrink-0"
-              title="Mon profil"
-            >
-              <UserAvatar
-                avatarUrl={user?.avatarUrl}
-                initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
-                sizeClass="w-8 h-8"
-              />
-            </button>
+
+            {/* Déconnexion + Avatar */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <LogoutButton
+                confirm
+                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-base hover:bg-white/25 transition"
+              >
+                🚪
+              </LogoutButton>
+              <button onClick={() => setProfileOpen(true)}
+                className="rounded-full hover:ring-2 hover:ring-white/50 transition-all">
+                <UserAvatar
+                  avatarUrl={user?.avatarUrl}
+                  initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+                  sizeClass="w-8 h-8"
+                />
+              </button>
+            </div>
           </div>
 
           <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
-          {/* BottomNav mobile uniquement */}
           <div className="lg:hidden flex-shrink-0">
             <BottomNav variant="gardien" />
           </div>

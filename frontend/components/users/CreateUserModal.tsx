@@ -4,61 +4,92 @@ import { useAuthStore } from '@/store/auth';
 import { territoriesApi, usersApi } from '@/lib/api';
 import type { District, Parish, User } from '@/types';
 
-const ROLE_OPTIONS = [
-  { value: 'GARDIEN',    label: 'Gardien' },
-  { value: 'GUIDE',      label: 'Guide' },
-  { value: 'SENTINELLE', label: 'Sentinelle' },
-  { value: 'REGION',     label: 'Conseil régional' },
-];
+// Rôles proposés selon l'acteur — hiérarchie stricte
+const ROLE_MATRIX: Record<string, { value: string; label: string; icon: string }[]> = {
+  GUIDE:      [{ value: 'GARDIEN',    label: 'Gardien',           icon: '🤝' }],
+  SENTINELLE: [
+    { value: 'GUIDE',      label: 'Guide',             icon: '📖' },
+    { value: 'GARDIEN',    label: 'Gardien',            icon: '🤝' },
+  ],
+  REGION: [
+    { value: 'SENTINELLE', label: 'Sentinelle',         icon: '🛡️' },
+    { value: 'GUIDE',      label: 'Guide',              icon: '📖' },
+    { value: 'GARDIEN',    label: 'Gardien',            icon: '🤝' },
+  ],
+  ADMIN: [
+    { value: 'SENTINELLE', label: 'Sentinelle',         icon: '🛡️' },
+    { value: 'GUIDE',      label: 'Guide',              icon: '📖' },
+    { value: 'GARDIEN',    label: 'Gardien',            icon: '🤝' },
+    { value: 'REGION',     label: 'Conseil régional',   icon: '🗺️' },
+  ],
+};
 
-const ROLE_BADGE: Record<string, string> = {
-  GARDIEN:    'bg-[#C62828]/10 text-[#C62828]',
-  GUIDE:      'bg-[#6A1B9A]/10 text-[#6A1B9A]',
-  SENTINELLE: 'bg-[#D9A441]/10 text-[#D9A441]',
-  REGION:     'bg-[#1F1B2E]/10 text-[#1F1B2E]',
+const ROLE_COLOR: Record<string, string> = {
+  GARDIEN:    'from-[#C62828] to-[#8e1a1a]',
+  GUIDE:      'from-[#6A1B9A] to-[#4a1370]',
+  SENTINELLE: 'from-[#D9A441] to-[#9c7218]',
+  REGION:     'from-[#1F1B2E] to-[#3a1d4d]',
 };
 
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (user: User) => void;
-  /** Verrouille le rôle (non affiché) */
+  /** Verrouille le rôle initial (affiché mais pas modifiable si un seul choix) */
   defaultRole?: string;
-  /** Restreint les rôles proposés dans le sélecteur (admin/région uniquement) */
+  /** Restreint explicitement les rôles (ignoré si la matrice en contient moins) */
   allowedRoles?: string[];
 }
 
 export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allowedRoles }: CreateUserModalProps) {
   const { user: actor } = useAuthStore();
+  const actorRole = actor?.role ?? 'GUIDE';
 
-  const [nom, setNom]           = useState('');
-  const [prenoms, setPrenoms]   = useState('');
+  // Rôles disponibles pour cet acteur
+  const availableRoles = (ROLE_MATRIX[actorRole] ?? ROLE_MATRIX['GUIDE'])
+    .filter(r => !allowedRoles || allowedRoles.includes(r.value));
+
+  const [nom, setNom]             = useState('');
+  const [prenoms, setPrenoms]     = useState('');
   const [matricule, setMatricule] = useState('');
-  const [email, setEmail]       = useState('');
+  const [email, setEmail]         = useState('');
   const [telephone, setTelephone] = useState('');
-  const [role, setRole]         = useState(defaultRole ?? 'GARDIEN');
+  const [role, setRole]           = useState(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
 
   const [districts, setDistricts] = useState<District[]>([]);
   const [parishes, setParishes]   = useState<Parish[]>([]);
   const [districtId, setDistrictId] = useState('');
   const [parishId, setParishId]     = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState('');
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-
-  const actorRole       = actor?.role ?? '';
   const isAdminOrRegion = ['ADMIN', 'REGION'].includes(actorRole);
   const isSentinelle    = actorRole === 'SENTINELLE';
+  const isGuide         = actorRole === 'GUIDE';
+
+  // Un seul choix possible → rôle verrouillé (pas de sélecteur)
+  const showRoleSelector = availableRoles.length > 1;
+
+  // District : admin/région choisissent librement ; sentinelle auto-rempli
+  const showDistrictSelector = isAdminOrRegion && ['SENTINELLE', 'GUIDE', 'GARDIEN'].includes(role);
+
+  // Paroisse : nécessaire pour GUIDE et GARDIEN
+  const needsParish  = ['GUIDE', 'GARDIEN'].includes(role);
+  const showParish   = needsParish && (isAdminOrRegion || isSentinelle);
+
+  // Guide → district et paroisse injectés automatiquement depuis son profil
+  const autoDistrictId = isSentinelle ? (actor?.district?.id ?? '') : '';
+  const autoParishId   = isGuide     ? (actor?.parish?.id ?? '')    : '';
 
   useEffect(() => {
-    if (isOpen) {
-      setNom(''); setPrenoms(''); setMatricule('');
-      setEmail(''); setTelephone('');
-      setRole(defaultRole ?? 'GARDIEN');
-      setDistrictId(''); setParishId('');
-      setError('');
-    }
-  }, [isOpen, defaultRole]);
+    if (!isOpen) return;
+    setNom(''); setPrenoms(''); setMatricule('');
+    setEmail(''); setTelephone('');
+    setRole(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+    setDistrictId(''); setParishId('');
+    setError('');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Charge les doyennés pour admin/région
   useEffect(() => {
@@ -66,18 +97,18 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
     territoriesApi.districts().then(({ data }) => setDistricts(data)).catch(() => {});
   }, [isOpen, isAdminOrRegion]);
 
-  // Charge les paroisses selon le doyenné sélectionné (ou celui de la sentinelle)
+  // Charge les paroisses selon le doyenné effectif
   useEffect(() => {
-    const id = districtId || (isSentinelle ? actor?.district?.id : '');
-    if (!id) { setParishes([]); return; }
+    const id = districtId || autoDistrictId;
+    if (!id || !needsParish) { setParishes([]); return; }
     territoriesApi.parishes(id).then(({ data }) => setParishes(data)).catch(() => {});
-  }, [districtId, isSentinelle, actor?.district?.id]);
+  }, [districtId, autoDistrictId, needsParish]);
 
-  const needsParish       = ['GUIDE', 'GARDIEN'].includes(role);
-  // Affiche le sélecteur si admin/région ET (pas de rôle verrouillé OU plusieurs rôles autorisés)
-  const showRoleSelector  = isAdminOrRegion && (!defaultRole || (allowedRoles !== undefined && allowedRoles.length > 1));
-  const showDistrict      = isAdminOrRegion && role !== 'REGION';
-  const showParish        = (isAdminOrRegion || isSentinelle) && needsParish;
+  const handleRoleChange = (r: string) => {
+    setRole(r);
+    setDistrictId('');
+    setParishId('');
+  };
 
   const handleSubmit = async () => {
     if (!nom.trim() || !prenoms.trim()) {
@@ -87,16 +118,19 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
     setLoading(true);
     setError('');
     try {
+      const effectiveDistrict = districtId || autoDistrictId || undefined;
+      const effectiveParish   = parishId   || autoParishId   || undefined;
+
       const payload: Record<string, string | undefined> = {
-        nom:       nom.trim(),
-        prenoms:   prenoms.trim(),
+        nom:        nom.trim(),
+        prenoms:    prenoms.trim(),
         role,
-        matricule: matricule.trim() || undefined,
-        email:     email.trim()     || undefined,
-        telephone: telephone.trim() || undefined,
+        matricule:  matricule.trim() || undefined,
+        email:      email.trim()     || undefined,
+        telephone:  telephone.trim() || undefined,
+        districtId: effectiveDistrict,
+        parishId:   effectiveParish,
       };
-      if (districtId) payload.districtId = districtId;
-      if (parishId)   payload.parishId   = parishId;
 
       const { data } = await usersApi.create(payload);
       onCreated(data as User);
@@ -111,169 +145,161 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
 
   if (!isOpen) return null;
 
-  const resolvedRole = defaultRole ?? role;
+  const selectedOption = availableRoles.find(r => r.value === role) ?? availableRoles[0];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* En-tête */}
-        <div className="bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white p-5 flex items-center justify-between flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}>
+
+        {/* En-tête coloré selon le rôle */}
+        <div className={`bg-gradient-to-r ${ROLE_COLOR[role] ?? 'from-[#1F1B2E] to-[#3a1d4d]'} text-white p-5 flex items-center justify-between flex-shrink-0`}>
           <div>
-            <div className="font-bold text-sm">Nouveau membre</div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ROLE_BADGE[resolvedRole] ?? ''} bg-white/20`}>
-                {ROLE_OPTIONS.find(r => r.value === resolvedRole)?.label ?? resolvedRole}
-              </span>
+            <div className="font-bold text-base">Nouveau membre</div>
+            <div className="text-xs opacity-80 mt-0.5">
+              {selectedOption?.icon} {selectedOption?.label ?? role}
+              {isSentinelle && actor?.district?.nom ? ` · ${actor.district.nom}` : ''}
+              {isGuide && actor?.parish?.nom ? ` · ${actor.parish.nom}` : ''}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors text-sm"
-          >
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center hover:bg-white/25 transition text-sm">
             ✕
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
+            <div className="p-3 bg-[#fff0f0] border border-[#f5c6c6] rounded-xl text-[#C62828] text-sm">{error}</div>
           )}
 
-          {/* Sélecteur de rôle (admin/région uniquement, non verrouillé) */}
+          {/* ── Sélecteur de rôle ── */}
           {showRoleSelector && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Rôle</label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {ROLE_OPTIONS
-                  .filter(o => actorRole === 'ADMIN' || o.value !== 'REGION')
-                  .filter(o => !allowedRoles || allowedRoles.includes(o.value))
-                  .map(o => (
-                    <button
-                      key={o.value}
-                      onClick={() => { setRole(o.value); setDistrictId(''); setParishId(''); }}
-                      className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                        role === o.value
-                          ? 'bg-[#1F1B2E] text-white border-[#1F1B2E]'
-                          : 'bg-white text-[#6b6b78] border-[#e0e0e8] hover:border-[#1F1B2E] hover:text-[#1F1B2E]'
-                      }`}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
+              <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-2">
+                Rôle du nouveau membre
+              </label>
+              <div className={`grid gap-2 ${availableRoles.length === 2 ? 'grid-cols-2' : availableRoles.length >= 3 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {availableRoles.map(o => (
+                  <button key={o.value} onClick={() => handleRoleChange(o.value)}
+                    className={`flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                      role === o.value
+                        ? `bg-gradient-to-r ${ROLE_COLOR[o.value] ?? ''} text-white border-transparent shadow-sm`
+                        : 'bg-white text-[#6b6b78] border-[#e0e0e8] hover:border-[#1F1B2E] hover:text-[#1F1B2E]'
+                    }`}>
+                    <span className="text-base leading-none">{o.icon}</span>
+                    {o.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Doyenné */}
-          {showDistrict && (
+          {/* ── Doyenné (admin/région) ── */}
+          {showDistrictSelector && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Doyenné</label>
-              <select
-                value={districtId}
-                onChange={e => { setDistrictId(e.target.value); setParishId(''); }}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10"
-              >
+              <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-1.5">
+                Doyenné {role === 'SENTINELLE' ? '(territoire de la Sentinelle)' : ''}
+              </label>
+              <select value={districtId} onChange={e => { setDistrictId(e.target.value); setParishId(''); }}
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] focus:ring-2 focus:ring-[#6A1B9A]/10">
                 <option value="">— Sélectionner un doyenné —</option>
                 {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
               </select>
             </div>
           )}
 
-          {/* Paroisse */}
+          {/* ── Doyenné auto-rempli (sentinelle) ── */}
+          {isSentinelle && needsParish && actor?.district?.nom && (
+            <div className="flex items-center gap-2 bg-[#f0e8ff] rounded-xl px-3 py-2 border border-[#c8a8f0]">
+              <span className="text-base">🛡️</span>
+              <div>
+                <p className="text-xs font-semibold text-[#6A1B9A]">Doyenné</p>
+                <p className="text-sm text-[#1F1B2E]">{actor.district.nom}</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Guide : paroisse auto-remplie ── */}
+          {isGuide && actor?.parish?.nom && (
+            <div className="flex items-center gap-2 bg-[#fff0f0] rounded-xl px-3 py-2 border border-[#ef9a9a]">
+              <span className="text-base">⛪</span>
+              <div>
+                <p className="text-xs font-semibold text-[#C62828]">Paroisse</p>
+                <p className="text-sm text-[#1F1B2E]">{actor.parish.nom}</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Paroisse (admin/région ou sentinelle) ── */}
           {showParish && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Paroisse</label>
-              <select
-                value={parishId}
-                onChange={e => setParishId(e.target.value)}
+              <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-1.5">Paroisse</label>
+              <select value={parishId} onChange={e => setParishId(e.target.value)}
                 disabled={parishes.length === 0}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10 disabled:opacity-50"
-              >
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] focus:ring-2 focus:ring-[#6A1B9A]/10 disabled:opacity-50">
                 <option value="">— Sélectionner une paroisse —</option>
                 {parishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
               </select>
-              {parishes.length === 0 && (isSentinelle || districtId) && (
-                <p className="text-[11px] text-gray-400 mt-1">
-                  {districtId || actor?.district?.id ? 'Chargement…' : 'Sélectionnez d\'abord un doyenné'}
-                </p>
+              {parishes.length === 0 && (isSentinelle ? autoDistrictId : districtId) && (
+                <p className="text-[11px] text-[#9b9ba8] mt-1">Chargement des paroisses…</p>
+              )}
+              {parishes.length === 0 && isAdminOrRegion && !districtId && (
+                <p className="text-[11px] text-[#9b9ba8] mt-1">Sélectionnez d'abord un doyenné.</p>
               )}
             </div>
           )}
 
-          {/* Informations personnelles */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Prénoms *</label>
-              <input
-                value={prenoms}
-                onChange={e => setPrenoms(e.target.value)}
-                placeholder="Kouamé"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10"
-              />
+          {/* ── Informations personnelles ── */}
+          <div>
+            <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-2">
+              Informations personnelles
+            </label>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-xs text-[#9b9ba8] mb-1">Prénoms *</label>
+                <input value={prenoms} onChange={e => setPrenoms(e.target.value)}
+                  placeholder="Kouamé"
+                  className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
+              </div>
+              <div>
+                <label className="block text-xs text-[#9b9ba8] mb-1">Nom *</label>
+                <input value={nom} onChange={e => setNom(e.target.value)}
+                  placeholder="KOFFI"
+                  className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs text-[#9b9ba8] mb-1">Matricule</label>
+              <input value={matricule} onChange={e => setMatricule(e.target.value)}
+                placeholder="0525247O"
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-[#6A1B9A] transition" />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs text-[#9b9ba8] mb-1">Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="membre@email.com"
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Nom *</label>
-              <input
-                value={nom}
-                onChange={e => setNom(e.target.value)}
-                placeholder="KOFFI"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10"
-              />
+              <label className="block text-xs text-[#9b9ba8] mb-1">Téléphone</label>
+              <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)}
+                placeholder="+225 07 00 00 00 00"
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">Matricule</label>
-            <input
-              value={matricule}
-              onChange={e => setMatricule(e.target.value)}
-              placeholder="0525247O"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="membre@email.com"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">Téléphone</label>
-            <input
-              type="tel"
-              value={telephone}
-              onChange={e => setTelephone(e.target.value)}
-              placeholder="+225 07 00 00 00 00"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10"
-            />
           </div>
         </div>
 
-        <div className="p-5 border-t border-gray-100 flex-shrink-0 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-50 text-[#6b6b78] hover:bg-gray-100 transition-colors"
-          >
+        <div className="p-5 border-t border-[#f0f0f0] flex-shrink-0 flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#f7f7fa] text-[#6b6b78] hover:bg-[#ebebf0] transition">
             Annuler
           </button>
-          <button
-            onClick={handleSubmit}
+          <button onClick={handleSubmit}
             disabled={loading || !nom.trim() || !prenoms.trim()}
-            className="flex-1 bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Création…' : 'Créer'}
+            className={`flex-1 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition bg-gradient-to-r ${ROLE_COLOR[role] ?? 'from-[#C62828] to-[#8e1a1a]'}`}>
+            {loading ? 'Création…' : `Créer ${selectedOption?.label ?? ''}`}
           </button>
         </div>
       </div>

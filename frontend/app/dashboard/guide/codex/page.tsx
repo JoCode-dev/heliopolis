@@ -17,7 +17,7 @@ export default function GuideCodexPage() {
       codexApi.wall(1),
     ]).then(([p, w]) => {
       setPending(p.data);
-      setWall(w.data);
+      setWall((w.data as { items: typeof wall; total: number }).items ?? w.data);
     }).catch(() => {})
       .finally(() => setLoading(false));
   }, []);

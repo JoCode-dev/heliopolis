@@ -13,26 +13,32 @@ import { ROLE_LABEL, getTerritoryLabel } from '@/lib/roles';
 
 const NAV_BASE = [
   { href: '/dashboard/guide',              icon: '📖', label: 'Accueil' },
+  { href: '/dashboard/guide/missions',     icon: '🎯', label: 'Missions' },
   { href: '/dashboard/guide/membres',      icon: '👥', label: 'Membres' },
   { href: '/dashboard/guide/camps',        icon: '⛺', label: 'Camps' },
   { href: '/dashboard/guide/messages',     icon: '💬', label: 'Messages' },
   { href: '/dashboard/guide/adhesions',    icon: '📋', label: 'Adhésions' },
   { href: '/dashboard/guide/codex',        icon: '🪶', label: 'Codex' },
+  { href: '/dashboard/guide/profil',       icon: '👤', label: 'Profil' },
 ];
+
+const HOME = '/dashboard/guide';
 
 export default function GuideLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
 
+  const isHome = pathname === HOME;
   const currentSection = NAV_BASE.find(item =>
-    item.href === '/dashboard/guide'
-      ? pathname === item.href
-      : pathname.startsWith(item.href),
+    item.href === HOME ? pathname === item.href : pathname.startsWith(item.href),
   );
+  const sectionLabel = currentSection
+    ? `${currentSection.icon} ${currentSection.label}`
+    : '📖 Accueil';
 
   return (
-    <AuthGuard roles={['GUIDE', 'SENTINELLE']}>
+    <AuthGuard roles={['GUIDE', 'SENTINELLE', 'REGION', 'ADMIN']}>
       <div className="flex h-screen overflow-hidden bg-[#fafafa]">
 
         {/* ── Sidebar desktop ── */}
@@ -47,7 +53,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
 
           <nav className="flex-1 p-2 overflow-y-auto">
             {NAV_BASE.map(item => {
-              const active = item.href === '/dashboard/guide'
+              const active = item.href === HOME
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
               return (
@@ -67,7 +73,6 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
               <button
                 onClick={() => setProfileOpen(true)}
                 className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-left"
-                title="Modifier mon profil"
               >
                 <UserAvatar
                   avatarUrl={user?.avatarUrl}
@@ -81,7 +86,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
                   <div className="text-[10px] opacity-60">{user?.role}</div>
                 </div>
               </button>
-              <LogoutButton className="text-white/60 hover:text-white transition-colors flex-shrink-0" />
+              <LogoutButton confirm className="text-white/60 hover:text-white transition-colors flex-shrink-0 text-lg p-1" />
             </div>
           </div>
         </aside>
@@ -89,33 +94,44 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
         {/* ── Contenu principal ── */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
-          {/* Top bar mobile */}
-          <div className="lg:hidden bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
-            <Link
-              href="/dashboard/guide"
-              className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
-            >
-              ‹
-            </Link>
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] opacity-70 uppercase tracking-wider">Guide</div>
-              <div className="text-sm font-bold truncate">
-                {currentSection
-                  ? `${currentSection.icon} ${currentSection.label}`
-                  : '📖 Accueil'}
+          {/* ── Top bar mobile ── */}
+          <div className="lg:hidden bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
+
+            {/* Bouton retour — masqué sur l'accueil */}
+            {isHome ? (
+              <div className="w-8 h-8 flex-shrink-0" />
+            ) : (
+              <Link href={HOME}
+                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0 hover:bg-white/25 transition">
+                ‹
+              </Link>
+            )}
+
+            {/* Titre centré */}
+            <div className="flex-1 text-center">
+              <div className="text-[10px] opacity-60 uppercase tracking-wider leading-none mb-0.5">
+                {user ? ROLE_LABEL[user.role] : 'Guide'}
               </div>
+              <div className="text-sm font-bold leading-tight">{sectionLabel}</div>
             </div>
-            <button
-              onClick={() => setProfileOpen(true)}
-              className="rounded-full hover:ring-2 hover:ring-white/50 transition-all flex-shrink-0"
-              title="Mon profil"
-            >
-              <UserAvatar
-                avatarUrl={user?.avatarUrl}
-                initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
-                sizeClass="w-8 h-8"
-              />
-            </button>
+
+            {/* Déconnexion + Avatar */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <LogoutButton
+                confirm
+                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-base hover:bg-white/25 transition"
+              >
+                🚪
+              </LogoutButton>
+              <button onClick={() => setProfileOpen(true)}
+                className="rounded-full hover:ring-2 hover:ring-white/50 transition-all">
+                <UserAvatar
+                  avatarUrl={user?.avatarUrl}
+                  initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+                  sizeClass="w-8 h-8"
+                />
+              </button>
+            </div>
           </div>
 
           <main className="flex-1 flex flex-col overflow-hidden">{children}</main>

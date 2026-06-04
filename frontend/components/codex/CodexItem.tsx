@@ -6,6 +6,10 @@ import { Avatar, Pill } from '@/components/ui';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
 
+function toRelativePath(url: string): string {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 const CAT_VARIANTS: Record<string, 'rouge' | 'vert' | 'violet' | 'or'> = {
   PERSONNEL: 'rouge', COMMUNAUTAIRE: 'vert', SPIRITUEL: 'violet', LONG: 'or',
 };
@@ -26,10 +30,16 @@ interface CodexItemProps {
   submission: Submission;
   reactCount?: number;
   hasReacted?: boolean;
+  priority?: boolean;
+  canReact?: boolean;
   onReact?: (id: string) => void;
+  onUnreact?: (id: string) => void;
 }
 
-export function CodexItem({ submission, reactCount, hasReacted, onReact }: CodexItemProps) {
+export function CodexItem({
+  submission, reactCount, hasReacted, priority = false,
+  canReact = false, onReact, onUnreact,
+}: CodexItemProps) {
   const g   = submission.gardien;
   const cat = submission.challenge?.categorie ?? 'COMMUNAUTAIRE';
   const initials = g ? `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`.toUpperCase() : '?';
@@ -37,9 +47,11 @@ export function CodexItem({ submission, reactCount, hasReacted, onReact }: Codex
   const reacted = hasReacted ?? false;
 
   const imageUrl = submission.preuveUrl
-    ? submission.preuveUrl.startsWith('http')
-      ? submission.preuveUrl
-      : `${API_BASE}${submission.preuveUrl}`
+    ? toRelativePath(
+        submission.preuveUrl.startsWith('http')
+          ? submission.preuveUrl
+          : `${API_BASE}${submission.preuveUrl}`,
+      )
     : null;
 
   return (
@@ -53,7 +65,10 @@ export function CodexItem({ submission, reactCount, hasReacted, onReact }: Codex
             {g?.prenoms} {g?.nom}
           </div>
           <div className="text-[11px] text-[#8b7b5c] mt-0.5 truncate">
-            {g?.parish?.nom ?? g?.district?.nom ?? 'Communauté'} · {formatDateFr(submission.submittedAt)}
+            {g?.parish?.nom ?? g?.district?.nom ?? 'Communauté'}
+          </div>
+          <div className="text-[11px] text-[#8b7b5c] mt-0.5">
+            ✅ Réalisé le {formatDateFr(submission.validatedAt ?? submission.submittedAt, { day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         </div>
         <Pill variant={CAT_VARIANTS[cat]} className="flex-shrink-0 text-[10px]">
@@ -80,6 +95,7 @@ export function CodexItem({ submission, reactCount, hasReacted, onReact }: Codex
               fill
               className="object-cover"
               sizes="(max-width: 448px) 100vw, 448px"
+              priority={priority}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </>
@@ -104,12 +120,17 @@ export function CodexItem({ submission, reactCount, hasReacted, onReact }: Codex
       {/* ── Pied : réactions ── */}
       <div className="flex items-center gap-3 px-3.5 py-2.5 border-t border-[#f0e8d8]">
         <button
-          onClick={() => onReact?.(submission.id)}
-          disabled={reacted}
+          onClick={() => {
+            if (!canReact) return;
+            reacted ? onUnreact?.(submission.id) : onReact?.(submission.id);
+          }}
+          title={!canReact ? 'Connecte-toi pour réagir' : undefined}
           className={`flex items-center gap-1.5 text-[12px] font-semibold rounded-full px-3 py-1.5 transition-all ${
-            reacted
-              ? 'bg-[#ffe6e6] text-[#C62828] cursor-default'
-              : 'bg-[#f5eed8] text-[#8b7b5c] hover:bg-[#ffe6e6] hover:text-[#C62828]'
+            !canReact
+              ? 'bg-[#f5eed8] text-[#c0b49a] cursor-not-allowed'
+              : reacted
+                ? 'bg-[#ffe6e6] text-[#C62828] hover:bg-[#ffd0d0]'
+                : 'bg-[#f5eed8] text-[#8b7b5c] hover:bg-[#ffe6e6] hover:text-[#C62828]'
           }`}
         >
           {reacted ? '❤️' : '🤍'} {count > 0 ? count : ''}

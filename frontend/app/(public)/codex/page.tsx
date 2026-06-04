@@ -4,17 +4,18 @@ import { CodexAuthBanner } from '@/components/codex/CodexAuthBanner';
 import { CodexHeaderBadge } from '@/components/codex/CodexHeaderBadge';
 import { CodexWall } from '@/components/codex/CodexWall';
 
-async function getWall(): Promise<Submission[]> {
+async function getWall(): Promise<{ posts: Submission[]; total: number }> {
   try {
     const { data } = await codexApi.wall(1);
-    return data as Submission[];
+    const d = data as { items: Submission[]; total: number };
+    return { posts: d.items, total: d.total };
   } catch {
-    return [];
+    return { posts: [], total: 0 };
   }
 }
 
 export default async function CodexPage() {
-  const posts = await getWall();
+  const { posts, total } = await getWall();
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -30,9 +31,9 @@ export default async function CodexPage() {
           </div>
           <CodexHeaderBadge />
         </div>
-        {posts.length > 0 && (
+        {total > 0 && (
           <p className="text-[11px] text-white/50 mt-2">
-            {posts.length} publication{posts.length > 1 ? 's' : ''} validée{posts.length > 1 ? 's' : ''}
+            {total} mission{total > 1 ? 's' : ''} accomplie{total > 1 ? 's' : ''}
           </p>
         )}
       </div>
@@ -42,7 +43,7 @@ export default async function CodexPage() {
         <div className="px-3 pt-3">
           <CodexAuthBanner />
         </div>
-        <CodexWall initialPosts={posts} />
+        <CodexWall initialPosts={posts} initialTotal={total} />
       </div>
     </div>
   );

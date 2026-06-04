@@ -39,6 +39,11 @@ export class CreateChallengeDto {
   points?: number;
 
   @IsOptional()
+  @IsInt()
+  @IsPositive()
+  duree?: number;
+
+  @IsOptional()
   @IsString()
   campId?: string;
 }

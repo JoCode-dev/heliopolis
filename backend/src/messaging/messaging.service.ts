@@ -28,8 +28,21 @@ export class MessagingService {
       },
       include: {
         members: {
-          where: { userId },
-          select: { lastReadAt: true, role: true },
+          where: { leftAt: null },
+          select: {
+            userId: true,
+            lastReadAt: true,
+            role: true,
+            user: {
+              select: {
+                id: true,
+                nom: true,
+                prenoms: true,
+                avatarUrl: true,
+                parish: { select: { nom: true } },
+              },
+            },
+          },
         },
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -216,8 +229,15 @@ export class MessagingService {
     const existing = await this.prisma.conversation.findFirst({
       where: {
         type: 'PRIVE',
-        members: { some: { userId: userId1 } },
-        AND: [{ members: { some: { userId: userId2 } } }],
+        archivedAt: null,
+        members: {
+          some: { userId: userId1, leftAt: null },
+        },
+        AND: [{
+          members: {
+            some: { userId: userId2, leftAt: null },
+          },
+        }],
       },
     });
     if (existing) return existing;

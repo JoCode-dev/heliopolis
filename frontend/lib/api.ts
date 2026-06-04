@@ -66,6 +66,7 @@ export const campsApi = {
   updateStatus: (id: string, statut: string) => api.patch(`/camps/${id}/status`, { statut }),
   participants: (id: string) => api.get(`/camps/${id}/participants`),
   selectParticipant: (campId: string, userId: string) => api.post(`/camps/${campId}/participants`, { userId }),
+  removeParticipant: (campId: string, userId: string) => api.delete(`/camps/${campId}/participants/${userId}`),
 };
 
 // ─── Challenges ───────────────────────────────────────────────────────────────
@@ -74,15 +75,25 @@ export const challengesApi = {
   get: (id: string) => api.get(`/challenges/${id}`),
   create: (data: object) => api.post('/challenges', data),
   mySubmissions: () => api.get('/challenges/my/submissions'),
-  submit: (id: string, data: object) => api.post(`/challenges/${id}/submit`, data),
+  submit: (id: string, data: { texte?: string; preuveUrl?: string }, photo?: File | null) => {
+    if (photo) {
+      const form = new FormData();
+      if (data.texte) form.append('texte', data.texte);
+      form.append('preuve', photo);
+      return api.post(`/challenges/${id}/submit`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    }
+    return api.post(`/challenges/${id}/submit`, data);
+  },
   validate: (id: string, data: object) => api.post(`/challenges/submissions/${id}/validate`, data),
+  retractSubmission: (id: string) => api.delete(`/challenges/submissions/${id}`),
   pending: () => api.get('/challenges/pending/submissions'),
 };
 
 // ─── Codex ────────────────────────────────────────────────────────────────────
 export const codexApi = {
   wall: (page = 1) => api.get('/codex/wall', { params: { page } }),
-  react: (id: string, emoji = '❤️') => api.post(`/codex/${id}/react`, { emoji }),
+  react:   (id: string, emoji = '❤️') => api.post(`/codex/${id}/react`, { emoji }),
+  unreact: (id: string, emoji = '❤️') => api.delete(`/codex/${id}/react`, { data: { emoji } }),
   pending: () => api.get('/codex/moderation/pending'),
   approve: (id: string) => api.post(`/codex/${id}/approve`),
   reject: (id: string, reason: string) => api.post(`/codex/${id}/reject`, { reason }),

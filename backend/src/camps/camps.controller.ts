@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Post,
   Patch,
@@ -77,5 +78,16 @@ export class CampsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.campsService.selectParticipant(campId, userId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
+  @Delete(':campId/participants/:userId')
+  removeParticipant(
+    @Param('campId') campId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.removeParticipant(campId, userId, user.id);
   }
 }

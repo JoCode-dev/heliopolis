@@ -66,8 +66,25 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const [menuMsgId, setMenuMsgId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Delete confirm
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Delete — { id, isMine: peut supprimer pour tous }
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; isMine: boolean } | null>(null);
+
+  // Messages masqués localement (delete for me) — persistés en localStorage
+  const HIDDEN_KEY = `hidden-msgs-${id}`;
+  const [hiddenMsgIds, setHiddenMsgIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]')); }
+    catch { return new Set(); }
+  });
+
+  const hideForMe = (msgId: string) => {
+    setHiddenMsgIds(prev => {
+      const next = new Set(prev).add(msgId);
+      localStorage.setItem(HIDDEN_KEY, JSON.stringify([...next]));
+      return next;
+    });
+    setDeleteTarget(null);
+  };
 
   // Group management
   const [showGroupPanel, setShowGroupPanel] = useState(false);
@@ -182,15 +199,15 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     } catch { /* ignore */ }
   };
 
-  const confirmDelete = async () => {
-    if (!deletingId) return;
+  const deleteForEveryone = async () => {
+    if (!deleteTarget) return;
     try {
-      await messagingApi.deleteMessage(deletingId);
-      setMessages(prev => prev.map(m => m.id === deletingId
+      await messagingApi.deleteMessage(deleteTarget.id);
+      setMessages(prev => prev.map(m => m.id === deleteTarget.id
         ? { ...m, deletedAt: new Date().toISOString(), contenu: undefined }
         : m));
     } catch { /* ignore */ }
-    setDeletingId(null);
+    setDeleteTarget(null);
   };
 
   // Swipe handlers
@@ -261,7 +278,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   };
 
   const header = HEADER_CONFIG[convType] ?? HEADER_CONFIG.PRIVE;
-  const groups = groupByDate(messages);
+  const groups = groupByDate(messages.filter(m => !hiddenMsgIds.has(m.id)));
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -283,7 +300,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 
       {/* ── Zone messages ── */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#EFE8DD] px-3 py-3 flex flex-col gap-0.5">
-        {messages.length === 0 && (
+        {messages.filter(m => !hiddenMsgIds.has(m.id)).length === 0 && (
           <div className="self-center text-[11px] text-[#6b6b78] bg-white/70 px-4 py-2 rounded-full mt-6 shadow-sm">
             Aucun message — commencez la conversation
           </div>
@@ -414,7 +431,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                           {menuMsgId === msg.id && (
                             <div className="absolute bottom-8 right-0 bg-white rounded-xl shadow-xl border border-[#e6e6ea] overflow-hidden z-20 min-w-[130px]">
                               <button onClick={() => startEdit(msg)} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#1F1B2E] hover:bg-[#f3f3f5] font-semibold">✏️ Modifier</button>
-                              <button onClick={() => { setMenuMsgId(null); setDeletingId(msg.id); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#C62828] hover:bg-[#fff0f0] font-semibold">🗑️ Supprimer</button>
+                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: isMine }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#C62828] hover:bg-[#fff0f0] font-semibold">🗑️ Supprimer</button>
                             </div>
                           )}
                         </div>
@@ -644,16 +661,51 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* ── Modal suppression ── */}
-      {deletingId && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-xl">
-            <div className="text-2xl mb-3 text-center">🗑️</div>
-            <p className="text-sm font-bold text-[#1F1B2E] text-center mb-1">Supprimer ce message ?</p>
-            <p className="text-xs text-[#6b6b78] text-center mb-4">Cette action est irréversible.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setDeletingId(null)} className="flex-1 py-2.5 rounded-xl border border-[#e6e6ea] text-sm font-bold text-[#6b6b78]">Annuler</button>
-              <button onClick={confirmDelete} className="flex-1 py-2.5 rounded-xl bg-[#C62828] text-white text-sm font-bold">Supprimer</button>
+      {/* ── Modal suppression WhatsApp-style ── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={() => setDeleteTarget(null)}>
+          <div className="bg-white rounded-t-2xl w-full max-w-lg shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-5 pb-3 border-b border-[#f0f0f4]">
+              <p className="text-[15px] font-bold text-[#1F1B2E]">Supprimer le message ?</p>
+              <p className="text-xs text-[#9b9ba8] mt-0.5">
+                {deleteTarget.isMine
+                  ? 'Choisissez qui ne pourra plus voir ce message.'
+                  : 'Ce message sera masqué uniquement pour vous.'}
+              </p>
+            </div>
+            <div className="flex flex-col p-3 gap-2">
+              {/* Pour moi seulement — toujours disponible */}
+              <button
+                onClick={() => hideForMe(deleteTarget.id)}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[#f7f7fb] text-left transition-colors"
+              >
+                <span className="w-9 h-9 rounded-full bg-[#f0f0f4] flex items-center justify-center text-lg flex-shrink-0">🙈</span>
+                <div>
+                  <div className="font-semibold text-sm text-[#1F1B2E]">Supprimer pour moi</div>
+                  <div className="text-xs text-[#9b9ba8]">Masqué uniquement sur votre appareil</div>
+                </div>
+              </button>
+
+              {/* Pour tous — seulement si c'est mon message */}
+              {deleteTarget.isMine && (
+                <button
+                  onClick={deleteForEveryone}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[#fff0f0] text-left transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[#ffe6e6] flex items-center justify-center text-lg flex-shrink-0">🗑️</span>
+                  <div>
+                    <div className="font-semibold text-sm text-[#C62828]">Supprimer pour tous</div>
+                    <div className="text-xs text-[#9b9ba8]">Le message disparaît pour tout le monde</div>
+                  </div>
+                </button>
+              )}
+
+              <button onClick={() => setDeleteTarget(null)}
+                className="w-full py-3 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78] hover:bg-[#f7f7fb] transition-colors">
+                Annuler
+              </button>
             </div>
           </div>
         </div>

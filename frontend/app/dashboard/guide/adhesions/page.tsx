@@ -76,8 +76,24 @@ interface RowState {
   error: string;
 }
 
+// Hiérarchie adhésions :
+//   Guide        → gère les Gardiens de sa paroisse
+//   Sentinelle   → gère les Guides de son doyenné
+//   Région/Admin → gère les Sentinelles (+ peut voir tout le monde)
+const ADHESION_SCOPE: Record<string, { role: string; label: string; sing: string }> = {
+  GUIDE:      { role: 'GARDIEN',    label: 'Mes Gardiens',   sing: 'gardien'    },
+  SENTINELLE: { role: 'GUIDE',      label: 'Mes Guides',     sing: 'guide'      },
+  REGION:     { role: 'SENTINELLE', label: 'Mes Sentinelles',sing: 'sentinelle' },
+  ADMIN:      { role: 'SENTINELLE', label: 'Les Sentinelles', sing: 'sentinelle' },
+};
+
 export default function GuideAdhesionsPage() {
   const { user } = useAuthStore();
+  const scope = ADHESION_SCOPE[user?.role ?? 'GUIDE'] ?? ADHESION_SCOPE['GUIDE'];
+  const isSentinelle    = user?.role === 'SENTINELLE';
+  const isAdminOrRegion = user?.role === 'ADMIN' || user?.role === 'REGION';
+  const membresLabel    = scope.label;
+  const membreSingLabel = scope.sing;
   const [gardiens, setGardiens]           = useState<User[]>([]);
   const [loadingGardiens, setLoadingGardiens] = useState(true);
   const [search, setSearch]               = useState('');
@@ -99,7 +115,11 @@ export default function GuideAdhesionsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await usersApi.list({ role: 'GARDIEN' });
+        const params: Record<string, string> = { role: scope.role };
+        if (isSentinelle    && user?.district?.id) params.districtId = user.district.id;
+        if (!isSentinelle && !isAdminOrRegion && user?.parish?.id) params.parishId = user.parish.id;
+        // Admin/Région : pas de filtre territorial → voit toutes les Sentinelles
+        const { data } = await usersApi.list(params);
         setGardiens(data);
         const cache: Record<string, Adhesion | undefined> = {};
         for (const g of data as User[]) {
@@ -109,7 +129,7 @@ export default function GuideAdhesionsPage() {
       } catch { /* ignore */ }
       finally { setLoadingGardiens(false); }
     })();
-  }, []);
+  }, [user]);
 
   const currentGuideAdhesion = user?.adhesions?.find(a => a.annee === CURRENT_YEAR) ?? user?.adhesions?.[0];
 
@@ -191,7 +211,10 @@ export default function GuideAdhesionsPage() {
             <div>
               <h1 className="text-lg font-black">Adhésions {CURRENT_YEAR}</h1>
               <p className="text-xs opacity-75 mt-0.5">
-                {user?.district?.nom ?? user?.parish?.nom ?? 'Mon territoire'} · {gardiens.length} gardien{gardiens.length !== 1 ? 's' : ''}
+                {isAdminOrRegion
+                  ? (user?.district?.nom ?? 'Tous les doyennés')
+                  : (user?.district?.nom ?? user?.parish?.nom ?? 'Mon territoire')
+                } · {gardiens.length} {membreSingLabel}{gardiens.length !== 1 ? 's' : ''}
               </p>
             </div>
             <div className="text-right">
@@ -270,14 +293,14 @@ export default function GuideAdhesionsPage() {
           </button>
         </div>
 
-        {/* ── Mes Gardiens ── */}
+        {/* ── Mes Gardiens / Guides ── */}
         <div className="bg-white rounded-2xl border border-[#ececf0] overflow-hidden">
 
           {/* Entête section */}
           <div className="px-4 pt-4 pb-3 border-b border-[#f0f0f4]">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-[#1F1B2E]">
-                Mes Gardiens
+                {membresLabel}
                 {user?.district?.nom ? ` — ${user.district.nom}` : user?.parish?.nom ? ` — ${user.parish.nom}` : ''}
               </h2>
               <span className="text-xs text-[#6b6b78]">{afterFilter.length} résultat{afterFilter.length !== 1 ? 's' : ''}</span>
@@ -328,7 +351,7 @@ export default function GuideAdhesionsPage() {
           ) : paginated.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
               <div className="text-4xl mb-2">🌿</div>
-              <p className="text-sm font-medium">Aucun gardien trouvé</p>
+              <p className="text-sm font-medium">Aucun {membreSingLabel} trouvé</p>
             </div>
           ) : (
             <div>
@@ -436,7 +459,7 @@ export default function GuideAdhesionsPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="border-t border-[#f0f0f4] px-4 py-3">
-              <Pagination page={page} total={totalPages} onChange={setPage} />
+              <Pagination page={page} totalItems={afterFilter.length} perPage={PER_PAGE} onChange={setPage} />
             </div>
           )}
         </div>

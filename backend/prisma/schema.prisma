@@ -4,8 +4,9 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  importFileExtension = "js"
 }
 
 datasource db {
@@ -550,6 +551,7 @@ model Challenge {
   regne          Regne?
   niveau         ChallengeLevel    @default(DECOUVERTE)
   preuveDemandee String?
+  duree          Int?              // nombre de jours pour les défis à preuves quotidiennes
   points         Int               @default(0)
   imageUrl       String?
   statut         ChallengeStatus   @default(ACTIF)

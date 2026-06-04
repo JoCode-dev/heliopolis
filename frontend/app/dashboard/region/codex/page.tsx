@@ -19,7 +19,7 @@ export default function CodexPage() {
         codexApi.wall(1),
       ]);
       setPending(p.data);
-      setWall(w.data?.submissions ?? w.data ?? []);
+      setWall((w.data as { items: Submission[] })?.items ?? w.data ?? []);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };

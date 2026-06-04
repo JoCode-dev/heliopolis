@@ -75,6 +75,7 @@ export interface Challenge {
   categorie: ChallengeCategory; points: number;
   niveau: string; statut: string; imageUrl?: string;
   preuveDemandee?: string;
+  duree?: number;
   _count?: { submissions: number };
 }
 

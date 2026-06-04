@@ -7,33 +7,34 @@ export class CodexService {
 
   async getWall(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
-    return this.prisma.submission.findMany({
-      where: {
-        publishedToCodex: true,
-        moderation: 'APPROUVE',
-        statut: 'VALIDE',
-      },
-      include: {
-        gardien: {
-          select: {
-            id: true,
-            nom: true,
-            prenoms: true,
-            avatarUrl: true,
-            parish: { select: { id: true, nom: true } },
+    const where = { statut: 'VALIDE' } as const;
+    const [items, total] = await Promise.all([
+      this.prisma.submission.findMany({
+        where,
+        include: {
+          gardien: {
+            select: {
+              id: true,
+              nom: true,
+              prenoms: true,
+              avatarUrl: true,
+              parish: { select: { id: true, nom: true } },
+            },
           },
+          challenge: {
+            select: { id: true, titre: true, categorie: true, points: true },
+          },
+          media: { where: { isPublic: true }, take: 3 },
+          reactions: true,
+          _count: { select: { reactions: true } },
         },
-        challenge: {
-          select: { id: true, titre: true, categorie: true, points: true },
-        },
-        media: { where: { isPublic: true }, take: 3 },
-        reactions: true,
-        _count: { select: { reactions: true } },
-      },
-      orderBy: { validatedAt: 'desc' },
-      skip,
-      take: limit,
-    });
+        orderBy: { submittedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.submission.count({ where }),
+    ]);
+    return { items, total };
   }
 
   async react(submissionId: string, userId: string, emoji = '❤️') {
@@ -41,6 +42,12 @@ export class CodexService {
       where: { submissionId_userId_emoji: { submissionId, userId, emoji } },
       create: { submissionId, userId, emoji },
       update: {},
+    });
+  }
+
+  async unreact(submissionId: string, userId: string, emoji = '❤️') {
+    return this.prisma.codexReaction.deleteMany({
+      where: { submissionId, userId, emoji },
     });
   }
 

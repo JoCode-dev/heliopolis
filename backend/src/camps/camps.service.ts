@@ -272,6 +272,21 @@ export class CampsService {
     });
   }
 
+  async removeParticipant(campId: string, userId: string, actorId: string) {
+    const camp = await this.prisma.camp.findUnique({ where: { id: campId } });
+    if (!camp?.selectionOuverte)
+      throw new ForbiddenException('La sélection est fermée pour ce camp');
+
+    const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
+    const target = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!actor || !target) throw new NotFoundException('Utilisateur introuvable');
+    if (!this.userIsInActorScope(actor, target))
+      throw new ForbiddenException('Gardien hors périmètre');
+
+    await this.prisma.campParticipant.deleteMany({ where: { campId, userId } });
+    return { success: true };
+  }
+
   async getByDistrict(campId: string) {
     return this.prisma.campParticipant.groupBy({
       by: ['districtId'],

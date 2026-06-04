@@ -1,326 +1,423 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import { usersApi, challengesApi, campsApi, messagingApi } from '@/lib/api';
 import { getTerritoryLabel, ROLE_LABEL } from '@/lib/roles';
-import { Card, SectionTitle } from '@/components/ui';
+import { Progress } from '@/components/ui';
 import { CampCard } from '@/components/camps/CampCard';
 import type { User, Camp, Submission, Conversation } from '@/types';
 
+const CONV_GRADIENT: Record<string, string> = {
+  COMMUNAUTE: 'from-[#F58A4B] to-[#C62828]', REGION: 'from-[#F58A4B] to-[#C62828]',
+  DOYENNE: 'from-[#6A1B9A] to-[#3d1163]', PAROISSE: 'from-[#C62828] to-[#7a1717]',
+  PRIVE: 'from-[#1F1B2E] to-[#3a1d4d]', GROUPE: 'from-[#2E7D32] to-[#1a5021]',
+};
 const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
 };
+const CAT_EMOJI: Record<string, string> = {
+  PERSONNEL: '🌿', COMMUNAUTAIRE: '🤝', SPIRITUEL: '🔥', LONG: '🏔️',
+};
+
+function timeLabel(d?: string | null) {
+  if (!d) return '';
+  const diff = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+  if (diff === 0) return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (diff === 1) return 'Hier';
+  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
 
 export default function DashboardGuidePage() {
   const { user } = useAuthStore();
-  const [routiers, setRoutiers] = useState<User[]>([]);
-  const [camps, setCamps] = useState<Camp[]>([]);
-  const [pending, setPending] = useState<Submission[]>([]);
+  const isSentinelle = user?.role === 'SENTINELLE';
+
+  // Guide : gardiens de la paroisse / Sentinelle : guides du doyenné
+  const [directReports, setDirectReports] = useState<User[]>([]);
+  // Sentinelle uniquement : tous les gardiens du doyenné
+  const [allGardiens, setAllGardiens]     = useState<User[]>([]);
+  const [camps, setCamps]                 = useState<Camp[]>([]);
+  const [pending, setPending]             = useState<Submission[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]             = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    const params: Record<string, string> = { role: 'GARDIEN' };
-    if (user.role === 'GUIDE') {
-      if (!user.parish?.id) return;
-      params.parishId = user.parish.id;
-    }
-    if (user.role === 'SENTINELLE') {
-      if (!user.district?.id) return;
-      params.districtId = user.district.id;
-    }
-    Promise.all([
-      usersApi.list(params),
+
+    const directParams: Record<string, string> = {
+      role: isSentinelle ? 'GUIDE' : 'GARDIEN',
+    };
+    if (isSentinelle && user.district?.id) directParams.districtId = user.district.id;
+    if (!isSentinelle && user.parish?.id)  directParams.parishId   = user.parish.id;
+
+    const promises: Promise<unknown>[] = [
+      usersApi.list(directParams),
       campsApi.list({ statut: 'OUVERT' }),
       challengesApi.pending(),
       messagingApi.conversations(),
-    ]).then(([u, c, p, conv]) => {
-      setRoutiers(u.data);
-      setCamps(c.data);
-      setPending(p.data);
-      setConversations(conv.data);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [user]);
+    ];
 
-  const aJour   = routiers.filter(r => r.adhesions?.[0]?.statut === 'A_JOUR').length;
-  const nonAJour = routiers.length - aJour;
+    // Sentinelle : charge aussi tous les gardiens du doyenné
+    if (isSentinelle && user.district?.id) {
+      promises.push(usersApi.list({ role: 'GARDIEN', districtId: user.district.id }));
+    }
+
+    Promise.all(promises).then(([u, c, p, conv, gRes]) => {
+      setDirectReports((u as { data: User[] }).data);
+      setCamps((c as { data: Camp[] }).data);
+      setPending((p as { data: Submission[] }).data);
+      setConversations((conv as { data: Conversation[] }).data);
+      if (gRes) setAllGardiens((gRes as { data: User[] }).data);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [user, isSentinelle]);
+
+  // Stats adhésion sur les rapports directs
+  const aJour    = directReports.filter(r => r.adhesions?.[0]?.statut === 'A_JOUR').length;
+  const nonAJour = directReports.length - aJour;
+  const adhesionPct = directReports.length > 0
+    ? Math.round((aJour / directReports.length) * 100) : 0;
+
+  // Stats gardiens (Sentinelle)
+  const gardiensAJour = allGardiens.filter(g => g.adhesions?.[0]?.statut === 'A_JOUR').length;
+  const gardiensNonAJour = allGardiens.length - gardiensAJour;
+  const gardiensAdhPct = allGardiens.length > 0
+    ? Math.round((gardiensAJour / allGardiens.length) * 100) : 0;
+
   const roleName  = user ? ROLE_LABEL[user.role] : 'Guide';
   const territory = getTerritoryLabel(user);
-  const canExport = user?.role === 'SENTINELLE' || user?.role === 'ADMIN' || user?.role === 'REGION';
-  const adhesionPct = routiers.length > 0 ? Math.round((aJour / routiers.length) * 100) : 0;
+  const activeConvs = conversations.filter(c =>
+    ((c as unknown as { _count?: { messages: number } })._count?.messages ?? 0) > 0 ||
+    (c.messages?.length ?? 0) > 0
+  );
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
 
-      {/* ── Bandeau de bienvenue — desktop uniquement (mobile: le layout topbar suffit) ── */}
-      <div className="hidden lg:flex items-center gap-3.5 px-8 py-4 bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white flex-shrink-0">
-        <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center font-black text-base overflow-hidden flex-shrink-0">
-          {user?.avatarUrl
-            ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
-            : user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : 'G'}
+      {/* ── Header ── */}
+      <div className={`bg-gradient-to-br ${isSentinelle
+        ? 'from-[#1F1B2E] via-[#3d1163] to-[#6A1B9A]'
+        : 'from-[#6A1B9A] via-[#5a1280] to-[#1F1B2E]'
+      } text-white px-4 pt-4 pb-5 flex-shrink-0`}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-11 h-11 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden">
+            {user?.avatarUrl
+              ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
+              : user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : 'G'}
+          </div>
+          <div className="flex-1">
+            <h1 className="text-base font-bold">{user?.prenoms} {user?.nom}</h1>
+            <p className="text-xs opacity-80 mt-0.5">
+              {isSentinelle ? '🛡️' : '📖'} {roleName} · {territory}
+            </p>
+          </div>
+          {pending.length > 0 && (
+            <Link href="/dashboard/guide/missions"
+              className="flex items-center gap-1.5 bg-[#C62828] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-full">
+              🎯 {pending.length} à valider
+            </Link>
+          )}
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-black leading-tight">{user?.prenoms} {user?.nom}</h1>
-          <p className="text-xs opacity-80 mt-0.5">{roleName} · {territory}</p>
-        </div>
-        {/* Taux d'adhésion global */}
-        {routiers.length > 0 && (
-          <div className="text-right hidden xl:block">
-            <div className="text-2xl font-black">{adhesionPct}%</div>
-            <div className="text-[10px] opacity-70 uppercase tracking-wider">Taux adhésion</div>
+
+        {/* Barre adhésion directReports */}
+        {directReports.length > 0 && (
+          <div className="bg-black/20 rounded-2xl px-4 py-3">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs opacity-80">
+                {isSentinelle ? 'Adhésions Guides' : 'Adhésions Gardiens'} 2026
+              </span>
+              <span className="text-xs font-bold">
+                {aJour} / {directReports.length} · {adhesionPct}%
+              </span>
+            </div>
+            <Progress value={aJour} max={Math.max(directReports.length, 1)} />
+            {nonAJour > 0 && (
+              <p className="text-[10px] opacity-70 mt-1.5">
+                ⚠️ {nonAJour} {isSentinelle ? 'guide' : 'gardien'}{nonAJour > 1 ? 's' : ''} non à jour
+              </p>
+            )}
+
+            {/* Sentinelle : deuxième barre pour les gardiens */}
+            {isSentinelle && allGardiens.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/20">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs opacity-80">Adhésions Gardiens 2026</span>
+                  <span className="text-xs font-bold">
+                    {gardiensAJour} / {allGardiens.length} · {gardiensAdhPct}%
+                  </span>
+                </div>
+                <Progress value={gardiensAJour} max={Math.max(allGardiens.length, 1)} />
+                {gardiensNonAJour > 0 && (
+                  <p className="text-[10px] opacity-70 mt-1.5">
+                    ⚠️ {gardiensNonAJour} gardien{gardiensNonAJour > 1 ? 's' : ''} non à jour
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Contenu scrollable ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      {/* ── Contenu ── */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f7f7fa]">
 
-        {/* Grille de stats */}
-        <div className="px-4 pt-4 lg:px-8 lg:pt-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <StatCard
-              value={routiers.length}
-              label="Gardiens"
-              icon="🤝"
-              color="#6A1B9A"
-              bg="from-[#6A1B9A]/10 to-[#6A1B9A]/5"
-            />
-            <StatCard
-              value={aJour}
-              label="À jour 2026"
-              icon="✅"
-              color="#2E7D32"
-              bg="from-[#2E7D32]/10 to-[#2E7D32]/5"
-              sub={routiers.length > 0 ? `${adhesionPct}% du total` : undefined}
-            />
-            <StatCard
-              value={camps.length}
-              label="Camps ouverts"
-              icon="⛺"
-              color="#D9A441"
-              bg="from-[#D9A441]/15 to-[#D9A441]/5"
-            />
-            <StatCard
-              value={pending.length}
-              label="Défis à valider"
-              icon="🎯"
-              color={pending.length > 0 ? '#C62828' : '#6b6b78'}
-              bg={pending.length > 0 ? 'from-[#C62828]/10 to-[#C62828]/5' : 'from-[#f3f3f5] to-[#f3f3f5]'}
-            />
-          </div>
+        {/* Stats rapides */}
+        <div className={`px-4 pt-4 grid gap-2 ${isSentinelle ? 'grid-cols-4' : 'grid-cols-4'}`}>
+          {isSentinelle ? [
+            { v: directReports.length, label: 'Guides',    color: '#6A1B9A' },
+            { v: allGardiens.length,   label: 'Gardiens',  color: '#C62828' },
+            { v: camps.length,         label: 'Camps',     color: '#D9A441' },
+            { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
+          ] : [
+            { v: directReports.length, label: 'Gardiens',  color: '#6A1B9A' },
+            { v: aJour,                label: 'À jour',    color: '#2E7D32' },
+            { v: camps.length,         label: 'Camps',     color: '#D9A441' },
+            { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-xl p-2.5 border border-[#ececf0] text-center shadow-sm">
+              <div className="text-xl font-black" style={{ color: s.color }}>{s.v}</div>
+              <div className="text-[9px] text-[#6b6b78] uppercase tracking-wide leading-tight mt-0.5">{s.label}</div>
+            </div>
+          ))}
         </div>
 
-        {/* Barre de progression adhésions */}
-        {routiers.length > 0 && (
-          <div className="px-4 pt-3 lg:px-8">
-            <div className="bg-white rounded-2xl border border-[#ececf0] p-3.5">
-              <div className="flex justify-between items-center mb-2 text-xs font-semibold text-[#1F1B2E]">
-                <span>Adhésions 2026</span>
-                <span className="text-[#6b6b78] font-normal">{aJour} / {routiers.length} à jour</span>
-              </div>
-              <div className="h-2 bg-[#f0f0f4] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] transition-all"
-                  style={{ width: `${adhesionPct}%` }}
-                />
-              </div>
-              {nonAJour > 0 && (
-                <p className="text-[11px] text-[#C62828] mt-1.5 font-medium">
-                  {nonAJour} gardien{nonAJour > 1 ? 's' : ''} non à jour — pensez à relancer
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Layout 2 colonnes sur desktop */}
-        <div className="px-4 pb-6 lg:px-8 lg:pb-8 lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-start">
-
-          {/* Colonne gauche : actions */}
-          <div>
-            <SectionTitle>Actions du jour</SectionTitle>
-
-            {nonAJour > 0 && (
-              <ActionCard
-                icon="⚠️"
-                iconBg="bg-[#fff3d6]"
-                title={`${nonAJour} routier${nonAJour > 1 ? 's' : ''} à relancer`}
-                sub="Adhésion 2026 non à jour"
-                action={
-                  <Link
-                    href="/dashboard/guide/membres"
-                    className="text-xs bg-[#D9A441] text-white px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap"
-                  >
-                    Voir
-                  </Link>
-                }
-              />
-            )}
-
+        {/* Actions rapides */}
+        <div className="px-4 pt-3 grid grid-cols-3 gap-2">
+          <Link href="/dashboard/guide/missions"
+            className="bg-white rounded-xl p-3 border border-[#ececf0] shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition relative">
             {pending.length > 0 && (
-              <ActionCard
-                icon="🎯"
-                iconBg="bg-[#f0e3ff]"
-                title={`${pending.length} preuve${pending.length > 1 ? 's' : ''} en attente`}
-                sub="À valider avant la fin de semaine"
-                action={
-                  <Link
-                    href="/dashboard/guide/codex"
-                    className="text-xs bg-[#C62828] text-white px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap"
-                  >
-                    Valider
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#C62828] text-white text-[9px] font-black flex items-center justify-center">
+                {pending.length}
+              </span>
+            )}
+            <span className="text-2xl">🎯</span>
+            <span className="text-[10px] font-semibold text-[#1F1B2E]">Valider</span>
+          </Link>
+          <Link href="/dashboard/guide/membres"
+            className="bg-white rounded-xl p-3 border border-[#ececf0] shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition">
+            <span className="text-2xl">{isSentinelle ? '🛡️' : '👥'}</span>
+            <span className="text-[10px] font-semibold text-[#1F1B2E]">{isSentinelle ? 'Guides' : 'Membres'}</span>
+          </Link>
+          <Link href="/dashboard/guide/adhesions"
+            className="bg-white rounded-xl p-3 border border-[#ececf0] shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition relative">
+            {nonAJour > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#D9A441] text-white text-[9px] font-black flex items-center justify-center">
+                {nonAJour}
+              </span>
+            )}
+            <span className="text-2xl">📋</span>
+            <span className="text-[10px] font-semibold text-[#1F1B2E]">Adhésions</span>
+          </Link>
+        </div>
+
+        <div className="px-4 lg:px-8 pb-6">
+          <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+
+            {/* ── Gauche : validations + camps ── */}
+            <div>
+              <div className="flex items-center justify-between mt-4 mb-2.5">
+                <h2 className="text-sm font-bold text-[#1F1B2E]">À valider</h2>
+                {pending.length > 0 && (
+                  <Link href="/dashboard/guide/missions" className="text-xs text-[#C62828] font-semibold">
+                    Tout voir ({pending.length}) →
                   </Link>
-                }
-              />
-            )}
-
-            {nonAJour === 0 && pending.length === 0 && !loading && (
-              <ActionCard
-                icon="✅"
-                iconBg="bg-[#e1f4e3]"
-                title="Tout est à jour"
-                sub="Aucune action requise aujourd'hui"
-              />
-            )}
-
-            {/* Export — contextualisé ici pour la Sentinelle */}
-            {canExport && (
-              <div className="mt-4">
-                <SectionTitle>Outils</SectionTitle>
-                <Link
-                  href="/dashboard/guide/adhesions"
-                  className="flex items-center gap-3 bg-white rounded-2xl border border-[#ececf0] p-3.5 mb-2.5 hover:border-[#C62828]/40 transition-colors group"
-                >
-                  <span className="w-9 h-9 rounded-xl bg-[#ffe6e6] flex items-center justify-center text-lg flex-shrink-0">📋</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#1F1B2E]">Gérer les adhésions</div>
-                    <div className="text-xs text-[#6b6b78]">Statuts et paiements</div>
-                  </div>
-                  <span className="text-[#C62828] text-sm group-hover:translate-x-0.5 transition-transform">→</span>
-                </Link>
-                <Link
-                  href="/dashboard/guide/membres"
-                  className="flex items-center gap-3 bg-white rounded-2xl border border-[#ececf0] p-3.5 mb-2.5 hover:border-[#6A1B9A]/40 transition-colors group"
-                >
-                  <span className="w-9 h-9 rounded-xl bg-[#f0e3ff] flex items-center justify-center text-lg flex-shrink-0">👥</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#1F1B2E]">Liste des membres</div>
-                    <div className="text-xs text-[#6b6b78]">Gardiens de mon territoire</div>
-                  </div>
-                  <span className="text-[#6A1B9A] text-sm group-hover:translate-x-0.5 transition-transform">→</span>
-                </Link>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Colonne droite : camps + messages */}
-          <div>
-            {camps.length > 0 && (
-              <>
-                <SectionTitle>
-                  Camps ouverts
-                  {camps.length > 1 && (
-                    <Link href="/dashboard/guide/camps" className="text-xs text-[#6A1B9A] font-semibold">
+              {loading && (
+                <div className="bg-white rounded-2xl p-6 text-center text-[#9b9ba8] text-sm animate-pulse border border-[#ececf0]">Chargement…</div>
+              )}
+
+              {!loading && pending.length === 0 && (
+                <div className="bg-white rounded-2xl p-6 text-center border border-[#ececf0]">
+                  <div className="text-3xl mb-2">✅</div>
+                  <p className="text-sm font-semibold text-[#1F1B2E]">Tout est validé !</p>
+                  <p className="text-xs text-[#9b9ba8] mt-1">Aucune preuve en attente.</p>
+                </div>
+              )}
+
+              {pending.slice(0, 3).map(sub => {
+                const g = sub.gardien;
+                const parish = (sub as unknown as { gardien?: { parish?: { nom: string } } }).gardien?.parish;
+                return (
+                  <div key={sub.id} className="bg-white rounded-2xl border border-[#ececf0] mb-2.5 overflow-hidden shadow-sm">
+                    <div className="px-3.5 pt-3.5 pb-2.5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                          {g ? `${g.nom?.[0]}${g.prenoms?.[0]}`.toUpperCase() : '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-[#1F1B2E] truncate">{g?.prenoms} {g?.nom}</p>
+                          <p className="text-[10px] text-[#9b9ba8]">
+                            {g?.matricule ?? '—'}
+                            {isSentinelle && parish && ` · ${parish.nom}`}
+                          </p>
+                        </div>
+                        <span className="text-lg">{CAT_EMOJI[sub.challenge.categorie] ?? '🎯'}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#1F1B2E] mb-1">{sub.challenge.titre}</p>
+                      {sub.texte && <p className="text-[11px] text-[#6b6b78] line-clamp-2 italic">« {sub.texte} »</p>}
+                    </div>
+                    <div className="flex border-t border-[#f0f0f0]">
+                      <Link href="/dashboard/guide/missions"
+                        className="flex-1 py-2.5 text-center text-xs font-bold text-[#6A1B9A] hover:bg-[#f5f0ff] transition">
+                        Voir détails
+                      </Link>
+                      <div className="w-px bg-[#f0f0f0]" />
+                      <Link href="/dashboard/guide/missions"
+                        className="flex-1 py-2.5 text-center text-xs font-bold text-[#C62828] hover:bg-[#fff0f0] transition">
+                        Valider →
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {pending.length > 3 && (
+                <Link href="/dashboard/guide/missions"
+                  className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-3 rounded-xl mb-4 active:scale-95 transition">
+                  + {pending.length - 3} autres soumissions →
+                </Link>
+              )}
+
+              {/* Sentinelle : liste des guides avec leur état */}
+              {isSentinelle && directReports.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h2 className="text-sm font-bold text-[#1F1B2E]">Mes Guides</h2>
+                    <Link href="/dashboard/guide/membres" className="text-xs text-[#6A1B9A] font-semibold">
                       Tout voir →
                     </Link>
-                  )}
-                </SectionTitle>
-                {camps.slice(0, 2).map(camp => (
-                  <div key={camp.id} className="mb-3">
-                    <CampCard camp={camp} href={`/dashboard/guide/camps/${camp.id}`} />
-                    <Link
-                      href={`/dashboard/guide/selection/${camp.id}`}
-                      className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-2.5 rounded-b-2xl -mt-1 hover:bg-[#5a1280] transition-colors"
-                    >
-                      Sélectionner pour ce camp →
+                  </div>
+                  {directReports.slice(0, 4).map(guide => {
+                    const adh = guide.adhesions?.[0];
+                    return (
+                      <div key={guide.id} className="bg-white rounded-xl border border-[#ececf0] px-3 py-2.5 mb-1.5 flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                          {guide.nom[0]}{guide.prenoms[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-[#1F1B2E] truncate">{guide.prenoms} {guide.nom}</p>
+                          <p className="text-[10px] text-[#9b9ba8] truncate">{guide.parish?.nom ?? '—'}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                          adh?.statut === 'A_JOUR'     ? 'bg-[#e8f5e9] text-[#2E7D32]' :
+                          adh?.statut === 'EN_ATTENTE' ? 'bg-[#fff8e6] text-[#9c7218]' :
+                                                         'bg-[#fff0f0] text-[#C62828]'
+                        }`}>
+                          {adh?.statut === 'A_JOUR' ? '✓' : adh?.statut === 'EN_ATTENTE' ? '⏳' : '✕'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Camp */}
+              {camps.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h2 className="text-sm font-bold text-[#1F1B2E]">Camps ouverts</h2>
+                    {camps.length > 1 && (
+                      <Link href="/dashboard/guide/camps" className="text-xs text-[#6A1B9A] font-semibold">Tout voir →</Link>
+                    )}
+                  </div>
+                  {camps.slice(0, 1).map(camp => (
+                    <div key={camp.id} className="mb-3">
+                      <CampCard camp={camp} href={`/dashboard/guide/camps/${camp.id}`} />
+                      <Link href={`/dashboard/guide/selection/${camp.id}`}
+                        className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-2.5 rounded-b-2xl -mt-1 hover:bg-[#5a1280] transition">
+                        Sélectionner les participants →
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Droite : adhésions à régulariser + messages ── */}
+            <div>
+              {/* Membres à relancer */}
+              {nonAJour > 0 && (
+                <div className="mt-4 mb-2.5">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h2 className="text-sm font-bold text-[#1F1B2E]">
+                      ⚠️ {isSentinelle ? 'Guides' : 'Gardiens'} à régulariser
+                    </h2>
+                    <Link href="/dashboard/guide/adhesions" className="text-xs text-[#D9A441] font-semibold">
+                      Gérer →
                     </Link>
                   </div>
-                ))}
-              </>
-            )}
+                  {directReports
+                    .filter(r => r.adhesions?.[0]?.statut !== 'A_JOUR')
+                    .slice(0, 4)
+                    .map(r => (
+                      <div key={r.id} className="bg-white rounded-xl border border-[#ececf0] px-3 py-2.5 mb-1.5 flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                          {r.nom[0]}{r.prenoms[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-[#1F1B2E] truncate">{r.prenoms} {r.nom}</p>
+                          <p className="text-[10px] text-[#9b9ba8]">
+                            {r.matricule ?? '—'}
+                            {isSentinelle && r.parish?.nom ? ` · ${r.parish.nom}` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          r.adhesions?.[0]?.statut === 'EN_ATTENTE'
+                            ? 'bg-[#fff8e6] text-[#9c7218]'
+                            : 'bg-[#fff0f0] text-[#C62828]'
+                        }`}>
+                          {r.adhesions?.[0]?.statut === 'EN_ATTENTE' ? 'En attente' : 'Non à jour'}
+                        </span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
 
-            {conversations.length > 0 && (
-              <>
-                <SectionTitle action={
+              {/* Messages */}
+              <div className={nonAJour > 0 ? 'mt-2' : 'mt-4'}>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h2 className="text-sm font-bold text-[#1F1B2E]">Messages récents</h2>
                   <Link href="/dashboard/guide/messages" className="text-xs text-[#6A1B9A] font-semibold">
                     Tout voir →
                   </Link>
-                }>
-                  Messages récents
-                </SectionTitle>
-                <Card className="p-0 overflow-hidden">
-                  {conversations.slice(0, 4).map((conv, i) => {
-                    const lastMsg = conv.messages?.[0];
-                    const timeStr = conv.lastMessageAt
-                      ? new Date(conv.lastMessageAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                      : '';
-                    return (
-                      <Link
-                        key={conv.id}
-                        href={`/dashboard/guide/messages/${conv.id}`}
-                        className={`flex items-center gap-3 px-4 py-3 hover:bg-[#f7f7fb] transition-colors ${i > 0 ? 'border-t border-[#f0f0f4]' : ''}`}
-                      >
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-sm text-white flex-shrink-0">
+                </div>
+
+                {activeConvs.length > 0 ? activeConvs.slice(0, 4).map(conv => {
+                  const lastMsg = conv.messages?.[0];
+                  const gradient = CONV_GRADIENT[conv.type] ?? 'from-[#6A1B9A] to-[#3d1163]';
+                  return (
+                    <Link key={conv.id} href={`/dashboard/guide/messages/${conv.id}`}>
+                      <div className="bg-white rounded-xl border border-[#ececf0] px-3 py-2.5 mb-1.5 flex items-center gap-2.5 hover:border-[#6A1B9A]/30 transition">
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-base flex-shrink-0`}>
                           {CONV_ICON[conv.type] ?? '💬'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center gap-1">
-                            <span className="font-semibold text-xs text-[#1F1B2E] truncate">{conv.nom ?? 'Conversation'}</span>
-                            {timeStr && <span className="text-[10px] text-[#6b6b78] flex-shrink-0">{timeStr}</span>}
+                            <span className="text-xs font-semibold text-[#1F1B2E] truncate">{conv.nom ?? 'Conversation'}</span>
+                            <span className="text-[10px] text-[#9b9ba8] flex-shrink-0">{timeLabel(conv.lastMessageAt)}</span>
                           </div>
-                          <p className="text-[11px] text-[#6b6b78] truncate mt-0.5">
-                            {lastMsg?.contenu ?? 'Aucun message'}
-                          </p>
+                          <p className="text-[11px] text-[#9b9ba8] truncate mt-0.5">{lastMsg?.contenu ?? ''}</p>
                         </div>
-                      </Link>
-                    );
-                  })}
-                </Card>
-              </>
-            )}
+                      </div>
+                    </Link>
+                  );
+                }) : (
+                  <div className="bg-white rounded-xl border border-[#ececf0] p-5 text-center">
+                    <p className="text-sm text-[#9b9ba8]">💬 Aucune conversation active</p>
+                  </div>
+                )}
+
+                <Link href="/dashboard/guide/messages"
+                  className="block w-full text-center border border-[#6A1B9A] text-[#6A1B9A] font-bold text-sm py-3 rounded-xl mt-2 active:scale-95 transition">
+                  Ouvrir la messagerie →
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ── Composants locaux ─────────────────────────────────────────────────────── */
-
-function StatCard({
-  value, label, icon, color, bg, sub,
-}: {
-  value: number; label: string; icon: string; color: string; bg: string; sub?: string;
-}) {
-  return (
-    <div className={`bg-gradient-to-br ${bg} rounded-2xl p-3.5 border border-[#ececf0]`}>
-      <div className="flex items-start justify-between gap-1 mb-1">
-        <div className="text-2xl font-black leading-none" style={{ color }}>{value}</div>
-        <span className="text-xl leading-none">{icon}</span>
-      </div>
-      <div className="text-[10px] text-[#6b6b78] uppercase tracking-wide font-semibold">{label}</div>
-      {sub && <div className="text-[10px] mt-0.5 font-medium" style={{ color }}>{sub}</div>}
-    </div>
-  );
-}
-
-function ActionCard({
-  icon, iconBg, title, sub, action,
-}: {
-  icon: string; iconBg: string; title: string; sub: string; action?: ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 bg-white rounded-2xl border border-[#ececf0] p-3.5 mb-2.5">
-      <span className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center text-xl flex-shrink-0`}>
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm text-[#1F1B2E] truncate">{title}</div>
-        <div className="text-xs text-[#6b6b78]">{sub}</div>
-      </div>
-      {action}
     </div>
   );
 }

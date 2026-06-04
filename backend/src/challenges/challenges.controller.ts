@@ -1,12 +1,19 @@
 import {
   Controller,
+  Delete,
   Get,
   Post,
   Body,
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { randomUUID } from 'crypto';
 import { ChallengesService } from './challenges.service.js';
 import { CreateChallengeDto } from './dto/create-challenge.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -70,12 +77,26 @@ export class ChallengesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.GARDIEN)
   @Post(':id/submit')
+  @UseInterceptors(FileInterceptor('preuve', {
+    storage: diskStorage({
+      destination: join(process.cwd(), 'uploads', 'preuves'),
+      filename: (req, file, cb) => {
+        cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase() || '.jpg'}`);
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype));
+    },
+    limits: { fileSize: 10 * 1024 * 1024 },
+  }))
   submit(
     @Param('id') id: string,
     @Body() body: SubmitChallengeBody,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.challengesService.submit(id, user.id, body);
+    const preuveUrl = file ? `/uploads/preuves/${file.filename}` : body.preuveUrl;
+    return this.challengesService.submit(id, user.id, { ...body, preuveUrl });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -92,6 +113,16 @@ export class ChallengesController {
       body.approved,
       body.comment,
     );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.GARDIEN)
+  @Delete('submissions/:id')
+  retractSubmission(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.challengesService.retractSubmission(id, user.id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

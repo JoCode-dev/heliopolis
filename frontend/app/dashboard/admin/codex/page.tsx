@@ -16,7 +16,10 @@ export default function AdminCodexPage() {
   const reload = useCallback(() => {
     setLoading(true);
     Promise.all([codexApi.pending(), codexApi.wall(1)])
-      .then(([p, w]) => { setPending(p.data); setWall(w.data); })
+      .then(([p, w]) => {
+        setPending(p.data);
+        setWall((w.data as { items: typeof wall; total: number }).items ?? w.data);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { campsApi } from '@/lib/api';
 import { CampCard } from '@/components/camps/CampCard';
 import type { Camp } from '@/types';
@@ -37,17 +36,6 @@ export default function GardienCampsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 bg-[#fafafa]">
-        {/* Bannière info */}
-        <div className="flex gap-2 items-start bg-[#e8f5e9] border border-[#2E7D32]/30 rounded-xl p-3 mb-4 text-xs text-[#1F1B2E]">
-          <span className="text-base flex-shrink-0">ℹ️</span>
-          <span>
-            Pour t&apos;inscrire, contacte ton Guide via la{' '}
-            <Link href="/dashboard/gardien/messages" className="font-semibold text-[#2E7D32] underline">
-              messagerie
-            </Link>.
-          </span>
-        </div>
-
         {/* Filtres */}
         <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
           {FILTERS.map(f => (

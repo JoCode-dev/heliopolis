@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateChallengeDto } from './dto/create-challenge.dto.js';
@@ -71,7 +73,7 @@ export class ChallengesService {
     return this.prisma.submission.findMany({
       where: { gardienId: userId },
       include: { challenge: true, media: true },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: { submittedAt: 'asc' },
     });
   }
 
@@ -82,11 +84,40 @@ export class ChallengesService {
   ) {
     const challenge = await this.prisma.challenge.findUnique({
       where: { id: challengeId },
-      select: { id: true, statut: true },
+      select: { id: true, statut: true, duree: true },
     });
     if (!challenge || challenge.statut !== ChallengeStatus.ACTIF) {
       throw new NotFoundException('Défi introuvable');
     }
+
+    // Pour les défis avec durée : bloquer si une preuve a déjà été soumise aujourd'hui
+    if (challenge.duree) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const alreadyToday = await this.prisma.submission.findFirst({
+        where: {
+          challengeId,
+          gardienId,
+          submittedAt: { gte: todayStart, lte: todayEnd },
+        },
+        select: { id: true },
+      });
+      if (alreadyToday) {
+        throw new BadRequestException('Tu as déjà soumis ta preuve pour aujourd\'hui.');
+      }
+
+      // Vérifier que le défi n'est pas déjà complété (duree soumissions validées)
+      const validatedCount = await this.prisma.submission.count({
+        where: { challengeId, gardienId, statut: 'VALIDE' },
+      });
+      if (validatedCount >= challenge.duree) {
+        throw new BadRequestException('Ce défi est déjà complété !');
+      }
+    }
+
     return this.prisma.submission.create({
       data: {
         challengeId,
@@ -123,6 +154,19 @@ export class ChallengesService {
         moderation: approved ? 'APPROUVE' : 'REJETE',
       },
     });
+  }
+
+  async retractSubmission(submissionId: string, gardienId: string) {
+    const submission = await this.prisma.submission.findFirst({
+      where: { id: submissionId, gardienId },
+      select: { id: true, statut: true },
+    });
+    if (!submission) throw new NotFoundException('Soumission introuvable');
+    if (submission.statut !== 'EN_ATTENTE') {
+      throw new ConflictException('Seules les soumissions en attente peuvent être annulées.');
+    }
+    await this.prisma.submission.delete({ where: { id: submissionId } });
+    return { success: true };
   }
 
   async getPendingSubmissions(actor: AuthUser) {

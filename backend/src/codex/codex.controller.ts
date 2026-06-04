@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -34,6 +35,16 @@ export class CodexController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.codexService.react(id, user.id, emoji);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/react')
+  unreact(
+    @Param('id') id: string,
+    @Body('emoji') emoji: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.codexService.unreact(id, user.id, emoji);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

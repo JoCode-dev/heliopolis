@@ -16,6 +16,8 @@ async function bootstrap() {
   if (!existsSync(avatarsDir)) mkdirSync(avatarsDir, { recursive: true });
   const adhesionsDir = join(process.cwd(), 'uploads', 'adhesions');
   if (!existsSync(adhesionsDir)) mkdirSync(adhesionsDir, { recursive: true });
+  const preuvesDir = join(process.cwd(), 'uploads', 'preuves');
+  if (!existsSync(preuvesDir)) mkdirSync(preuvesDir, { recursive: true });
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   app.setGlobalPrefix('api');
