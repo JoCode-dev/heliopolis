@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { BadgesService } from '../badges/badges.service.js';
 import { CreateChallengeDto } from './dto/create-challenge.dto.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import {
@@ -17,7 +18,10 @@ import type { AuthUser } from '../common/types/auth-user.js';
 
 @Injectable()
 export class ChallengesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private badges: BadgesService,
+  ) {}
 
   private submissionScopeWhere(actor: AuthUser): Prisma.SubmissionWhereInput {
     if (actor.role === UserRole.ADMIN) return {};
@@ -77,6 +81,14 @@ export class ChallengesService {
     });
   }
 
+  private async getGardienTotalPoints(gardienId: string): Promise<number> {
+    const subs = await this.prisma.submission.findMany({
+      where: { gardienId, statut: 'VALIDE' },
+      select: { challenge: { select: { points: true } } },
+    });
+    return subs.reduce((sum, s) => sum + (s.challenge?.points ?? 0), 0);
+  }
+
   async submit(
     challengeId: string,
     gardienId: string,
@@ -84,10 +96,20 @@ export class ChallengesService {
   ) {
     const challenge = await this.prisma.challenge.findUnique({
       where: { id: challengeId },
-      select: { id: true, statut: true, duree: true },
+      select: { id: true, statut: true, duree: true, pointsRequis: true },
     });
     if (!challenge || challenge.statut !== ChallengeStatus.ACTIF) {
       throw new NotFoundException('Défi introuvable');
+    }
+
+    // Vérification des points requis
+    if (challenge.pointsRequis > 0) {
+      const totalPoints = await this.getGardienTotalPoints(gardienId);
+      if (totalPoints < challenge.pointsRequis) {
+        throw new BadRequestException(
+          `Il te faut ${challenge.pointsRequis} pts pour tenter ce défi. Tu en as ${totalPoints}.`,
+        );
+      }
     }
 
     // Pour les défis avec durée : bloquer si une preuve a déjà été soumise aujourd'hui
@@ -109,7 +131,6 @@ export class ChallengesService {
         throw new BadRequestException('Tu as déjà soumis ta preuve pour aujourd\'hui.');
       }
 
-      // Vérifier que le défi n'est pas déjà complété (duree soumissions validées)
       const validatedCount = await this.prisma.submission.count({
         where: { challengeId, gardienId, statut: 'VALIDE' },
       });
@@ -139,12 +160,13 @@ export class ChallengesService {
         id: submissionId,
         ...this.submissionScopeWhere(validateur),
       },
-      select: { id: true },
+      select: { id: true, gardienId: true },
     });
     if (!submission) {
       throw new ForbiddenException('Soumission hors périmètre');
     }
-    return this.prisma.submission.update({
+
+    const updated = await this.prisma.submission.update({
       where: { id: submissionId },
       data: {
         statut: approved ? 'VALIDE' : 'REJETE',
@@ -154,6 +176,14 @@ export class ChallengesService {
         moderation: approved ? 'APPROUVE' : 'REJETE',
       },
     });
+
+    // Vérification et attribution automatique des artefacts
+    let newBadges: string[] = [];
+    if (approved) {
+      newBadges = await this.badges.checkAndAwardBadges(submission.gardienId);
+    }
+
+    return { ...updated, newBadges };
   }
 
   async retractSubmission(submissionId: string, gardienId: string) {

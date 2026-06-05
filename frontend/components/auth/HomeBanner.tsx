@@ -1,10 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useAuthStore } from '@/store/auth';
+import { useAuthHydrated, useAuthStore } from '@/store/auth';
 import { ROLE_LABEL, getHomeForRole } from '@/lib/roles';
 
 export function HomeBanner() {
-  const { user } = useAuthStore();
+  const hydrated = useAuthHydrated();
+  const { user: storedUser } = useAuthStore();
+  const user = hydrated ? storedUser : null;
 
   if (user) {
     const homeLink = getHomeForRole(user.role);

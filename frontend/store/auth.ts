@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
@@ -46,6 +47,43 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null, isGuest: false });
       },
     }),
-    { name: 'codex-auth', partialize: (s) => ({ user: s.user, accessToken: s.accessToken, isGuest: s.isGuest }) }
+    {
+      name: 'codex-auth',
+      skipHydration: true,
+      partialize: (s) => ({ user: s.user, accessToken: s.accessToken, isGuest: s.isGuest }),
+    }
   )
 );
+
+let authRehydrationStarted = false;
+
+function ensureAuthRehydrated() {
+  if (useAuthStore.persist.hasHydrated() || authRehydrationStarted) return;
+  authRehydrationStarted = true;
+  void useAuthStore.persist.rehydrate();
+}
+
+export function useAuthHydrated() {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const persistApi = useAuthStore.persist;
+    let mounted = true;
+    const unsubscribe = persistApi.onFinishHydration(() => {
+      if (mounted) setHydrated(true);
+    });
+
+    if (persistApi.hasHydrated()) {
+      setHydrated(true);
+    } else {
+      ensureAuthRehydrated();
+    }
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  return hydrated;
+}

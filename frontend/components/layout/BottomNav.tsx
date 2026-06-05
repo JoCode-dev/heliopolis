@@ -17,11 +17,16 @@ const GUEST_ITEMS: NavItem[] = [
 ];
 
 const GARDIEN_ITEMS: NavItem[] = [
-  { href: '/dashboard/gardien', icon: '🤝', label: 'Accueil' },
-  { href: '/dashboard/gardien/camps', icon: '⛺', label: 'Camps' },
+  { href: '/dashboard/gardien',          icon: '🤝', label: 'Accueil'  },
+  { href: '/dashboard/gardien/camps',    icon: '⛺', label: 'Camps'    },
   { href: '/dashboard/gardien/missions', icon: '🎯', label: 'Missions' },
   { href: '/dashboard/gardien/messages', icon: '💬', label: 'Messages' },
-  { href: '/dashboard/gardien/codex', icon: '🪶', label: 'Codex' },
+];
+
+const GARDIEN_OVERFLOW: NavItem[] = [
+  { href: '/dashboard/gardien/codex',    icon: '🪶', label: 'Codex'    },
+  { href: '/dashboard/gardien/artefacts',icon: '🏅', label: 'Artefacts'},
+  { href: '/dashboard/gardien/profil',   icon: '👤', label: 'Profil'   },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
@@ -58,16 +63,19 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
     variant === 'gardien' && isManagementRole(user?.role) ? 'guide' : variant;
 
   // Items overflow selon le rôle
-  const overflowItems: NavItem[] = effectiveVariant === 'guide'
-    ? user?.role === 'ADMIN' || user?.role === 'REGION'
-      ? [...GUIDE_OVERFLOW_BASE, { href: '/dashboard/region', icon: '📊', label: 'Région' }]
-      : GUIDE_OVERFLOW_BASE
-    : [];
+  const overflowItems: NavItem[] =
+    effectiveVariant === 'guide'
+      ? user?.role === 'ADMIN' || user?.role === 'REGION'
+        ? [...GUIDE_OVERFLOW_BASE, { href: '/dashboard/region', icon: '📊', label: 'Région' }]
+        : GUIDE_OVERFLOW_BASE
+      : effectiveVariant === 'gardien'
+        ? GARDIEN_OVERFLOW
+        : [];
 
   const primaryItems =
-    effectiveVariant === 'guest'  ? GUEST_ITEMS    :
-    effectiveVariant === 'admin'  ? ADMIN_ITEMS    :
-    effectiveVariant === 'guide'  ? GUIDE_PRIMARY  :
+    effectiveVariant === 'guest'   ? GUEST_ITEMS    :
+    effectiveVariant === 'admin'   ? ADMIN_ITEMS    :
+    effectiveVariant === 'guide'   ? GUIDE_PRIMARY  :
     GARDIEN_ITEMS;
 
   const isActive = (href: string) =>

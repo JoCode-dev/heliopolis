@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
+import { useAuthHydrated, useAuthStore } from '@/store/auth';
 import { GardiensBlazon } from '@/components/layout/GardiensBlazon';
 import { getHomeForRole } from '@/lib/roles';
 
@@ -14,7 +14,9 @@ const NAV = [
 
 export function PublicTopNav() {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const hydrated = useAuthHydrated();
+  const { user: storedUser } = useAuthStore();
+  const user = hydrated ? storedUser : null;
 
   return (
     <header className="hidden lg:flex items-center gap-6 px-8 py-3 bg-[#1F1B2E] text-white border-b border-white/10 flex-shrink-0 z-20">
@@ -28,7 +30,7 @@ export function PublicTopNav() {
       </Link>
 
       {/* Nav links */}
-      <nav className="flex items-center gap-0.5 flex-1">
+      <nav className="flex items-center justify-center gap-0.5 flex-1">
         {NAV.map(item => {
           const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
           return (

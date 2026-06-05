@@ -57,6 +57,10 @@ export default function MissionsPage() {
   const [selected, setSelected]     = useState<Challenge | null>(null);
   const [toast, setToast]           = useState<{ msg: string; ok: boolean } | null>(null);
 
+  const totalPoints = submissions
+    .filter(s => s.statut === 'VALIDE')
+    .reduce((acc, s) => acc + (s.challenge?.points ?? 0), 0);
+
   // Persistance des onglets et des missions démarrées
   useEffect(() => {
     const savedTab = localStorage.getItem(TAB_KEY) as Tab;
@@ -183,7 +187,7 @@ export default function MissionsPage() {
 
       {/* ── Contenu par onglet ── */}
       {tab === 'defis' && (
-        <DefisTab challenges={availableSet} loading={loading} onOpen={c => setSelected(c)} />
+        <DefisTab challenges={availableSet} loading={loading} totalPoints={totalPoints} onOpen={c => setSelected(c)} />
       )}
       {tab === 'en-cours' && (
         <EnCoursTab challenges={inProgressSet} loading={loading}
@@ -217,9 +221,10 @@ export default function MissionsPage() {
 
 // ─── Onglet 1 : Défis disponibles (cartes + bouton "Voir les détails") ────────
 
-function DefisTab({ challenges, loading, onOpen }: {
+function DefisTab({ challenges, loading, totalPoints, onOpen }: {
   challenges: Challenge[];
   loading: boolean;
+  totalPoints: number;
   onOpen: (c: Challenge) => void;
 }) {
   const [filter, setFilter] = useState<ChallengeCategory | 'ALL'>('ALL');
@@ -246,7 +251,7 @@ function DefisTab({ challenges, loading, onOpen }: {
 
       <div className="p-3 grid gap-3 sm:grid-cols-2">
         {filtered.map(c => (
-          <DefiCard key={c.id} challenge={c} onOpen={() => onOpen(c)} />
+          <DefiCard key={c.id} challenge={c} totalPoints={totalPoints} onOpen={() => onOpen(c)} />
         ))}
       </div>
     </div>
@@ -255,29 +260,58 @@ function DefisTab({ challenges, loading, onOpen }: {
 
 // ─── Carte défi ───────────────────────────────────────────────────────────────
 
-function DefiCard({ challenge: c, onOpen }: { challenge: Challenge; onOpen: () => void }) {
-  const cat   = c.categorie as ChallengeCategory;
-  const style = CAT[cat];
+function DefiCard({ challenge: c, totalPoints, onOpen }: {
+  challenge: Challenge;
+  totalPoints: number;
+  onOpen: () => void;
+}) {
+  const cat     = c.categorie as ChallengeCategory;
+  const style   = CAT[cat];
+  const locked  = (c.pointsRequis ?? 0) > 0 && totalPoints < (c.pointsRequis ?? 0);
+
   return (
-    <div className={`bg-white rounded-2xl border border-[#ececf0] border-l-4 ${style.border} shadow-sm flex flex-col`}>
+    <div className={`rounded-2xl border border-l-4 shadow-sm flex flex-col transition-all ${
+      locked
+        ? 'bg-[#f9f9fc] border-[#ddd] border-l-[#ccc] opacity-75'
+        : `bg-white border-[#ececf0] ${style.border}`
+    }`}>
       <div className="p-3.5 flex-1">
         <div className="flex items-start gap-2 mb-2">
-          <span className="text-2xl flex-shrink-0">{CAT_EMOJI[cat]}</span>
-          <h4 className="font-bold text-sm text-[#1F1B2E] leading-tight">{c.titre}</h4>
+          <span className="text-2xl flex-shrink-0">{locked ? '🔒' : CAT_EMOJI[cat]}</span>
+          <h4 className={`font-bold text-sm leading-tight ${locked ? 'text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>
+            {c.titre}
+          </h4>
         </div>
         <p className="text-[11px] text-[#6b6b78] leading-relaxed line-clamp-2 mb-3">{c.description}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Pill variant={style.pill}>{CAT_LABEL[cat]}</Pill>
+            <Pill variant={locked ? 'gris' : style.pill}>{CAT_LABEL[cat]}</Pill>
             {c.duree && <Pill variant="gris">{c.duree}j</Pill>}
           </div>
-          <span className="text-sm font-black" style={{ color: style.accent }}>+{c.points} pts</span>
+          <span className="text-sm font-black" style={{ color: locked ? '#9b9ba8' : style.accent }}>
+            +{c.points} pts
+          </span>
         </div>
+        {locked && (
+          <div className="mt-2 flex items-center gap-1.5 bg-[#fff8e6] border border-[#f0d98a] rounded-lg px-2.5 py-1.5">
+            <span className="text-base">⭐</span>
+            <span className="text-[11px] text-[#9c7218] font-semibold">
+              Requis : {c.pointsRequis} pts · Tu as {totalPoints} pts
+            </span>
+          </div>
+        )}
       </div>
-      <button onClick={onOpen}
-        className="w-full py-2.5 text-xs font-bold border-t border-[#ececf0] hover:bg-[#f7f7fa] active:scale-[0.99] transition-all rounded-b-2xl"
-        style={{ color: style.accent }}>
-        Voir les détails →
+      <button
+        onClick={locked ? undefined : onOpen}
+        disabled={locked}
+        className={`w-full py-2.5 text-xs font-bold border-t rounded-b-2xl transition-all ${
+          locked
+            ? 'border-[#e8e8ec] text-[#b0b0bc] cursor-not-allowed'
+            : 'border-[#ececf0] hover:bg-[#f7f7fa] active:scale-[0.99]'
+        }`}
+        style={{ color: locked ? undefined : style.accent }}
+      >
+        {locked ? '🔒 Défi verrouillé' : 'Voir les détails →'}
       </button>
     </div>
   );

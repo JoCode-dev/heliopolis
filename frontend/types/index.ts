@@ -73,6 +73,7 @@ export interface CampParticipant {
 export interface Challenge {
   id: string; titre: string; description: string;
   categorie: ChallengeCategory; points: number;
+  pointsRequis: number;
   niveau: string; statut: string; imageUrl?: string;
   preuveDemandee?: string;
   duree?: number;

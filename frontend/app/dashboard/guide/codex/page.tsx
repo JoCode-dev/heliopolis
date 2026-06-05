@@ -67,11 +67,11 @@ export default function GuideCodexPage() {
               <div key={sub.id} className="bg-white rounded-2xl border border-[#ececf0] p-3.5 mb-3 shadow-sm">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#4a1370] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {sub.user ? `${sub.user.nom[0]}${sub.user.prenoms[0]}`.toUpperCase() : '?'}
+                    {sub.gardien ? `${sub.gardien.nom?.[0] ?? ''}${sub.gardien.prenoms?.[0] ?? ''}`.toUpperCase() : '?'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-[#1F1B2E]">
-                      {sub.user ? `${sub.user.prenoms} ${sub.user.nom}` : 'Gardien'}
+                      {sub.gardien ? `${sub.gardien.prenoms} ${sub.gardien.nom}` : 'Gardien'}
                     </div>
                     <div className="text-xs text-[#6b6b78] mt-0.5">{sub.challenge?.titre ?? 'Défi'}</div>
                   </div>
@@ -80,8 +80,8 @@ export default function GuideCodexPage() {
                   </span>
                 </div>
 
-                {sub.contenu && (
-                  <p className="text-sm text-[#1F1B2E] leading-relaxed mb-3 px-1">{sub.contenu}</p>
+                {sub.texte && (
+                  <p className="text-sm text-[#1F1B2E] leading-relaxed mb-3 px-1">{sub.texte}</p>
                 )}
 
                 <div className="flex gap-2">

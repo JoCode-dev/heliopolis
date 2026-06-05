@@ -73,7 +73,7 @@ export default async function AccueilPage() {
                 </span>
               )}
             </div>
-            <div className="lg:hidden relative z-10 absolute bottom-6 left-4 right-4">
+            <div className="lg:hidden relative z-10 absolute bottom-6 left-4 right-4 pt-10">
               <h2 className="text-[20px] font-black leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,.4)' }}>
                 À la quête de la<br />Nouvelle Lignée.
               </h2>

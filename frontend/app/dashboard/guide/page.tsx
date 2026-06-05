@@ -89,6 +89,17 @@ export default function DashboardGuidePage() {
     ((c as unknown as { _count?: { messages: number } })._count?.messages ?? 0) > 0 ||
     (c.messages?.length ?? 0) > 0
   );
+  const quickStats = isSentinelle ? [
+    { v: directReports.length, label: 'Guides',    color: '#6A1B9A' },
+    { v: allGardiens.length,   label: 'Gardiens',  color: '#C62828' },
+    { v: camps.length,         label: 'Camps',     color: '#D9A441' },
+    { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
+  ] : [
+    { v: directReports.length, label: 'Gardiens',  color: '#6A1B9A' },
+    { v: aJour,                label: 'À jour',    color: '#2E7D32' },
+    { v: camps.length,         label: 'Camps',     color: '#D9A441' },
+    { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
+  ];
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -162,17 +173,7 @@ export default function DashboardGuidePage() {
 
         {/* Stats rapides */}
         <div className={`px-4 pt-4 grid gap-2 ${isSentinelle ? 'grid-cols-4' : 'grid-cols-4'}`}>
-          {isSentinelle ? [
-            { v: directReports.length, label: 'Guides',    color: '#6A1B9A' },
-            { v: allGardiens.length,   label: 'Gardiens',  color: '#C62828' },
-            { v: camps.length,         label: 'Camps',     color: '#D9A441' },
-            { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
-          ] : [
-            { v: directReports.length, label: 'Gardiens',  color: '#6A1B9A' },
-            { v: aJour,                label: 'À jour',    color: '#2E7D32' },
-            { v: camps.length,         label: 'Camps',     color: '#D9A441' },
-            { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
-          ].map(s => (
+          {quickStats.map(s => (
             <div key={s.label} className="bg-white rounded-xl p-2.5 border border-[#ececf0] text-center shadow-sm">
               <div className="text-xl font-black" style={{ color: s.color }}>{s.v}</div>
               <div className="text-[9px] text-[#6b6b78] uppercase tracking-wide leading-tight mt-0.5">{s.label}</div>

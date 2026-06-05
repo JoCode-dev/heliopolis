@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import { challengesApi, badgesApi, campsApi, messagingApi } from '@/lib/api';
 import { Avatar, Card, SectionTitle, Progress, Pill, Stat } from '@/components/ui';
+import { getRangGardien, getNextRang, getRangProgress } from '@/lib/ranks';
 import { CampCard } from '@/components/camps/CampCard';
 import type { Badge, Challenge, ChallengeCategory, Submission, UserBadge, Camp, Conversation } from '@/types';
 
@@ -99,20 +100,46 @@ export default function DashboardGardienPage() {
     (c.messages?.length ?? 0) > 0
   );
 
-  const initials = user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?';
+  const initials   = user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?';
   const adhesionOk = user?.adhesions?.[0]?.statut === 'A_JOUR';
+  const rang        = getRangGardien(totalPoints);
+  const nextRang    = getNextRang(totalPoints);
+  const rangPct     = getRangProgress(totalPoints);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-br from-[#C62828] via-[#a02020] to-[#6A1B9A] text-white px-4 pt-4 pb-5 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <Avatar initials={initials} size={46} className="border-2 border-white/40 bg-white/20" />
           <div className="flex-1">
             <h1 className="text-base font-bold leading-tight">{user?.prenoms} {user?.nom}</h1>
             <p className="text-xs opacity-80 mt-0.5">🛡️ Gardien · {user?.parish?.nom ?? 'Paroisse'}</p>
+            {/* Rang */}
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-sm leading-none">{rang.icon}</span>
+              <span className="text-[11px] font-bold opacity-90">{rang.label}</span>
+            </div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-lg font-black">⭐ {totalPoints}</div>
+            <div className="text-[10px] opacity-60">points</div>
           </div>
         </div>
+
+        {/* Barre de progression vers le rang suivant */}
+        {nextRang && (
+          <div className="mb-3">
+            <div className="flex justify-between text-[10px] opacity-60 mb-1">
+              <span>{rang.label}</span>
+              <span>{nextRang.icon} {nextRang.label} · {nextRang.minPoints} pts</span>
+            </div>
+            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+              <div className="h-full bg-white/70 rounded-full transition-all" style={{ width: `${rangPct}%` }} />
+            </div>
+          </div>
+        )}
+
 
         {/* Carte matricule + stats rapides */}
         <div className="bg-black/25 rounded-2xl px-4 py-3 flex items-center justify-between">

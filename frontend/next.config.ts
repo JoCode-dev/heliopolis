@@ -6,6 +6,7 @@ const BACKEND_HOSTNAME = new URL(BACKEND).hostname;
 const BACKEND_PORT = new URL(BACKEND).port || undefined;
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['host.docker.internal'],
   images: {
     remotePatterns: [
       {

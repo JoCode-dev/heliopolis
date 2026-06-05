@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsInt,
   IsPositive,
+  Min,
 } from 'class-validator';
 import {
   ChallengeCategory,
@@ -37,6 +38,11 @@ export class CreateChallengeDto {
   @IsInt()
   @IsPositive()
   points?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pointsRequis?: number;
 
   @IsOptional()
   @IsInt()
