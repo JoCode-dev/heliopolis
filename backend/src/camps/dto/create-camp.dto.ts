@@ -1,12 +1,14 @@
 import {
   IsString,
   IsOptional,
-  IsEnum,
+  IsIn,
   IsDateString,
   IsArray,
   IsBoolean,
 } from 'class-validator';
 import { CampType } from '../../../generated/prisma/enums.js';
+
+const ALLOWED_CAMP_TYPES: CampType[] = [CampType.REGIONAL, CampType.NATIONAL];
 
 export class CreateCampDto {
   @IsString()
@@ -29,7 +31,7 @@ export class CreateCampDto {
   @IsString()
   declare lieu: string;
 
-  @IsEnum(CampType)
+  @IsIn(ALLOWED_CAMP_TYPES, { message: 'Le type de camp doit être REGIONAL ou NATIONAL.' })
   declare type: CampType;
 
   @IsOptional()

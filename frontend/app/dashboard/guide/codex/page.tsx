@@ -12,14 +12,16 @@ export default function GuideCodexPage() {
   const [moderating, setModerating] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
-    Promise.all([
+    Promise.allSettled([
       codexApi.pending(),
       codexApi.wall(1),
     ]).then(([p, w]) => {
-      setPending(p.data);
-      setWall((w.data as { items: typeof wall; total: number }).items ?? w.data);
-    }).catch(() => {})
-      .finally(() => setLoading(false));
+      if (p.status === 'fulfilled') setPending(p.value.data ?? []);
+      if (w.status === 'fulfilled') {
+        const d = w.value.data as { items: Submission[]; total: number };
+        setWall(d.items ?? w.value.data ?? []);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -125,7 +127,7 @@ export default function GuideCodexPage() {
                 <p>Aucune publication pour le moment.</p>
               </div>
             ) : (
-              wall.map(sub => <CodexItem key={sub.id} submission={sub} />)
+              wall.map((sub, i) => <CodexItem key={sub.id} submission={sub} priority={i === 0} />)
             )}
           </>
         )}

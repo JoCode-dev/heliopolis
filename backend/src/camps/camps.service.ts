@@ -228,8 +228,8 @@ export class CampsService {
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
-    if (user.role !== UserRole.GARDIEN) {
-      throw new ForbiddenException('Seuls les Gardiens peuvent être sélectionnés');
+    if (user.role !== UserRole.GARDIEN && user.role !== UserRole.GUIDE) {
+      throw new ForbiddenException('Seuls les Gardiens et les Guides peuvent être sélectionnés');
     }
 
     const adhesionStatus =
@@ -257,6 +257,15 @@ export class CampsService {
       throw new ForbiddenException('Territoire introuvable pour ce gardien');
     }
 
+    // Vérifier si le participant n'est pas bloqué par un supérieur
+    const existing = await this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+      select: { participationStatus: true },
+    });
+    if (existing?.participationStatus === 'BLOQUE') {
+      throw new ForbiddenException('Ce participant a été bloqué pour ce camp par un supérieur hiérarchique.');
+    }
+
     return this.prisma.campParticipant.upsert({
       where: { campId_userId: { campId, userId } },
       create: {
@@ -273,17 +282,69 @@ export class CampsService {
   }
 
   async removeParticipant(campId: string, userId: string, actorId: string) {
-    const camp = await this.prisma.camp.findUnique({ where: { id: campId } });
-    if (!camp?.selectionOuverte)
-      throw new ForbiddenException('La sélection est fermée pour ce camp');
-
     const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
     const target = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!actor || !target) throw new NotFoundException('Utilisateur introuvable');
     if (!this.userIsInActorScope(actor, target))
       throw new ForbiddenException('Gardien hors périmètre');
 
+    // Sentinelles/admins/region peuvent retirer même si la sélection est fermée
+    if (actor.role === UserRole.GUIDE) {
+      const camp = await this.prisma.camp.findUnique({ where: { id: campId } });
+      if (!camp?.selectionOuverte)
+        throw new ForbiddenException('La sélection est fermée pour ce camp');
+    }
+
     await this.prisma.campParticipant.deleteMany({ where: { campId, userId } });
+    return { success: true };
+  }
+
+  async blockParticipant(campId: string, userId: string, actorId: string) {
+    const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
+    const target = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { adhesions: { where: { annee: new Date().getFullYear() }, take: 1 } },
+    });
+    if (!actor || !target) throw new NotFoundException('Utilisateur introuvable');
+    if (!this.userIsInActorScope(actor, target))
+      throw new ForbiddenException('Gardien hors périmètre');
+    if (!([UserRole.GUIDE, UserRole.SENTINELLE, UserRole.REGION, UserRole.ADMIN] as UserRole[]).includes(actor.role))
+      throw new ForbiddenException('Vous n\'avez pas les droits pour bloquer ce participant');
+
+    const existing = await this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+    });
+    if (existing) {
+      return this.prisma.campParticipant.update({
+        where: { campId_userId: { campId, userId } },
+        data: { participationStatus: 'BLOQUE' },
+      });
+    }
+    const districtId = target.districtId;
+    const parishId   = target.parishId;
+    if (!districtId || !parishId) throw new ForbiddenException('Territoire introuvable');
+    return this.prisma.campParticipant.create({
+      data: {
+        campId, userId, selectedById: actorId,
+        districtId, parishId,
+        adhesionStatusSnapshot: target.adhesions[0]?.statut ?? 'NON_A_JOUR',
+        participationStatus: 'BLOQUE',
+      },
+    });
+  }
+
+  async unblockParticipant(campId: string, userId: string, actorId: string) {
+    const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
+    const target = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!actor || !target) throw new NotFoundException('Utilisateur introuvable');
+    if (!this.userIsInActorScope(actor, target))
+      throw new ForbiddenException('Gardien hors périmètre');
+    if (!([UserRole.GUIDE, UserRole.SENTINELLE, UserRole.REGION, UserRole.ADMIN] as UserRole[]).includes(actor.role))
+      throw new ForbiddenException('Vous n\'avez pas les droits pour débloquer ce participant');
+
+    await this.prisma.campParticipant.deleteMany({
+      where: { campId, userId, participationStatus: 'BLOQUE' },
+    });
     return { success: true };
   }
 

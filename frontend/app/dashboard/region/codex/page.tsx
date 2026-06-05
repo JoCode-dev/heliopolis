@@ -13,15 +13,16 @@ export default function CodexPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchData = async () => {
-    try {
-      const [p, w] = await Promise.all([
-        codexApi.pending(),
-        codexApi.wall(1),
-      ]);
-      setPending(p.data);
-      setWall((w.data as { items: Submission[] })?.items ?? w.data ?? []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    const [p, w] = await Promise.allSettled([
+      codexApi.pending(),
+      codexApi.wall(1),
+    ]);
+    if (p.status === 'fulfilled') setPending(p.value.data ?? []);
+    if (w.status === 'fulfilled') {
+      const d = w.value.data as { items: Submission[]; total: number };
+      setWall(d.items ?? w.value.data ?? []);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -158,7 +159,7 @@ export default function CodexPage() {
 
             <div className="max-w-2xl">
               {wall.map(sub => (
-                <CodexItem key={sub.id} submission={sub} onReact={handleReact} />
+                <CodexItem key={sub.id} submission={sub} onReact={handleReact} priority={wall.indexOf(sub) === 0} />
               ))}
             </div>
           </div>

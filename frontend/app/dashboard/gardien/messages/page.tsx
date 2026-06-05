@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth';
 import type { Conversation, ContactItem, ContactUser, Contact } from '@/types';
 
 /* ── Types locaux ── */
-type ConvMode = 'pick' | 'individual' | 'group';
+type ConvMode = 'pick' | 'individual' | 'group' | 'channels';
 
 const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
@@ -517,6 +517,16 @@ function NewConvModal({ onClose, onCreated }: {
   const [creating, setCreating]   = useState(false);
   /* Map userId → conversationId pour les convs existantes */
   const [existingConvs, setExistingConvs] = useState<Map<string, string>>(new Map());
+  /* Canaux suggérés */
+  const [channels, setChannels]   = useState<{
+    channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES';
+    convType: string;
+    nom: string; description: string; icon: string;
+    territoryId: string; conversationId: string | null;
+    memberCount: number; isMember: boolean;
+  }[]>([]);
+  const [channelsLoading, setChannelsLoading] = useState(false);
+  const [joiningChannel, setJoiningChannel]   = useState<string | null>(null);
 
   /* Charge contacts + conversations existantes en parallèle */
   useEffect(() => {
@@ -587,6 +597,25 @@ function NewConvModal({ onClose, onCreated }: {
 
   const goBack = () => { setMode('pick'); setSelected([]); setSearch(''); };
 
+  const openChannels = () => {
+    setMode('channels');
+    if (channels.length > 0) return;
+    setChannelsLoading(true);
+    messagingApi.suggestedChannels()
+      .then(r => setChannels(r.data ?? []))
+      .catch(() => {})
+      .finally(() => setChannelsLoading(false));
+  };
+
+  const handleJoinChannel = async (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES') => {
+    setJoiningChannel(channelKey);
+    try {
+      const { data } = await messagingApi.createOrJoinChannel(channelKey);
+      onCreated(data.id);
+    } catch { /* ignore */ }
+    finally { setJoiningChannel(null); }
+  };
+
   const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
 
   return (
@@ -598,8 +627,9 @@ function NewConvModal({ onClose, onCreated }: {
           <button onClick={mode === 'pick' ? onClose : goBack}
             className="w-8 h-8 flex items-center justify-center text-white/80 text-2xl leading-none">‹</button>
           <h2 className="flex-1 text-[16px] font-bold text-white">
-            {mode === 'pick' ? 'Nouvelle conversation'
+            {mode === 'pick'      ? 'Nouvelle conversation'
               : mode === 'individual' ? 'Message individuel'
+              : mode === 'channels'   ? 'Canaux d\'équipe'
               : 'Nouveau groupe'}
           </h2>
           {mode === 'group' && (
@@ -619,11 +649,16 @@ function NewConvModal({ onClose, onCreated }: {
           <div className="p-4 flex flex-col gap-3">
             {[
               { m: 'individual' as ConvMode, icon: '🤝', gradient: 'from-[#1F1B2E] to-[#3a1d4d]',
-                title: 'Message individuel', sub: 'Conversation privée avec un contact' },
+                title: 'Message individuel', sub: 'Conversation privée avec un contact',
+                action: () => setMode('individual') },
               { m: 'group' as ConvMode, icon: '👥', gradient: 'from-[#2E7D32] to-[#1a5021]',
-                title: 'Créer un groupe', sub: 'Conversation avec plusieurs contacts' },
-            ].map(({ m, icon, gradient, title, sub }) => (
-              <button key={m} onClick={() => setMode(m)}
+                title: 'Créer un groupe', sub: 'Conversation avec plusieurs contacts',
+                action: () => setMode('group') },
+              { m: 'channels' as ConvMode, icon: '📡', gradient: 'from-[#6A1B9A] to-[#4a1370]',
+                title: 'Canaux d\'équipe', sub: 'Rejoindre les canaux paroissiaux, doyennaux ou régionaux',
+                action: openChannels },
+            ].map(({ m, icon, gradient, title, sub, action }) => (
+              <button key={m} onClick={action}
                 className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-[#e6e6ea] active:bg-[#F0F0F0] text-left hover:border-[#c0c0cc] transition-colors">
                 <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-xl flex-shrink-0`}>
                   {icon}
@@ -645,8 +680,74 @@ function NewConvModal({ onClose, onCreated }: {
           </div>
         )}
 
+        {/* ── Canaux d'équipe ── */}
+        {mode === 'channels' && (
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {channelsLoading && (
+              <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
+                <div className="text-3xl animate-pulse mb-3">📡</div>
+                <p className="text-sm">Recherche des canaux…</p>
+              </div>
+            )}
+
+            {!channelsLoading && channels.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
+                <div className="text-3xl mb-3">📡</div>
+                <p className="text-sm font-semibold text-[#1F1B2E]">Aucun canal disponible</p>
+                <p className="text-xs mt-1 text-center">Aucun canal d'équipe n'est disponible pour votre territoire.</p>
+              </div>
+            )}
+
+            {!channelsLoading && channels.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <p className="text-[11px] text-[#9b9ba8] uppercase tracking-wider font-semibold mb-1">
+                  Canaux disponibles pour votre territoire
+                </p>
+                {channels.map(ch => {
+                  const typeGradient: Record<string, string> = {
+                    PAROISSE:   'from-[#C62828] to-[#7a1717]',
+                    GARDIENS:   'from-[#C62828] to-[#7a1717]',
+                    DOYENNE:    'from-[#6A1B9A] to-[#4a1370]',
+                    GUIDES:     'from-[#6A1B9A] to-[#4a1370]',
+                    REGION:     'from-[#1F1B2E] to-[#3a1d4d]',
+                    SENTINELLES:'from-[#1F1B2E] to-[#3a1d4d]',
+                  };
+                  const isJoining = joiningChannel === ch.channelKey;
+                  return (
+                    <div key={ch.channelKey}
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-[#e6e6ea] bg-white hover:border-[#c0c0cc] transition-colors">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${typeGradient[ch.channelKey]} flex items-center justify-center text-2xl flex-shrink-0 shadow-sm`}>
+                        {ch.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold text-[#1F1B2E] truncate">{ch.nom}</p>
+                        <p className="text-[12px] text-[#9b9ba8] mt-0.5">{ch.description}</p>
+                        {ch.memberCount > 0 && (
+                          <p className="text-[11px] text-[#6b6b78] mt-0.5">
+                            👥 {ch.memberCount} membre{ch.memberCount > 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleJoinChannel(ch.channelKey)}
+                        disabled={isJoining}
+                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 ${
+                          ch.isMember
+                            ? 'bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white'
+                            : `bg-gradient-to-r ${typeGradient[ch.channelKey]} text-white shadow-sm`
+                        }`}>
+                        {isJoining ? '…' : ch.isMember ? 'Ouvrir' : 'Rejoindre'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Liste utilisateurs ── */}
-        {mode !== 'pick' && (
+        {mode !== 'pick' && mode !== 'channels' && (
           <>
             {/* Nom du groupe */}
             {mode === 'group' && (

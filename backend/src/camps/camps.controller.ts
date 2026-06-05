@@ -3,6 +3,7 @@ import {
   Delete,
   Get,
   Post,
+  Put,
   Patch,
   Body,
   Param,
@@ -89,5 +90,27 @@ export class CampsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.campsService.removeParticipant(campId, userId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
+  @Patch(':campId/participants/:userId/block')
+  blockParticipant(
+    @Param('campId') campId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.blockParticipant(campId, userId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
+  @Patch(':campId/participants/:userId/unblock')
+  unblockParticipant(
+    @Param('campId') campId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.unblockParticipant(campId, userId, user.id);
   }
 }

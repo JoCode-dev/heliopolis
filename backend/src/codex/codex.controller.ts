@@ -48,21 +48,26 @@ export class CodexController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Get('moderation/pending')
-  getPending() {
-    return this.codexService.getPendingModeration();
+  getPending(@CurrentUser() user: AuthUser) {
+    return this.codexService.getPendingModeration({
+      role:       user.role,
+      parishId:   user.parishId   ?? undefined,
+      districtId: user.districtId ?? undefined,
+      regionId:   user.regionId   ?? undefined,
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Post(':id/approve')
   approve(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.codexService.approvePublication(id, user.id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Post(':id/reject')
   reject(
     @Param('id') id: string,

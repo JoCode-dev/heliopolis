@@ -65,8 +65,10 @@ export const campsApi = {
   create: (data: object) => api.post('/camps', data),
   updateStatus: (id: string, statut: string) => api.patch(`/camps/${id}/status`, { statut }),
   participants: (id: string) => api.get(`/camps/${id}/participants`),
-  selectParticipant: (campId: string, userId: string) => api.post(`/camps/${campId}/participants`, { userId }),
-  removeParticipant: (campId: string, userId: string) => api.delete(`/camps/${campId}/participants/${userId}`),
+  selectParticipant:   (campId: string, userId: string) => api.post(`/camps/${campId}/participants`, { userId }),
+  removeParticipant:   (campId: string, userId: string) => api.delete(`/camps/${campId}/participants/${userId}`),
+  blockParticipant:    (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/block`),
+  unblockParticipant:  (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/unblock`),
 };
 
 // ─── Challenges ───────────────────────────────────────────────────────────────
@@ -119,7 +121,10 @@ export const messagingApi = {
   removeMember: (id: string, userId: string) => api.delete(`/messaging/conversations/${id}/members/${userId}`),
   togglePin: (id: string) => api.patch(`/messaging/conversations/${id}/pin`),
   deleteConversation: (id: string) => api.delete(`/messaging/conversations/${id}`),
-  createGroup: (nom: string, memberIds: string[]) => api.post('/messaging/conversations/group', { nom, memberIds }),
+  createGroup:           (nom: string, memberIds: string[]) => api.post('/messaging/conversations/group', { nom, memberIds }),
+  suggestedChannels:     () => api.get('/messaging/conversations/channels/suggestions'),
+  createOrJoinChannel:   (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES') =>
+    api.post('/messaging/conversations/channel', { channelKey }),
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────

@@ -35,7 +35,8 @@ const REGION_NAV_GROUPS = [
   {
     label: 'Tableau de bord',
     items: [
-      { href: '/dashboard/region/camps',    icon: '🏠', label: 'Accueil' },
+      { href: '/dashboard/region',          icon: '🏠', label: 'Accueil' },
+      { href: '/dashboard/region/camps',    icon: '⛺', label: 'Camps' },
       { href: '/dashboard/region/codex',    icon: '🪶', label: 'Modération' },
       { href: '/dashboard/region/messages', icon: '💬', label: 'Messagerie' },
       { href: '/dashboard/region/export',   icon: '📤', label: 'Exports' },
@@ -92,7 +93,7 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
             </p>
             {group.items.map(item => {
               const active =
-                item.href === rootHref
+                item.href === '/dashboard/region' || item.href === '/dashboard/admin'
                   ? pathname === item.href
                   : pathname.startsWith(item.href);
               return (

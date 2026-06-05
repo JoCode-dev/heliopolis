@@ -51,12 +51,14 @@ export class CodexService {
     });
   }
 
-  async getPendingModeration() {
+  async getPendingModeration(actor?: { role: string; parishId?: string; districtId?: string; regionId?: string }) {
+    const scopeWhere = this.pendingScopeWhere(actor);
     return this.prisma.submission.findMany({
       where: {
         statut: 'VALIDE',
         publishedToCodex: false,
         moderation: 'EN_ATTENTE',
+        ...scopeWhere,
       },
       include: {
         gardien: { select: { id: true, nom: true, prenoms: true } },
@@ -64,6 +66,17 @@ export class CodexService {
         media: true,
       },
     });
+  }
+
+  private pendingScopeWhere(actor?: { role: string; parishId?: string; districtId?: string; regionId?: string }) {
+    if (!actor || actor.role === 'ADMIN') return {};
+    if (actor.role === 'REGION' && actor.regionId)
+      return { gardien: { regionId: actor.regionId } };
+    if (actor.role === 'SENTINELLE' && actor.districtId)
+      return { gardien: { districtId: actor.districtId } };
+    if (actor.role === 'GUIDE' && actor.parishId)
+      return { gardien: { parishId: actor.parishId } };
+    return {};
   }
 
   async approvePublication(submissionId: string, moderatorId: string) {

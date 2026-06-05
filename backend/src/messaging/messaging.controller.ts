@@ -95,6 +95,19 @@ export class MessagingController {
     return this.messagingService.createGroupConversation(user.id, body);
   }
 
+  @Get('conversations/channels/suggestions')
+  getSuggestedChannels(@CurrentUser() user: AuthUser) {
+    return this.messagingService.getSuggestedChannels(user);
+  }
+
+  @Post('conversations/channel')
+  createOrJoinChannel(
+    @Body('channelKey') channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES',
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.messagingService.createOrJoinTerritoryChannel(user, channelKey);
+  }
+
   @Patch('messages/:messageId')
   editMessage(
     @Param('messageId') messageId: string,

@@ -34,8 +34,9 @@ function GardiensContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [pendingSuspend, setPendingSuspend] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editUser, setEditUser]     = useState<User | null>(null);
 
-  const [search, setSearch]       = useState('');
+  const [search, setSearch]         = useState('');
   const [districtId, setDistrictId] = useState('');
   const [parishId, setParishId]     = useState('');
   const [page, setPage]             = usePaginationUrl();
@@ -67,11 +68,9 @@ function GardiensContent() {
     [parishes, districtId],
   );
 
-
   const filtered = useMemo(() => gardiens.filter(u => {
     if (districtId) {
-      const userDistrict = u.district?.id
-        ?? (u.parish?.id ? parishDistrictMap.get(u.parish.id) : undefined);
+      const userDistrict = u.district?.id ?? (u.parish?.id ? parishDistrictMap.get(u.parish.id) : undefined);
       if (userDistrict !== districtId) return false;
     }
     if (parishId && u.parish?.id !== parishId) return false;
@@ -97,274 +96,300 @@ function GardiensContent() {
   const handleCreated = (newUser: User) => {
     if (newUser.role === 'GARDIEN') setGardiens(prev => [newUser, ...prev]);
   };
-
+  const handleUpdated = (updated: User) => {
+    setGardiens(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+  };
   const handleExport = () => {
     const headers = ['Prénoms', 'Nom', 'Matricule', 'Email', 'Téléphone', 'Paroisse', 'Doyenné', 'Région', 'Adhésion', 'Statut'];
     const rows = filtered.map(u => [
-      u.prenoms, u.nom, u.matricule ?? '',
-      u.email ?? '', u.telephone ?? '',
+      u.prenoms, u.nom, u.matricule ?? '', u.email ?? '', u.telephone ?? '',
       u.parish?.nom ?? '', u.district?.nom ?? '', u.region?.nom ?? '',
       u.adhesions?.[0]?.statut ?? '', u.statutProfil,
     ]);
     downloadCsv(`gardiens-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
   };
 
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
+  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const nbActifs   = gardiens.filter(u => u.statutProfil === 'ACTIF').length;
   const nbSusp     = gardiens.filter(u => u.statutProfil === 'SUSPENDU').length;
   const nbAJour    = gardiens.filter(u => u.adhesions?.[0]?.statut === 'A_JOUR').length;
   const nbNonAJour = gardiens.filter(u => u.adhesions?.[0]?.statut === 'NON_A_JOUR').length;
 
   return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
+    <div className="flex-1 flex flex-col overflow-hidden">
 
-      {/* En-tête */}
-      <div className="flex justify-between items-center mb-5 border-b border-[#ececf0] pb-4">
-        <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">🤝 Gardiens</h1>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-[#6b6b78]">{gardiens.length} gardien{gardiens.length > 1 ? 's' : ''}</span>
-          <button
-            onClick={handleExport}
-            disabled={filtered.length === 0}
-            className="bg-white border border-[#e0e0e8] text-[#1F1B2E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#f6f6fa] transition-colors disabled:opacity-40"
-          >
-            📥 Exporter
+      {/* ── Header compact ── */}
+      <div className="bg-white border-b border-[#ececf0] px-4 pt-3.5 pb-3 flex-shrink-0">
+
+        {/* Titre + actions */}
+        <div className="flex items-center gap-2 mb-2.5">
+          <h1 className="text-base font-black text-[#1F1B2E] flex-1">🤝 Gardiens</h1>
+          <span className="text-[11px] text-[#9b9ba8] font-medium flex-shrink-0">{gardiens.length}</span>
+          <button onClick={handleExport} disabled={filtered.length === 0}
+            className="w-8 h-8 flex items-center justify-center bg-[#f3f3f5] rounded-lg text-sm hover:bg-[#ececf0] disabled:opacity-40 flex-shrink-0"
+            title="Exporter CSV">
+            📥
           </button>
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="bg-[#1F1B2E] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#2d2640] transition-colors"
-          >
+          <button onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-1 bg-[#1F1B2E] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#2d2640] transition-colors flex-shrink-0">
             + Ajouter
           </button>
         </div>
-      </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-5">
-        {[
-          { label: 'Total',      value: gardiens.length, color: '#1F1B2E' },
-          { label: 'Actifs',     value: nbActifs,        color: '#2E7D32' },
-          { label: 'Adhés. à jour', value: nbAJour,      color: '#2E7D32' },
-          { label: 'Non à jour', value: nbNonAJour,      color: '#C62828' },
-        ].map(kpi => (
-          <div key={kpi.label} className="bg-white border border-[#ececf0] rounded-xl p-3">
-            <div className="text-2xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
-            <div className="text-[10px] text-[#6b6b78] uppercase tracking-wide mt-0.5 leading-tight">{kpi.label}</div>
-          </div>
-        ))}
-      </div>
+        {/* Stats inline */}
+        <div className="grid grid-cols-4 gap-1.5 mb-2.5">
+          {[
+            { label: 'Total',    value: gardiens.length, color: 'text-[#1F1B2E]' },
+            { label: 'Actifs',   value: nbActifs,        color: 'text-[#2E7D32]' },
+            { label: 'À jour',   value: nbAJour,         color: 'text-[#2E7D32]' },
+            { label: 'Non à j.', value: nbNonAJour,      color: 'text-[#C62828]' },
+          ].map(k => (
+            <div key={k.label} className="bg-[#f9f9fc] rounded-xl p-2 text-center">
+              <div className={`text-base font-black leading-none ${k.color}`}>{k.value}</div>
+              <div className="text-[9px] text-[#9b9ba8] uppercase tracking-wide mt-0.5 leading-tight">{k.label}</div>
+            </div>
+          ))}
+        </div>
 
-      {/* Filtres */}
-      <div className="flex flex-col gap-2 mb-5">
-        <input
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none"
-          placeholder="🔍 Rechercher par nom, matricule, paroisse…"
-        />
-        <div className="flex flex-col sm:flex-row gap-2">
-          <select
-            value={districtId}
-            onChange={e => { setDistrictId(e.target.value); setParishId(''); setPage(1); }}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E]"
-          >
-            <option value="">Tous les doyennés</option>
+        {/* Recherche */}
+        <div className="flex items-center bg-[#f5f5fa] rounded-xl px-3 py-2 gap-2 mb-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#b0b0bc]"
+            placeholder="Nom, matricule, paroisse…" />
+          {search && (
+            <button onClick={() => { setSearch(''); setPage(1); }} className="text-[#b0b0bc] text-sm">✕</button>
+          )}
+        </div>
+
+        {/* Filtres territoire */}
+        <div className="flex gap-1.5">
+          <select value={districtId} onChange={e => { setDistrictId(e.target.value); setParishId(''); setPage(1); }}
+            className="flex-1 bg-[#f5f5fa] border-0 rounded-xl px-2.5 py-2 text-xs outline-none text-[#1F1B2E] min-w-0">
+            <option value="">Tous doyennés</option>
             {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
           </select>
-          <select
-            value={parishId}
-            onChange={e => { setParishId(e.target.value); setPage(1); }}
+          <select value={parishId} onChange={e => { setParishId(e.target.value); setPage(1); }}
             disabled={visibleParishes.length === 0}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E] disabled:opacity-50"
-          >
-            <option value="">Toutes les paroisses</option>
+            className="flex-1 bg-[#f5f5fa] border-0 rounded-xl px-2.5 py-2 text-xs outline-none text-[#1F1B2E] min-w-0 disabled:opacity-40">
+            <option value="">Toutes paroisses</option>
             {visibleParishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
           </select>
           {(districtId || parishId || search) && (
-            <button
-              onClick={() => { setDistrictId(''); setParishId(''); setSearch(''); setPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#f6f6fa] text-[#6b6b78] hover:bg-[#ececf0] transition-colors flex-shrink-0"
-            >
-              ✕ Effacer
+            <button onClick={() => { setDistrictId(''); setParishId(''); setSearch(''); setPage(1); }}
+              className="w-8 h-8 flex items-center justify-center bg-[#f5f5fa] rounded-xl text-[#9b9ba8] text-sm flex-shrink-0">
+              ✕
             </button>
           )}
         </div>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-16 text-[#6b6b78] text-sm">Chargement…</div>
-      )}
+      {/* ── Zone scrollable ── */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f6f6fa] px-3 py-3 lg:px-6 lg:py-4">
 
-      {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-[#6b6b78]">
-          <div className="text-5xl mb-3">🤝</div>
-          <p className="font-semibold">Aucun gardien trouvé</p>
-        </div>
-      )}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]">
+            <div className="text-4xl animate-pulse mb-3">🤝</div>
+            <p className="text-sm">Chargement…</p>
+          </div>
+        )}
 
-      {!loading && filtered.length > 0 && (
-        <>
-          {/* Mobile : cartes */}
-          <div className="lg:hidden flex flex-col gap-2">
-            {paginated.map(u => {
-              const isLoading  = actionLoading === u.id;
-              const isPending  = pendingSuspend === u.id;
-              const canSuspend = u.statutProfil === 'ACTIF';
-              const canReact   = u.statutProfil === 'SUSPENDU';
-              const adhesion   = u.adhesions?.[0];
-              return (
-                <div key={u.id} className="bg-white border border-[#ececf0] rounded-xl p-3">
-                  <div className="flex items-center gap-3">
-                    <UserAvatar
-                      avatarUrl={u.avatarUrl}
-                      initials={`${u.nom[0]}${u.prenoms[0]}`}
-                      sizeClass="w-10 h-10"
-                      bgClass="bg-[#C62828]"
-                      textClass="text-xs font-bold text-white"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</div>
-                      <div className="text-[11px] text-[#6b6b78] truncate">{u.matricule ?? '—'} · {u.parish?.nom ?? '—'}</div>
+        {!loading && filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]">
+            <div className="text-4xl mb-3">🤝</div>
+            <p className="font-semibold text-sm text-[#1F1B2E]">Aucun gardien trouvé</p>
+            <p className="text-xs mt-1">Modifiez les filtres ou ajoutez un gardien.</p>
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <>
+            {/* Mobile : cartes compactes */}
+            <div className="lg:hidden flex flex-col gap-2">
+              {paginated.map(u => {
+                const isLoading  = actionLoading === u.id;
+                const isPending  = pendingSuspend === u.id;
+                const canSuspend = u.statutProfil === 'ACTIF';
+                const canReact   = u.statutProfil === 'SUSPENDU';
+                const adhesion   = u.adhesions?.[0];
+                const adhStatut  = adhesion?.statut;
+
+                return (
+                  <div key={u.id} className="bg-white border border-[#ececf0] rounded-2xl overflow-hidden shadow-sm">
+                    <div className="flex items-center gap-3 px-3.5 py-3">
+                      <UserAvatar
+                        avatarUrl={u.avatarUrl}
+                        initials={`${u.nom[0]}${u.prenoms[0]}`}
+                        sizeClass="w-10 h-10 flex-shrink-0"
+                        bgClass="bg-[#C62828]"
+                        textClass="text-xs font-bold text-white"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-[13px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</div>
+                        <div className="text-[11px] text-[#9b9ba8] truncate mt-0.5">
+                          {u.matricule ?? '—'} · {u.parish?.nom ?? '—'}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          u.statutProfil === 'ACTIF'    ? 'bg-[#e8f5e9] text-[#2E7D32]' :
+                          u.statutProfil === 'SUSPENDU' ? 'bg-[#ffebee] text-[#C62828]' :
+                          'bg-[#f5f5f5] text-[#9b9ba8]'
+                        }`}>
+                          {STATUT_LABEL[u.statutProfil] ?? u.statutProfil}
+                        </span>
+                        {adhStatut && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            adhStatut === 'A_JOUR'    ? 'bg-[#e8f5e9] text-[#2E7D32]' :
+                            adhStatut === 'NON_A_JOUR'? 'bg-[#ffebee] text-[#C62828]' :
+                            'bg-[#fff8e1] text-[#D9A441]'
+                          }`}>
+                            {ADHESION_LABEL[adhStatut]}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Pill variant={STATUT_PILL[u.statutProfil] ?? 'gris'} className="text-[10px]">
-                        {STATUT_LABEL[u.statutProfil] ?? u.statutProfil}
-                      </Pill>
-                      {adhesion && (
-                        <Pill variant={ADHESION_PILL[adhesion.statut] ?? 'gris'} className="text-[10px]">
-                          {ADHESION_LABEL[adhesion.statut] ?? adhesion.statut}
-                        </Pill>
-                      )}
-                    </div>
-                  </div>
-                  {(canSuspend || canReact) && (
-                    <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4]">
+
+                    <div className="flex gap-2 px-3.5 pb-3">
+                      <button onClick={() => setEditUser(u)}
+                        className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#f0e8ff] text-[#6A1B9A] hover:bg-[#6A1B9A] hover:text-white transition-colors">
+                        ✎ Modifier
+                      </button>
                       {canReact && (
                         <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
+                          className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#e8f5e9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40">
                           {isLoading ? '…' : '✓ Réactiver'}
                         </button>
                       )}
                       {canSuspend && !isPending && (
                         <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50">
+                          className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#f5f5f5] text-[#9b9ba8] hover:bg-[#ffebee] hover:text-[#C62828] transition-colors disabled:opacity-40">
                           Suspendre
                         </button>
                       )}
                       {canSuspend && isPending && (
-                        <div className="flex gap-2">
+                        <>
                           <button onClick={() => setPendingSuspend(null)}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#f6f6fa] text-[#6b6b78]">Annuler</button>
+                            className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#f5f5f5] text-[#6b6b78]">
+                            Annuler
+                          </button>
                           <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
+                            className="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-40">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
-                        </div>
+                        </>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* Desktop : table */}
-          <div className="hidden lg:block bg-white border border-[#ececf0] rounded-2xl overflow-hidden">
-            <table className="w-full text-xs border-collapse table-fixed">
-              <colgroup>
-                <col className="w-[24%]" /><col className="w-[12%]" /><col className="w-[20%]" />
-                <col className="w-[12%]" /><col className="w-[11%]" /><col className="w-[11%]" /><col className="w-[10%]" />
-              </colgroup>
-              <thead>
-                <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                  {['Gardien', 'Matricule', 'Paroisse / Doyenné', 'Adhésion', 'Statut', 'Suspendus', 'Action'].map(h => (
-                    <th key={h} className="text-left px-3 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map(u => {
-                  const isLoading  = actionLoading === u.id;
-                  const isPending  = pendingSuspend === u.id;
-                  const canSuspend = u.statutProfil === 'ACTIF';
-                  const canReact   = u.statutProfil === 'SUSPENDU';
-                  const adhesion   = u.adhesions?.[0];
-                  return (
-                    <tr key={u.id} className="border-b border-[#f0f0f4] hover:bg-[#fafafc]">
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <UserAvatar
-                            avatarUrl={u.avatarUrl}
-                            initials={`${u.nom[0]}${u.prenoms[0]}`}
-                            sizeClass="w-7 h-7 flex-shrink-0"
-                            bgClass="bg-[#C62828]"
-                            textClass="text-[10px] font-bold text-white"
-                          />
-                          <span className="font-semibold text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 font-mono text-[#6b6b78] truncate">{u.matricule ?? '—'}</td>
-                      <td className="px-3 py-2.5">
-                        <div className="font-medium text-[#1F1B2E] truncate">{u.parish?.nom ?? '—'}</div>
-                        {u.district && <div className="text-[10px] text-[#6b6b78] truncate">{u.district.nom}</div>}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {adhesion
-                          ? <Pill variant={ADHESION_PILL[adhesion.statut] ?? 'gris'}>{ADHESION_LABEL[adhesion.statut] ?? adhesion.statut}</Pill>
-                          : <span className="text-[10px] text-[#b0b0bc]">—</span>}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <Pill variant={STATUT_PILL[u.statutProfil] ?? 'gris'}>{STATUT_LABEL[u.statutProfil] ?? u.statutProfil}</Pill>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span className="text-[10px] text-[#b0b0bc]">{nbSusp > 0 ? nbSusp : '—'}</span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {canReact && (
-                          <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">
-                            {isLoading ? '…' : '✓ Réactiver'}
-                          </button>
-                        )}
-                        {canSuspend && !isPending && (
-                          <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50">
-                            Suspendre
-                          </button>
-                        )}
-                        {canSuspend && isPending && (
-                          <div className="flex gap-1">
-                            <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
-                              {isLoading ? '…' : 'Oui'}
-                            </button>
-                            <button onClick={() => setPendingSuspend(null)}
-                              className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-[#f0f0f4] text-[#6b6b78]">Non</button>
+            {/* Desktop : table */}
+            <div className="hidden lg:block bg-white border border-[#ececf0] rounded-2xl overflow-hidden">
+              <table className="w-full text-xs border-collapse table-fixed">
+                <colgroup>
+                  <col className="w-[24%]" /><col className="w-[12%]" /><col className="w-[20%]" />
+                  <col className="w-[12%]" /><col className="w-[11%]" /><col className="w-[11%]" /><col className="w-[10%]" />
+                </colgroup>
+                <thead>
+                  <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
+                    {['Gardien', 'Matricule', 'Paroisse / Doyenné', 'Adhésion', 'Statut', 'Suspendus', 'Action', ''].map(h => (
+                      <th key={h} className="text-left px-3 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map(u => {
+                    const isLoading  = actionLoading === u.id;
+                    const isPending  = pendingSuspend === u.id;
+                    const canSuspend = u.statutProfil === 'ACTIF';
+                    const canReact   = u.statutProfil === 'SUSPENDU';
+                    const adhesion   = u.adhesions?.[0];
+                    return (
+                      <tr key={u.id} className="border-b border-[#f0f0f4] hover:bg-[#fafafc]">
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <UserAvatar avatarUrl={u.avatarUrl} initials={`${u.nom[0]}${u.prenoms[0]}`}
+                              sizeClass="w-7 h-7 flex-shrink-0" bgClass="bg-[#C62828]" textClass="text-[10px] font-bold text-white" />
+                            <span className="font-semibold text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</span>
                           </div>
-                        )}
-                        {!canSuspend && !canReact && <span className="text-[10px] text-[#b0b0bc]">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={page}
-            totalItems={filtered.length}
-            perPage={PER_PAGE}
-            onChange={setPage}
-          />
-        </>
-      )}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-[#6b6b78] truncate">{u.matricule ?? '—'}</td>
+                        <td className="px-3 py-2.5">
+                          <div className="font-medium text-[#1F1B2E] truncate">{u.parish?.nom ?? '—'}</div>
+                          {u.district && <div className="text-[10px] text-[#6b6b78] truncate">{u.district.nom}</div>}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {adhesion
+                            ? <Pill variant={ADHESION_PILL[adhesion.statut] ?? 'gris'}>{ADHESION_LABEL[adhesion.statut] ?? adhesion.statut}</Pill>
+                            : <span className="text-[10px] text-[#b0b0bc]">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Pill variant={STATUT_PILL[u.statutProfil] ?? 'gris'}>{STATUT_LABEL[u.statutProfil] ?? u.statutProfil}</Pill>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-[10px] text-[#b0b0bc]">{nbSusp > 0 ? nbSusp : '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {canReact && (
+                            <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
+                              className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">
+                              {isLoading ? '…' : '✓ Réactiver'}
+                            </button>
+                          )}
+                          {canSuspend && !isPending && (
+                            <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
+                              className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50">
+                              Suspendre
+                            </button>
+                          )}
+                          {canSuspend && isPending && (
+                            <div className="flex gap-1">
+                              <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
+                                className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
+                                {isLoading ? '…' : 'Oui'}
+                              </button>
+                              <button onClick={() => setPendingSuspend(null)}
+                                className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-[#f0f0f4] text-[#6b6b78]">Non</button>
+                            </div>
+                          )}
+                          {!canSuspend && !canReact && <span className="text-[10px] text-[#b0b0bc]">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <button onClick={() => setEditUser(u)}
+                            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#f0e8ff] text-[#6A1B9A] hover:bg-[#6A1B9A] hover:text-white transition-colors">
+                            ✎ Modifier
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination page={page} totalItems={filtered.length} perPage={PER_PAGE} onChange={setPage} />
+          </>
+        )}
+
+        <div className="h-4" />
+      </div>
 
       <CreateUserModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={handleCreated}
         defaultRole="GARDIEN"
+      />
+      <CreateUserModal
+        isOpen={!!editUser}
+        onClose={() => setEditUser(null)}
+        onCreated={handleCreated}
+        onUpdated={handleUpdated}
+        editUser={editUser ?? undefined}
       />
     </div>
   );

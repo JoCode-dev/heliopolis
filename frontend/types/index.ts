@@ -4,7 +4,7 @@ export type ProfileStatus = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE_ACTIVATION' | 'SUS
 export type AdhesionStatus = 'A_JOUR' | 'NON_A_JOUR' | 'EN_ATTENTE';
 export type CampType = 'REGIONAL' | 'DISTRICT' | 'PAROISSIAL' | 'NATIONAL' | 'COMMUNAUTE';
 export type CampStatus = 'BROUILLON' | 'OUVERT' | 'EN_COURS' | 'CLOTURE' | 'ARCHIVE';
-export type ParticipationStatus = 'NON_SELECTIONNE' | 'SELECTIONNE' | 'CONFIRME' | 'PRESENT' | 'ABSENT' | 'DESISTE' | 'EN_ATTENTE';
+export type ParticipationStatus = 'NON_SELECTIONNE' | 'SELECTIONNE' | 'CONFIRME' | 'PRESENT' | 'ABSENT' | 'DESISTE' | 'EN_ATTENTE' | 'BLOQUE';
 export type ChallengeCategory = 'PERSONNEL' | 'COMMUNAUTAIRE' | 'SPIRITUEL' | 'LONG';
 export type SubmissionStatus = 'EN_ATTENTE' | 'VALIDE' | 'REJETE' | 'CORRECTION_DEMANDEE';
 export type BadgeLevel = 'BRONZE' | 'ARGENT' | 'OR' | 'LEGENDE';
@@ -67,6 +67,7 @@ export interface CampParticipant {
   adhesionStatusSnapshot: AdhesionStatus;
   participationStatus: ParticipationStatus;
   selectedAt: string;
+  commentaireInterne?: string;
 }
 
 // ─── Challenges / Soumissions ────────────────────────────────────────────────

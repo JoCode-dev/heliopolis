@@ -35,13 +35,17 @@ interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (user: User) => void;
+  onUpdated?: (user: User) => void;
+  /** Pré-remplit le formulaire en mode édition */
+  editUser?: User;
   /** Verrouille le rôle initial (affiché mais pas modifiable si un seul choix) */
   defaultRole?: string;
   /** Restreint explicitement les rôles (ignoré si la matrice en contient moins) */
   allowedRoles?: string[];
 }
 
-export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allowedRoles }: CreateUserModalProps) {
+export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUser, defaultRole, allowedRoles }: CreateUserModalProps) {
+  const isEditMode = !!editUser;
   const { user: actor } = useAuthStore();
   const actorRole = actor?.role ?? 'GUIDE';
 
@@ -83,13 +87,22 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
 
   useEffect(() => {
     if (!isOpen) return;
-    setNom(''); setPrenoms(''); setMatricule('');
-    setEmail(''); setTelephone('');
-    setRole(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
-    setDistrictId(''); setParishId('');
+    if (editUser) {
+      setNom(editUser.nom ?? '');
+      setPrenoms(editUser.prenoms ?? '');
+      setMatricule(editUser.matricule ?? '');
+      setEmail(editUser.email ?? '');
+      setTelephone(editUser.telephone ?? '');
+      setRole(editUser.role ?? defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+    } else {
+      setNom(''); setPrenoms(''); setMatricule('');
+      setEmail(''); setTelephone('');
+      setRole(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+      setDistrictId(''); setParishId('');
+    }
     setError('');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, editUser]);
 
   // Charge les doyennés pour admin/région
   useEffect(() => {
@@ -115,29 +128,44 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
       setError('Le nom et les prénoms sont obligatoires.');
       return;
     }
+    if (isEditMode && !matricule.trim()) {
+      setError('Le matricule est obligatoire pour modifier un utilisateur.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const effectiveDistrict = districtId || autoDistrictId || undefined;
-      const effectiveParish   = parishId   || autoParishId   || undefined;
-
-      const payload: Record<string, string | undefined> = {
-        nom:        nom.trim(),
-        prenoms:    prenoms.trim(),
-        role,
-        matricule:  matricule.trim() || undefined,
-        email:      email.trim()     || undefined,
-        telephone:  telephone.trim() || undefined,
-        districtId: effectiveDistrict,
-        parishId:   effectiveParish,
-      };
-
-      const { data } = await usersApi.create(payload);
-      onCreated(data as User);
+      if (isEditMode && editUser) {
+        const payload: Record<string, string | undefined> = {
+          matricule: matricule.trim(),
+          nom:       nom.trim(),
+          prenoms:   prenoms.trim(),
+          email:     email.trim()     || undefined,
+          telephone: telephone.trim() || undefined,
+        };
+        const { data } = await usersApi.update(editUser.id, payload);
+        onUpdated?.(data as User);
+      } else {
+        const effectiveDistrict = districtId || autoDistrictId || undefined;
+        const effectiveParish   = parishId   || autoParishId   || undefined;
+        const payload: Record<string, string | undefined> = {
+          nom:        nom.trim(),
+          prenoms:    prenoms.trim(),
+          role,
+          matricule:  matricule.trim() || undefined,
+          email:      email.trim()     || undefined,
+          telephone:  telephone.trim() || undefined,
+          districtId: effectiveDistrict,
+          parishId:   effectiveParish,
+        };
+        const { data } = await usersApi.create(payload);
+        onCreated(data as User);
+      }
       onClose();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Erreur lors de la création.');
+      const err = e as { response?: { data?: { message?: string | string[] } } };
+      const msg = err?.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(' ') : (msg ?? (isEditMode ? 'Erreur lors de la mise à jour.' : 'Erreur lors de la création.')));
     } finally {
       setLoading(false);
     }
@@ -156,7 +184,9 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
         {/* En-tête coloré selon le rôle */}
         <div className={`bg-gradient-to-r ${ROLE_COLOR[role] ?? 'from-[#1F1B2E] to-[#3a1d4d]'} text-white p-5 flex items-center justify-between flex-shrink-0`}>
           <div>
-            <div className="font-bold text-base">Nouveau membre</div>
+            <div className="font-bold text-base">
+              {isEditMode ? `Modifier — ${editUser?.prenoms} ${editUser?.nom}` : 'Nouveau membre'}
+            </div>
             <div className="text-xs opacity-80 mt-0.5">
               {selectedOption?.icon} {selectedOption?.label ?? role}
               {isSentinelle && actor?.district?.nom ? ` · ${actor.district.nom}` : ''}
@@ -271,10 +301,19 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
               </div>
             </div>
             <div className="mb-3">
-              <label className="block text-xs text-[#9b9ba8] mb-1">Matricule</label>
+              <label className="block text-xs text-[#9b9ba8] mb-1">
+                Matricule {isEditMode ? <span className="text-[#C62828]">*</span> : <span className="opacity-60">(optionnel)</span>}
+              </label>
               <input value={matricule} onChange={e => setMatricule(e.target.value)}
                 placeholder="0525247O"
-                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-[#6A1B9A] transition" />
+                className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none transition ${
+                  isEditMode && !matricule.trim()
+                    ? 'border-[#f5c6c6] bg-[#fff8f8] focus:border-[#C62828]'
+                    : 'border-[#e0e0e8] focus:border-[#6A1B9A]'
+                }`} />
+              {isEditMode && !matricule.trim() && (
+                <p className="text-[11px] text-[#C62828] mt-1">Le matricule est requis pour enregistrer les modifications.</p>
+              )}
             </div>
             <div className="mb-3">
               <label className="block text-xs text-[#9b9ba8] mb-1">Email</label>
@@ -297,9 +336,12 @@ export function CreateUserModal({ isOpen, onClose, onCreated, defaultRole, allow
             Annuler
           </button>
           <button onClick={handleSubmit}
-            disabled={loading || !nom.trim() || !prenoms.trim()}
+            disabled={loading || !nom.trim() || !prenoms.trim() || (isEditMode && !matricule.trim())}
             className={`flex-1 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition bg-gradient-to-r ${ROLE_COLOR[role] ?? 'from-[#C62828] to-[#8e1a1a]'}`}>
-            {loading ? 'Création…' : `Créer ${selectedOption?.label ?? ''}`}
+            {loading
+              ? (isEditMode ? 'Enregistrement…' : 'Création…')
+              : (isEditMode ? 'Enregistrer les modifications' : `Créer ${selectedOption?.label ?? ''}`)
+            }
           </button>
         </div>
       </div>

@@ -71,6 +71,7 @@ enum ParticipationStatus {
   ABSENT
   DESISTE
   EN_ATTENTE
+  BLOQUE
 }
 
 /// Statut de présence (§7.3)

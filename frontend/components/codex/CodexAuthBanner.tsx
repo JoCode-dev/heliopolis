@@ -14,7 +14,7 @@ export function CodexAuthBanner() {
           Bienvenue, <strong>{user.prenoms}</strong>. Relève des défis et publie tes actions.
         </div>
         <Link
-          href="/missions"
+          href="/dashboard/gardien/missions"
           className="bg-[#2E7D32] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
         >
           Mes missions →

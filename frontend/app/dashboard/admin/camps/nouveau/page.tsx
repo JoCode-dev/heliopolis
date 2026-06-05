@@ -4,7 +4,10 @@ import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
 import { Input, Select, Toggle, Button } from '@/components/ui';
 
-const TYPES = ['REGIONAL', 'DISTRICT', 'PAROISSIAL', 'NATIONAL', 'COMMUNAUTE'];
+const TYPES: { value: string; label: string; icon: string; desc: string }[] = [
+  { value: 'REGIONAL', label: 'Régional',  icon: '🗺️', desc: 'Camp organisé au niveau de la région' },
+  { value: 'NATIONAL', label: 'National',  icon: '🌍', desc: 'Camp organisé à l\'échelle nationale' },
+];
 
 interface CreateCampForm {
   nom: string;
@@ -42,6 +45,7 @@ export default function NouveauCampPage() {
     nom: '', theme: '', type: 'REGIONAL', description: '',
     dateDebut: '', dateFin: '', lieu: '', selectionOuverte: true,
   });
+  const selectedType = TYPES.find(t => t.value === form.type);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -89,9 +93,25 @@ export default function NouveauCampPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#1F1B2E] mb-1.5">Type *</label>
-              <Select value={form.type} onChange={e => set('type', e.target.value)}>
-                {TYPES.map(t => <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>)}
-              </Select>
+              <div className="grid grid-cols-2 gap-2">
+                {TYPES.map(t => (
+                  <button key={t.value} type="button" onClick={() => set('type', t.value)}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all text-center ${
+                      form.type === t.value
+                        ? 'border-[#6A1B9A] bg-[#EDE7F6] text-[#4a1370]'
+                        : 'border-[#ececf0] bg-white text-[#6b6b78] hover:border-[#c8c8d4]'
+                    }`}>
+                    <span className="text-2xl">{t.icon}</span>
+                    <span className="text-xs font-bold">{t.label}</span>
+                    <span className="text-[10px] leading-tight opacity-70">{t.desc}</span>
+                  </button>
+                ))}
+              </div>
+              {selectedType && (
+                <p className="text-[11px] text-[#6A1B9A] mt-1.5 font-medium">
+                  {selectedType.icon} Camp {selectedType.label.toLowerCase()} sélectionné
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#1F1B2E] mb-1.5">Description</label>

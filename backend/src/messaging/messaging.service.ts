@@ -4,7 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { MessageType, ConversationMemberRole } from '../../generated/prisma/enums.js';
+import { ConversationType, MessageType, ConversationMemberRole, UserRole } from '../../generated/prisma/enums.js';
+import type { AuthUser } from '../common/types/auth-user.js';
 
 @Injectable()
 export class MessagingService {
@@ -250,6 +251,244 @@ export class MessagingService {
             { userId: userId1, role: 'MEMBRE' },
             { userId: userId2, role: 'MEMBRE' },
           ],
+        },
+      },
+    });
+  }
+
+  // ── Canaux d'équipe ──────────────────────────────────────────────────────────
+
+  async getSuggestedChannels(user: AuthUser) {
+    type Suggestion = {
+      channelKey: string;
+      convType: ConversationType;
+      nomPrefix: string;
+      nom: string;
+      description: string;
+      icon: string;
+      territoryId: string;
+      conversationId: string | null;
+      memberCount: number;
+      isMember: boolean;
+    };
+    const suggestions: Suggestion[] = [];
+
+    const checkExisting = async (convType: ConversationType, nomPrefix: string, where: object) => {
+      const existing = await this.prisma.conversation.findFirst({
+        where: { type: convType, nom: { startsWith: nomPrefix }, archivedAt: null, ...where },
+        include: { _count: { select: { members: { where: { leftAt: null } } } } },
+      });
+      const member = existing
+        ? await this.prisma.conversationMember.findUnique({
+            where: { conversationId_userId: { conversationId: existing.id, userId: user.id } },
+          })
+        : null;
+      const isMember = !!member && !member.leftAt;
+      return { existing, isMember };
+    };
+
+    /* ── Canaux liés à la PAROISSE ─────────────────────────────────── */
+    if (user.parishId) {
+      const parish = await this.prisma.parish.findUnique({
+        where: { id: user.parishId }, select: { id: true, nom: true },
+      });
+      if (parish) {
+        // Canal Équipe Paroisse (GUIDE + GARDIEN) — visible à GARDIEN et GUIDE
+        if (([UserRole.GARDIEN, UserRole.GUIDE] as UserRole[]).includes(user.role)) {
+          const { existing, isMember } = await checkExisting(ConversationType.PAROISSE, 'Équipe ', { parishId: parish.id });
+          suggestions.push({
+            channelKey: 'PAROISSE', convType: ConversationType.PAROISSE, nomPrefix: 'Équipe ',
+            nom: `Équipe ${parish.nom}`, description: 'Canal de la paroisse · Guides & Gardiens',
+            icon: '⛪', territoryId: parish.id,
+            conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
+          });
+        }
+        // Canal Gardiens (GARDIEN uniquement) — visible à GUIDE, SENTINELLE, REGION, ADMIN
+        if (([UserRole.GUIDE, UserRole.SENTINELLE, UserRole.REGION, UserRole.ADMIN] as UserRole[]).includes(user.role)) {
+          const { existing, isMember } = await checkExisting(ConversationType.PAROISSE, 'Gardiens — ', { parishId: parish.id });
+          suggestions.push({
+            channelKey: 'GARDIENS', convType: ConversationType.PAROISSE, nomPrefix: 'Gardiens — ',
+            nom: `Gardiens — ${parish.nom}`, description: 'Canal des Gardiens de la paroisse',
+            icon: '🤝', territoryId: parish.id,
+            conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
+          });
+        }
+      }
+    }
+
+    /* ── Canaux liés au DOYENNÉ ────────────────────────────────────── */
+    if (user.districtId) {
+      const district = await this.prisma.district.findUnique({
+        where: { id: user.districtId }, select: { id: true, nom: true },
+      });
+      if (district) {
+        // Canal Équipe Doyenné (SENTINELLE + GUIDE) — visible à GUIDE et SENTINELLE
+        if (([UserRole.GUIDE, UserRole.SENTINELLE] as UserRole[]).includes(user.role)) {
+          const { existing, isMember } = await checkExisting(ConversationType.DOYENNE, 'Équipe Doyenné ', { districtId: district.id });
+          suggestions.push({
+            channelKey: 'DOYENNE', convType: ConversationType.DOYENNE, nomPrefix: 'Équipe Doyenné ',
+            nom: `Équipe Doyenné ${district.nom}`, description: 'Canal du doyenné · Sentinelle & Guides',
+            icon: '🛡️', territoryId: district.id,
+            conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
+          });
+        }
+        // Canal Guides (GUIDE uniquement) — visible à SENTINELLE, REGION, ADMIN
+        if (([UserRole.SENTINELLE, UserRole.REGION, UserRole.ADMIN] as UserRole[]).includes(user.role)) {
+          const { existing, isMember } = await checkExisting(ConversationType.DOYENNE, 'Guides — ', { districtId: district.id });
+          suggestions.push({
+            channelKey: 'GUIDES', convType: ConversationType.DOYENNE, nomPrefix: 'Guides — ',
+            nom: `Guides — ${district.nom}`, description: 'Canal des Guides du doyenné',
+            icon: '📖', territoryId: district.id,
+            conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
+          });
+        }
+      }
+    }
+
+    /* ── Canaux liés à la RÉGION ───────────────────────────────────── */
+    if (user.regionId) {
+      const region = await this.prisma.region.findUnique({
+        where: { id: user.regionId }, select: { id: true, nom: true },
+      });
+      if (region) {
+        // Canal Équipe Régionale (REGION + SENTINELLE) — visible à SENTINELLE, REGION, ADMIN
+        if (([UserRole.SENTINELLE, UserRole.REGION, UserRole.ADMIN] as UserRole[]).includes(user.role)) {
+          const { existing, isMember } = await checkExisting(ConversationType.REGION, 'Équipe Régionale ', { regionId: region.id });
+          suggestions.push({
+            channelKey: 'REGION', convType: ConversationType.REGION, nomPrefix: 'Équipe Régionale ',
+            nom: `Équipe Régionale ${region.nom}`, description: 'Canal régional · Responsables & Sentinelles',
+            icon: '🗺️', territoryId: region.id,
+            conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
+          });
+        }
+        // Canal Sentinelles (SENTINELLE uniquement) — visible à REGION et ADMIN
+        if (([UserRole.REGION, UserRole.ADMIN] as UserRole[]).includes(user.role)) {
+          const { existing, isMember } = await checkExisting(ConversationType.REGION, 'Sentinelles — ', { regionId: region.id });
+          suggestions.push({
+            channelKey: 'SENTINELLES', convType: ConversationType.REGION, nomPrefix: 'Sentinelles — ',
+            nom: `Sentinelles — ${region.nom}`, description: 'Canal des Sentinelles de la région',
+            icon: '🛡️', territoryId: region.id,
+            conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
+          });
+        }
+      }
+    }
+
+    return suggestions;
+  }
+
+  async createOrJoinTerritoryChannel(
+    user: AuthUser,
+    channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES',
+  ) {
+    type TerritoryWhere = { parishId?: string; districtId?: string; regionId?: string };
+    let where: TerritoryWhere = {};
+    let convType: ConversationType;
+    let nomPrefix: string;
+    let channelNom = '';
+    let memberRoles: UserRole[] = [];
+    let isModerated = false;
+
+    switch (channelKey) {
+      case 'PAROISSE':
+        if (!user.parishId) throw new ForbiddenException('Paroisse introuvable');
+        where = { parishId: user.parishId };
+        convType = ConversationType.PAROISSE;
+        nomPrefix = 'Équipe ';
+        { const p = await this.prisma.parish.findUnique({ where: { id: user.parishId }, select: { nom: true } });
+          channelNom = `Équipe ${p?.nom ?? 'Paroisse'}`; }
+        memberRoles = [UserRole.GUIDE, UserRole.GARDIEN];
+        break;
+
+      case 'GARDIENS':
+        if (!user.parishId) throw new ForbiddenException('Paroisse introuvable');
+        where = { parishId: user.parishId };
+        convType = ConversationType.PAROISSE;
+        nomPrefix = 'Gardiens — ';
+        { const p = await this.prisma.parish.findUnique({ where: { id: user.parishId }, select: { nom: true } });
+          channelNom = `Gardiens — ${p?.nom ?? 'Paroisse'}`; }
+        memberRoles = [UserRole.GARDIEN];
+        break;
+
+      case 'DOYENNE':
+        if (!user.districtId) throw new ForbiddenException('Doyenné introuvable');
+        where = { districtId: user.districtId };
+        convType = ConversationType.DOYENNE;
+        nomPrefix = 'Équipe Doyenné ';
+        { const d = await this.prisma.district.findUnique({ where: { id: user.districtId }, select: { nom: true } });
+          channelNom = `Équipe Doyenné ${d?.nom ?? 'Doyenné'}`; }
+        memberRoles = [UserRole.SENTINELLE, UserRole.GUIDE];
+        isModerated = true;
+        break;
+
+      case 'GUIDES':
+        if (!user.districtId) throw new ForbiddenException('Doyenné introuvable');
+        where = { districtId: user.districtId };
+        convType = ConversationType.DOYENNE;
+        nomPrefix = 'Guides — ';
+        { const d = await this.prisma.district.findUnique({ where: { id: user.districtId }, select: { nom: true } });
+          channelNom = `Guides — ${d?.nom ?? 'Doyenné'}`; }
+        memberRoles = [UserRole.GUIDE];
+        break;
+
+      case 'REGION':
+        if (!user.regionId) throw new ForbiddenException('Région introuvable');
+        where = { regionId: user.regionId };
+        convType = ConversationType.REGION;
+        nomPrefix = 'Équipe Régionale ';
+        { const r = await this.prisma.region.findUnique({ where: { id: user.regionId }, select: { nom: true } });
+          channelNom = `Équipe Régionale ${r?.nom ?? 'Région'}`; }
+        memberRoles = [UserRole.REGION, UserRole.SENTINELLE];
+        isModerated = true;
+        break;
+
+      case 'SENTINELLES':
+        if (!user.regionId) throw new ForbiddenException('Région introuvable');
+        where = { regionId: user.regionId };
+        convType = ConversationType.REGION;
+        nomPrefix = 'Sentinelles — ';
+        { const r = await this.prisma.region.findUnique({ where: { id: user.regionId }, select: { nom: true } });
+          channelNom = `Sentinelles — ${r?.nom ?? 'Région'}`; }
+        memberRoles = [UserRole.SENTINELLE];
+        isModerated = true;
+        break;
+
+      default:
+        throw new ForbiddenException('Type de canal invalide');
+    }
+
+    // Cherche un canal existant par type + préfixe de nom + territoire
+    const existing = await this.prisma.conversation.findFirst({
+      where: { type: convType, nom: { startsWith: nomPrefix }, archivedAt: null, ...where },
+    });
+
+    if (existing) {
+      await this.prisma.conversationMember.upsert({
+        where: { conversationId_userId: { conversationId: existing.id, userId: user.id } },
+        create: { conversationId: existing.id, userId: user.id, role: ConversationMemberRole.MEMBRE },
+        update: { leftAt: null },
+      });
+      return existing;
+    }
+
+    // Crée le canal avec les membres du territoire
+    const territoryUsers = await this.prisma.user.findMany({
+      where: { role: { in: memberRoles }, statutProfil: 'ACTIF', deletedAt: null, ...where },
+      select: { id: true },
+    });
+    const allIds = [...new Set([user.id, ...territoryUsers.map(u => u.id)])];
+
+    return this.prisma.conversation.create({
+      data: {
+        type: convType,
+        nom: channelNom,
+        isModerated,
+        ...where,
+        members: {
+          create: allIds.map(uid => ({
+            userId: uid,
+            role: uid === user.id ? ConversationMemberRole.OWNER : ConversationMemberRole.MEMBRE,
+          })),
         },
       },
     });

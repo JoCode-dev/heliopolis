@@ -5,14 +5,24 @@ import { getTerritoryLabel } from '@/lib/roles';
 import { useAuthStore } from '@/store/auth';
 import type { User, Camp, CampParticipant } from '@/types';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Shared config ────────────────────────────────────────────────────────────
 
 type AdhFilter = 'tous' | 'A_JOUR' | 'EN_ATTENTE' | 'NON_A_JOUR';
 
-const ADH_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string; border: string }> = {
+const ADH_CFG: Record<string, { label: string; dot: string; bg: string; text: string; border: string }> = {
   A_JOUR:     { label: 'À jour',     dot: 'bg-[#2E7D32]', bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]' },
   EN_ATTENTE: { label: 'En attente', dot: 'bg-[#D9A441]', bg: 'bg-[#fff8e6]', text: 'text-[#9c7218]', border: 'border-[#ffe082]' },
   NON_A_JOUR: { label: 'Non à jour', dot: 'bg-[#C62828]', bg: 'bg-[#fff0f0]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]' },
+};
+
+const STATUS_CFG: Record<string, { label: string; bg: string; text: string; border: string; icon: string }> = {
+  SELECTIONNE: { label: 'Sélectionné',  bg: 'bg-[#EDE7F6]', text: 'text-[#6A1B9A]', border: 'border-[#ce93d8]', icon: '✓'  },
+  CONFIRME:    { label: 'Confirmé',     bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]', icon: '✓✓' },
+  BLOQUE:      { label: 'Bloqué',       bg: 'bg-[#fff0f0]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]', icon: '🚫' },
+  PRESENT:     { label: 'Présent',      bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]', icon: '✓'  },
+  ABSENT:      { label: 'Absent',       bg: 'bg-[#f5f5f5]', text: 'text-[#6b6b78]', border: 'border-[#e0e0e0]', icon: '—'  },
+  DESISTE:     { label: 'Désisté',      bg: 'bg-[#fff8e6]', text: 'text-[#9c7218]', border: 'border-[#ffe082]', icon: '←'  },
+  EN_ATTENTE:  { label: 'En attente',   bg: 'bg-[#fff8e6]', text: 'text-[#9c7218]', border: 'border-[#ffe082]', icon: '⏳' },
 };
 
 const GRAD = [
@@ -24,7 +34,6 @@ const GRAD = [
 // ─── Toast ────────────────────────────────────────────────────────────────────
 
 interface ToastState { id: number; msg: string; ok: boolean }
-
 function useToast() {
   const [toasts, setToasts] = useState<ToastState[]>([]);
   const counter = useRef(0);
@@ -36,55 +45,115 @@ function useToast() {
   return { toasts, show };
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Avatar helper ────────────────────────────────────────────────────────────
+
+function Avatar({ user: u, idx, size = 'md', greyed = false }: {
+  user: Partial<User>; idx: number; size?: 'sm' | 'md'; greyed?: boolean;
+}) {
+  const sz = size === 'sm' ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm';
+  return (
+    <div className={`${sz} rounded-full bg-gradient-to-br ${GRAD[idx % GRAD.length]} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden ${greyed ? 'grayscale opacity-60' : ''}`}>
+      {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" alt="" /> : `${(u.nom ?? '?')[0]}${(u.prenoms ?? '?')[0]}`}
+    </div>
+  );
+}
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function SelectionPage({ params }: { params: Promise<{ campId: string }> }) {
   const { campId } = use(params);
   const { user }   = useAuthStore();
+  const isSentinelle = user?.role === 'SENTINELLE';
   const { toasts, show: toast } = useToast();
 
-  const [camp, setCamp]         = useState<Camp | null>(null);
-  const [gardiens, setGardiens] = useState<User[]>([]);
-  const [confirmed, setConfirmed] = useState<Set<string>>(new Set()); // déjà en BDD
-  const [selected, setSelected]   = useState<Set<string>>(new Set()); // état courant
-  const [saving, setSaving]       = useState(false);
-  const [search, setSearch]       = useState('');
-  const [adhFilter, setAdhFilter] = useState<AdhFilter>('tous');
-  const [loading, setLoading]     = useState(true);
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden bg-white">
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none">
+        {toasts.map(t => (
+          <div key={t.id} className={`pointer-events-auto px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl flex items-center gap-2.5 min-w-[280px] ${t.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'}`}>
+            <span>{t.ok ? '✓' : '✕'}</span><span className="flex-1">{t.msg}</span>
+          </div>
+        ))}
+      </div>
+      {isSentinelle
+        ? <SentinelleView campId={campId} user={user} toast={toast} />
+        : <GuideView      campId={campId} user={user} toast={toast} />
+      }
+    </div>
+  );
+}
 
-  useEffect(() => {
+// ─────────────────────────────────────────────────────────────────────────────
+// VUE GUIDE — sélection + blocage de gardiens
+// ─────────────────────────────────────────────────────────────────────────────
+
+function GuideView({ campId, user, toast }: {
+  campId: string;
+  user: ReturnType<typeof useAuthStore>['user'];
+  toast: (msg: string, ok: boolean) => void;
+}) {
+  const [camp, setCamp]             = useState<Camp | null>(null);
+  const [gardiens, setGardiens]     = useState<User[]>([]);
+  const [confirmed, setConfirmed]   = useState<Set<string>>(new Set());
+  const [selected, setSelected]     = useState<Set<string>>(new Set());
+  const [blocked, setBlocked]       = useState<Set<string>>(new Set());
+  const [saving, setSaving]         = useState(false);
+  const [blockingId, setBlockingId] = useState<string | null>(null);
+  const [search, setSearch]         = useState('');
+  const [adhFilter, setAdhFilter]   = useState<AdhFilter>('tous');
+  const [loading, setLoading]       = useState(true);
+
+  const reload = useCallback(() => {
     if (!user) return;
-    const params: Record<string, string> = { role: 'GARDIEN' };
-    if (user.role === 'GUIDE'      && user.parish?.id)   params.parishId   = user.parish.id;
-    if (user.role === 'SENTINELLE' && user.district?.id) params.districtId = user.district.id;
-
+    const p: Record<string, string> = { role: 'GARDIEN' };
+    if (user.parish?.id) p.parishId = user.parish.id;
     Promise.all([
       campsApi.get(campId),
-      usersApi.list(params),
+      usersApi.list(p),
       campsApi.participants(campId),
-    ]).then(([c, u, p]) => {
+    ]).then(([c, u, pp]) => {
       setCamp(c.data);
-      setGardiens(u.data);
-      const ids = new Set<string>((p.data as CampParticipant[]).map(pp => pp.userId));
-      setConfirmed(ids);
-      setSelected(new Set(ids));
+      const parts = pp.data as CampParticipant[];
+      const blockedIds = new Set<string>(parts.filter(x => x.participationStatus === 'BLOQUE').map(x => x.userId));
+      const selectedIds = new Set<string>(parts.filter(x => x.participationStatus !== 'BLOQUE').map(x => x.userId));
+      setGardiens(u.data as User[]);
+      setBlocked(blockedIds);
+      setConfirmed(new Set(selectedIds));
+      setSelected(new Set(selectedIds));
     }).catch(() => toast('Erreur lors du chargement.', false))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campId, user]);
 
+  useEffect(() => { reload(); }, [reload]);
+
   const toggle = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+    if (blocked.has(id)) return;
+    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
   };
 
-  const selectAll   = () => setSelected(new Set(filtered.map(r => r.id)));
-  const selectNone  = () => setSelected(new Set());
+  const handleBlock = async (userId: string, name: string) => {
+    setBlockingId(userId);
+    try {
+      await campsApi.blockParticipant(campId, userId);
+      toast(`${name} bloqué pour ce camp.`, true);
+      reload();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erreur lors du blocage.';
+      toast(msg, false);
+    } finally { setBlockingId(null); }
+  };
 
-  // Diff : ajouts et retraits par rapport à l'état confirmé
+  const handleUnblock = async (userId: string, name: string) => {
+    setBlockingId(userId);
+    try {
+      await campsApi.unblockParticipant(campId, userId);
+      toast(`${name} débloqué.`, true);
+      reload();
+    } catch { toast('Erreur lors du déblocage.', false); }
+    finally { setBlockingId(null); }
+  };
+
   const toAdd    = [...selected].filter(id => !confirmed.has(id));
   const toRemove = [...confirmed].filter(id => !selected.has(id));
   const hasChanges = toAdd.length > 0 || toRemove.length > 0;
@@ -93,99 +162,53 @@ export default function SelectionPage({ params }: { params: Promise<{ campId: st
     if (!hasChanges) return;
     setSaving(true);
     let addOk = 0, removeOk = 0, errors = 0;
-    try {
-      await Promise.all([
-        ...toAdd.map(id =>
-          campsApi.selectParticipant(campId, id)
-            .then(() => addOk++)
-            .catch(() => errors++)
-        ),
-        ...toRemove.map(id =>
-          campsApi.removeParticipant(campId, id)
-            .then(() => removeOk++)
-            .catch(() => errors++)
-        ),
-      ]);
-
-      // Mettre à jour l'état confirmé
-      const newConfirmed = new Set(selected);
-      toRemove.forEach(id => newConfirmed.delete(id));
-      setConfirmed(newConfirmed);
-
-      if (errors === 0) {
-        const parts: string[] = [];
-        if (addOk > 0)    parts.push(`${addOk} ajouté${addOk > 1 ? 's' : ''}`);
-        if (removeOk > 0) parts.push(`${removeOk} retiré${removeOk > 1 ? 's' : ''}`);
-        toast(`✓ Sélection enregistrée — ${parts.join(', ')}.`, true);
-      } else {
-        toast(`${errors} erreur${errors > 1 ? 's' : ''} sur ${toAdd.length + toRemove.length} opérations.`, false);
-      }
-    } catch {
-      toast('Erreur lors de l\'enregistrement.', false);
-    } finally {
-      setSaving(false);
+    await Promise.all([
+      ...toAdd.map(id    => campsApi.selectParticipant(campId, id).then(() => addOk++).catch(() => errors++)),
+      ...toRemove.map(id => campsApi.removeParticipant(campId, id).then(() => removeOk++).catch(() => errors++)),
+    ]);
+    if (errors === 0) {
+      const parts = [];
+      if (addOk)    parts.push(`${addOk} ajouté${addOk > 1 ? 's' : ''}`);
+      if (removeOk) parts.push(`${removeOk} retiré${removeOk > 1 ? 's' : ''}`);
+      toast(`✓ ${parts.join(', ')}.`, true);
+      setConfirmed(new Set(selected));
+    } else {
+      toast(`${errors} erreur(s) sur ${toAdd.length + toRemove.length} opérations.`, false);
     }
+    setSaving(false);
   };
 
-  // Filtres
-  const filtered = gardiens.filter(r => {
+  const visibleGardiens = gardiens.filter(g => !blocked.has(g.id));
+  const blockedGardiens = gardiens.filter(g => blocked.has(g.id));
+
+  const filteredVisible = visibleGardiens.filter(r => {
     const q = search.trim().toLowerCase();
     if (q && !`${r.nom} ${r.prenoms} ${r.matricule ?? ''}`.toLowerCase().includes(q)) return false;
     if (adhFilter === 'tous') return true;
-    const adh = r.adhesions?.[0]?.statut ?? 'NON_A_JOUR';
-    return adh === adhFilter;
+    return (r.adhesions?.[0]?.statut ?? 'NON_A_JOUR') === adhFilter;
   });
 
-  const countByAdh = (status: string) =>
-    gardiens.filter(r => (r.adhesions?.[0]?.statut ?? 'NON_A_JOUR') === status).length;
-
-  const isSentinelle = user?.role === 'SENTINELLE';
+  const countByAdh = (s: string) => visibleGardiens.filter(r => (r.adhesions?.[0]?.statut ?? 'NON_A_JOUR') === s).length;
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-white">
-
-      {/* ── Toasts ── */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none">
-        {toasts.map(t => (
-          <div key={t.id}
-            className={`pointer-events-auto px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl flex items-center gap-2.5 min-w-[280px] animate-in fade-in slide-in-from-top-2 duration-300 ${
-              t.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'
-            }`}>
-            <span className="text-lg">{t.ok ? '✓' : '✕'}</span>
-            <span className="flex-1">{t.msg}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Header ── */}
+    <>
+      {/* Header */}
       <div className="bg-gradient-to-br from-[#6A1B9A] via-[#5a1280] to-[#1F1B2E] text-white px-4 pt-4 pb-5 flex-shrink-0">
-        <button onClick={() => history.back()}
-          className="flex items-center gap-1 text-xs opacity-75 hover:opacity-100 transition mb-3">
-          ‹ Retour
-        </button>
+        <button onClick={() => history.back()} className="flex items-center gap-1 text-xs opacity-75 mb-3">‹ Retour</button>
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-black">Sélection des participants</h1>
-            <p className="text-xs opacity-80 mt-0.5">
-              {camp?.nom ?? 'Camp'} · {getTerritoryLabel(user)}
-            </p>
+            <p className="text-xs opacity-80 mt-0.5">{camp?.nom ?? 'Camp'} · {user?.parish?.nom ?? 'Ma paroisse'}</p>
           </div>
-          {camp && (
-            <div className="text-right flex-shrink-0">
-              <div className="text-2xl font-black">{selected.size}</div>
-              <div className="text-[10px] opacity-70 uppercase tracking-wider">sélectionnés</div>
-            </div>
-          )}
+          {camp && <div className="text-right"><div className="text-2xl font-black">{selected.size}</div><div className="text-[10px] opacity-70 uppercase tracking-wider">sélectionnés</div></div>}
         </div>
-
-        {/* Stats rapides */}
         {!loading && (
           <div className="grid grid-cols-4 gap-2 mt-3">
             {[
-              { label: 'Total',      value: gardiens.length,       color: 'bg-white/15' },
-              { label: 'À jour',     value: countByAdh('A_JOUR'),  color: 'bg-[#2E7D32]/60' },
-              { label: 'Inscrits',   value: confirmed.size,        color: 'bg-[#6A1B9A]/60' },
-              { label: 'Modifiés',   value: toAdd.length + toRemove.length, color: hasChanges ? 'bg-[#D9A441]/60' : 'bg-white/10' },
+              { label: 'Total',    value: visibleGardiens.length,              color: 'bg-white/15' },
+              { label: 'À jour',   value: countByAdh('A_JOUR'),               color: 'bg-[#2E7D32]/60' },
+              { label: 'Inscrits', value: confirmed.size,                      color: 'bg-[#6A1B9A]/60' },
+              { label: 'Bloqués',  value: blockedGardiens.length,              color: blockedGardiens.length > 0 ? 'bg-[#C62828]/60' : 'bg-white/10' },
             ].map(s => (
               <div key={s.label} className={`${s.color} rounded-xl p-2 text-center`}>
                 <div className="text-base font-black">{s.value}</div>
@@ -196,199 +219,457 @@ export default function SelectionPage({ params }: { params: Promise<{ campId: st
         )}
       </div>
 
-      {/* ── Filtres ── */}
+      {/* Filtres */}
       <div className="border-b border-[#f0f0f0] px-4 py-2.5 flex-shrink-0 bg-white">
-        {/* Recherche */}
         <div className="flex items-center bg-[#F0F2F5] rounded-full px-3 py-2 gap-2 mb-2.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#9b9ba8]"
-            placeholder="Rechercher par nom ou matricule…" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#9b9ba8]" placeholder="Nom ou matricule…" />
           {search && <button onClick={() => setSearch('')} className="text-[#9b9ba8]">✕</button>}
         </div>
-
-        {/* Filtres adhésion + actions rapides */}
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {([
-            { key: 'tous',      label: `Tous (${gardiens.length})` },
-            { key: 'A_JOUR',    label: `À jour (${countByAdh('A_JOUR')})` },
-            { key: 'EN_ATTENTE',label: `Attente (${countByAdh('EN_ATTENTE')})` },
-            { key: 'NON_A_JOUR',label: `Non à jour (${countByAdh('NON_A_JOUR')})` },
+            { key: 'tous',       label: `Tous (${visibleGardiens.length})` },
+            { key: 'A_JOUR',     label: `À jour (${countByAdh('A_JOUR')})` },
+            { key: 'EN_ATTENTE', label: `Attente (${countByAdh('EN_ATTENTE')})` },
+            { key: 'NON_A_JOUR', label: `Non à jour (${countByAdh('NON_A_JOUR')})` },
           ] as { key: AdhFilter; label: string }[]).map(f => (
             <button key={f.key} onClick={() => setAdhFilter(f.key)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
-                adhFilter === f.key
-                  ? 'bg-[#6A1B9A] text-white'
-                  : 'bg-[#f3f3f5] text-[#6b6b78] hover:bg-[#ebebf0]'
-              }`}>
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold ${adhFilter === f.key ? 'bg-[#6A1B9A] text-white' : 'bg-[#f3f3f5] text-[#6b6b78]'}`}>
               {f.label}
             </button>
           ))}
           <div className="ml-auto flex gap-1.5 flex-shrink-0">
-            <button onClick={selectAll}
-              className="text-[11px] font-semibold text-[#6A1B9A] px-2.5 py-1.5 rounded-full bg-[#f0e8ff] hover:bg-[#e0d0ff] transition">
-              Tout cocher
-            </button>
-            <button onClick={selectNone}
-              className="text-[11px] font-semibold text-[#6b6b78] px-2.5 py-1.5 rounded-full bg-[#f3f3f5] hover:bg-[#ebebf0] transition">
-              Tout décocher
-            </button>
+            <button onClick={() => setSelected(new Set(filteredVisible.map(r => r.id)))} className="text-[11px] font-semibold text-[#6A1B9A] px-2.5 py-1.5 rounded-full bg-[#f0e8ff]">Tout cocher</button>
+            <button onClick={() => setSelected(new Set())} className="text-[11px] font-semibold text-[#6b6b78] px-2.5 py-1.5 rounded-full bg-[#f3f3f5]">Décocher</button>
           </div>
         </div>
       </div>
 
-      {/* ── Bannière règle 5.4 ── */}
-      <div className="px-4 pt-3 pb-0 flex-shrink-0">
+      <div className="px-4 pt-3 flex-shrink-0">
         <div className="flex gap-2 items-start bg-[#f0e8ff] border border-[#c8a8f0] rounded-xl px-3 py-2 text-xs text-[#4a1370]">
           <span>💡</span>
-          <span>Tu peux sélectionner même les gardiens <strong>non à jour</strong> d'adhésion (règle 5.4).</span>
+          <span>Coche pour sélectionner · <strong>🚫 Bloquer</strong> exclut définitivement un gardien pour ce camp.</span>
         </div>
       </div>
 
-      {/* ── Liste ── */}
+      {/* Liste gardiens */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {loading && <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]"><div className="text-4xl animate-pulse mb-3">👥</div><p className="text-sm">Chargement…</p></div>}
 
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]">
-            <div className="text-4xl animate-pulse mb-3">👥</div>
-            <p className="text-sm">Chargement des gardiens…</p>
-          </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]">
-            <div className="text-4xl mb-3">🔍</div>
-            <p className="text-sm font-semibold text-[#1F1B2E]">
-              {search ? `Aucun résultat pour « ${search} »` : 'Aucun gardien dans cette catégorie'}
-            </p>
-          </div>
-        )}
-
-        {!loading && filtered.length > 0 && (
+        {!loading && (
           <>
-            <div className="px-4 py-1.5 bg-[#F7F8FA] border-b border-[#f0f0f0]">
-              <span className="text-[11px] text-[#9b9ba8] font-semibold uppercase tracking-wider">
-                {filtered.length} gardien{filtered.length > 1 ? 's' : ''}
-                {selected.size > 0 ? ` · ${selected.size} sélectionné${selected.size > 1 ? 's' : ''}` : ''}
-              </span>
-            </div>
+            {/* Disponibles */}
+            {filteredVisible.length > 0 && (
+              <>
+                <div className="px-4 py-1.5 bg-[#F7F8FA] border-b border-[#f0f0f0]">
+                  <span className="text-[11px] text-[#9b9ba8] font-semibold uppercase tracking-wider">
+                    {filteredVisible.length} gardien{filteredVisible.length > 1 ? 's' : ''}
+                    {selected.size > 0 ? ` · ${selected.size} sélectionné${selected.size > 1 ? 's' : ''}` : ''}
+                  </span>
+                </div>
+                <div className="divide-y divide-[#f5f5f7]">
+                  {filteredVisible.map((r, idx) => {
+                    const adhStatut    = r.adhesions?.[0]?.statut ?? 'NON_A_JOUR';
+                    const adh          = ADH_CFG[adhStatut] ?? ADH_CFG.NON_A_JOUR;
+                    const isSelected   = selected.has(r.id);
+                    const wasConfirmed = confirmed.has(r.id);
+                    const isNew        = isSelected && !wasConfirmed;
+                    const isRemoved    = !isSelected && wasConfirmed;
 
+                    return (
+                      <div key={r.id} className={`flex items-center px-4 py-3 gap-3 transition-colors ${isSelected ? 'bg-[#f5f0ff]' : isRemoved ? 'bg-[#fff5f5]' : 'hover:bg-[#fafafa]'}`}>
+                        {/* Checkbox zone */}
+                        <button onClick={() => toggle(r.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                          <Avatar user={r} idx={idx} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`font-semibold text-sm ${isRemoved ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>{r.prenoms} {r.nom}</span>
+                              {wasConfirmed && !isRemoved && <span className="text-[10px] text-[#6A1B9A] font-bold bg-[#f0e8ff] px-1.5 py-0.5 rounded-full">Inscrit</span>}
+                              {isNew       && <span className="text-[10px] text-[#2E7D32] font-bold bg-[#e8f5e9] px-1.5 py-0.5 rounded-full">+ Nouveau</span>}
+                              {isRemoved   && <span className="text-[10px] text-[#C62828] font-bold bg-[#fff0f0] px-1.5 py-0.5 rounded-full">À retirer</span>}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[11px] text-[#9b9ba8] font-mono">{r.matricule ?? '—'}</span>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${adh.bg} ${adh.text} ${adh.border}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${adh.dot}`} />{adh.label}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Bloquer + Checkbox */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleBlock(r.id, `${r.prenoms} ${r.nom}`)}
+                            disabled={blockingId === r.id}
+                            title="Bloquer ce gardien pour ce camp"
+                            className="w-7 h-7 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] flex items-center justify-center text-xs hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-40">
+                            {blockingId === r.id ? '…' : '🚫'}
+                          </button>
+                          <button onClick={() => toggle(r.id)}
+                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-[#6A1B9A] border-[#6A1B9A] text-white' : 'border-[#d0d0d8] bg-white'}`}>
+                            {isSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Bloqués (section séparée) */}
+            {blockedGardiens.length > 0 && (
+              <>
+                <div className="px-4 py-1.5 bg-[#fff5f5] border-y border-[#fdd]">
+                  <span className="text-[11px] text-[#C62828] font-semibold uppercase tracking-wider">
+                    🚫 {blockedGardiens.length} bloqué{blockedGardiens.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="divide-y divide-[#f5f5f7]">
+                  {blockedGardiens.map((r, idx) => (
+                    <div key={r.id} className="flex items-center px-4 py-3 gap-3 bg-[#fff8f8] opacity-80">
+                      <Avatar user={r} idx={idx} greyed />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-sm text-[#9b9ba8] line-through">{r.prenoms} {r.nom}</span>
+                        <div className="text-[11px] text-[#9b9ba8] font-mono mt-0.5">{r.matricule ?? '—'}</div>
+                      </div>
+                      <button onClick={() => handleUnblock(r.id, `${r.prenoms} ${r.nom}`)} disabled={blockingId === r.id}
+                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40">
+                        {blockingId === r.id ? '…' : '↩ Débloquer'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {filteredVisible.length === 0 && blockedGardiens.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]">
+                <div className="text-4xl mb-3">🔍</div>
+                <p className="text-sm font-semibold">Aucun gardien trouvé</p>
+              </div>
+            )}
+          </>
+        )}
+        <div className="h-28" />
+      </div>
+
+      {/* Bouton flottant */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-[#ececf0] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        {hasChanges && (
+          <div className="flex items-center gap-2 mb-2 text-xs">
+            {toAdd.length > 0    && <span className="text-[#2E7D32] font-semibold">+ {toAdd.length} à ajouter</span>}
+            {toAdd.length > 0 && toRemove.length > 0 && <span className="text-[#9b9ba8]">·</span>}
+            {toRemove.length > 0 && <span className="text-[#C62828] font-semibold">− {toRemove.length} à retirer</span>}
+          </div>
+        )}
+        <button onClick={handleSave} disabled={saving || !hasChanges}
+          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${hasChanges ? 'bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white shadow-md' : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'} disabled:opacity-60`}>
+          {saving ? '⏳ Enregistrement…'
+            : hasChanges ? `Enregistrer (${selected.size} participant${selected.size > 1 ? 's' : ''})`
+            : `Sélection enregistrée · ${selected.size} participant${selected.size > 1 ? 's' : ''}`}
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VUE SENTINELLE — onglets Gardiens / Guides
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SentinelleView({ campId, user, toast }: {
+  campId: string;
+  user: ReturnType<typeof useAuthStore>['user'];
+  toast: (msg: string, ok: boolean) => void;
+}) {
+  const [camp, setCamp]                   = useState<Camp | null>(null);
+  const [participants, setParticipants]   = useState<CampParticipant[]>([]);
+  const [guides, setGuides]               = useState<User[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [actionId, setActionId]           = useState<string | null>(null);
+  const [search, setSearch]               = useState('');
+  const [tab, setTab]                     = useState<'gardiens' | 'guides'>('gardiens');
+  const [statusFilter, setStatusFilter]   = useState<'tous' | 'SELECTIONNE' | 'BLOQUE' | 'CONFIRME'>('tous');
+
+  const reload = useCallback(() => {
+    const districtId = user?.district?.id;
+    Promise.allSettled([
+      campsApi.get(campId),
+      campsApi.participants(campId),
+      districtId ? usersApi.list({ role: 'GUIDE', districtId }) : Promise.resolve({ data: [] }),
+    ]).then(([c, p, g]) => {
+      if (c.status === 'fulfilled') setCamp(c.value.data);
+      if (p.status === 'fulfilled') setParticipants(p.value.data as CampParticipant[]);
+      if (g.status === 'fulfilled') setGuides(g.value.data as User[]);
+    }).catch(() => toast('Erreur lors du chargement.', false))
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campId, user]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const handle = async (action: 'remove' | 'block' | 'unblock' | 'select', userId: string, name: string) => {
+    setActionId(userId + '-' + action);
+    try {
+      if (action === 'remove')   await campsApi.removeParticipant(campId, userId);
+      if (action === 'block')    await campsApi.blockParticipant(campId, userId);
+      if (action === 'unblock')  await campsApi.unblockParticipant(campId, userId);
+      if (action === 'select')   await campsApi.selectParticipant(campId, userId);
+      const msgs: Record<string, string> = {
+        remove: `${name} retiré du camp.`,
+        block:  `${name} bloqué pour ce camp.`,
+        unblock:`${name} débloqué.`,
+        select: `${name} sélectionné pour ce camp.`,
+      };
+      toast(msgs[action], true);
+      reload();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast(msg ?? 'Erreur.', false);
+    } finally { setActionId(null); }
+  };
+
+  // ── Onglet Gardiens ──
+  const gardienParts = participants.filter(p => p.user?.role === 'GARDIEN' || !p.user?.role || p.user.role === undefined);
+  const nbSel  = gardienParts.filter(p => p.participationStatus === 'SELECTIONNE').length;
+  const nbConf = gardienParts.filter(p => p.participationStatus === 'CONFIRME').length;
+  const nbBloq = gardienParts.filter(p => p.participationStatus === 'BLOQUE').length;
+
+  const filteredGardiens = gardienParts.filter(p => {
+    const u = p.user;
+    const q = search.trim().toLowerCase();
+    if (q && !`${u?.nom ?? ''} ${u?.prenoms ?? ''} ${u?.matricule ?? ''}`.toLowerCase().includes(q)) return false;
+    return statusFilter === 'tous' || p.participationStatus === statusFilter;
+  });
+
+  // ── Onglet Guides ──
+  const guidePartsMap = new Map(
+    participants.filter(p => p.user?.role === 'GUIDE').map(p => [p.userId, p])
+  );
+  const filteredGuides = guides.filter(g => {
+    const q = search.trim().toLowerCase();
+    return !q || `${g.nom} ${g.prenoms} ${g.matricule ?? ''}`.toLowerCase().includes(q);
+  });
+  const nbGuidesSel  = guides.filter(g => guidePartsMap.has(g.id) && guidePartsMap.get(g.id)?.participationStatus !== 'BLOQUE').length;
+  const nbGuidesBloq = guides.filter(g => guidePartsMap.get(g.id)?.participationStatus === 'BLOQUE').length;
+
+  return (
+    <>
+      {/* Header */}
+      <div className="bg-gradient-to-br from-[#1F1B2E] via-[#2c1f4a] to-[#6A1B9A] text-white px-4 pt-4 pb-5 flex-shrink-0">
+        <button onClick={() => history.back()} className="flex items-center gap-1 text-xs opacity-75 mb-3">‹ Retour</button>
+        <h1 className="text-xl font-black">Gestion des participants</h1>
+        <p className="text-xs opacity-80 mt-0.5">{camp?.nom ?? 'Camp'} · {getTerritoryLabel(user)}</p>
+
+        {!loading && (
+          <div className="grid grid-cols-4 gap-2 mt-3">
+            {[
+              { label: 'Sélect.',  value: nbSel,          color: 'bg-[#6A1B9A]/60' },
+              { label: 'Confirmés',value: nbConf,         color: 'bg-[#2E7D32]/60' },
+              { label: 'Bloqués',  value: nbBloq,         color: nbBloq > 0 ? 'bg-[#C62828]/60' : 'bg-white/10' },
+              { label: 'Guides',   value: nbGuidesSel,    color: 'bg-white/15' },
+            ].map(s => (
+              <div key={s.label} className={`${s.color} rounded-xl p-2 text-center`}>
+                <div className="text-base font-black">{s.value}</div>
+                <div className="text-[9px] opacity-80 uppercase tracking-wide">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Info banner */}
+      <div className="px-4 pt-3 flex-shrink-0">
+        <div className="flex gap-2 items-start bg-[#fff8e6] border border-[#ffe082] rounded-xl px-3 py-2 text-xs text-[#9c7218]">
+          <span>🛡️</span>
+          <div><strong>Retirer</strong> : le guide peut resélectionner. <strong>Bloquer</strong> : irréversible par les guides.</div>
+        </div>
+      </div>
+
+      {/* Onglets */}
+      <div className="flex border-b border-[#f0f0f0] px-4 mt-3 flex-shrink-0 bg-white">
+        {([
+          { key: 'gardiens', label: `👤 Gardiens (${gardienParts.length})` },
+          { key: 'guides',   label: `📖 Guides (${guides.length})` },
+        ] as { key: typeof tab; label: string }[]).map(t => (
+          <button key={t.key} onClick={() => { setTab(t.key); setSearch(''); setStatusFilter('tous'); }}
+            className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider relative transition-colors ${tab === t.key ? 'text-[#1F1B2E]' : 'text-[#9b9ba8]'}`}>
+            {t.label}
+            {tab === t.key && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#6A1B9A] rounded-t-full" />}
+          </button>
+        ))}
+      </div>
+
+      {/* Recherche + filtres */}
+      <div className="border-b border-[#f0f0f0] px-4 py-2.5 flex-shrink-0 bg-white">
+        <div className="flex items-center bg-[#F0F2F5] rounded-full px-3 py-2 gap-2 mb-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#9b9ba8]" placeholder="Nom ou matricule…" />
+          {search && <button onClick={() => setSearch('')} className="text-[#9b9ba8]">✕</button>}
+        </div>
+        {tab === 'gardiens' && (
+          <div className="flex gap-1.5 overflow-x-auto">
+            {([
+              { key: 'tous',       label: `Tous (${gardienParts.length})` },
+              { key: 'SELECTIONNE',label: `Sélect. (${nbSel})` },
+              { key: 'CONFIRME',   label: `Confirmés (${nbConf})` },
+              { key: 'BLOQUE',     label: `Bloqués (${nbBloq})` },
+            ] as { key: typeof statusFilter; label: string }[]).map(f => (
+              <button key={f.key} onClick={() => setStatusFilter(f.key)}
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold ${statusFilter === f.key ? 'bg-[#1F1B2E] text-white' : 'bg-[#f3f3f5] text-[#6b6b78]'}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Contenu */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {loading && <div className="flex flex-col items-center justify-center py-16 text-[#9b9ba8]"><div className="text-4xl animate-pulse mb-3">⛺</div></div>}
+
+        {/* ── Onglet Gardiens ── */}
+        {!loading && tab === 'gardiens' && (
+          <>
+            {filteredGardiens.length === 0 && <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]"><div className="text-3xl mb-2">🔍</div><p className="text-sm">Aucun participant</p></div>}
             <div className="divide-y divide-[#f5f5f7]">
-              {filtered.map((r, idx) => {
-                const adhStatut = r.adhesions?.[0]?.statut ?? 'NON_A_JOUR';
-                const adh       = ADH_CONFIG[adhStatut] ?? ADH_CONFIG.NON_A_JOUR;
-                const isSelected = selected.has(r.id);
-                const wasConfirmed = confirmed.has(r.id);
-                const isNew     = isSelected && !wasConfirmed;
-                const isRemoved = !isSelected && wasConfirmed;
-                const color     = GRAD[idx % GRAD.length];
+              {filteredGardiens.map((p, idx) => {
+                const u          = p.user;
+                const statusCfg  = STATUS_CFG[p.participationStatus] ?? STATUS_CFG.SELECTIONNE;
+                const adh        = ADH_CFG[p.adhesionStatusSnapshot] ?? ADH_CFG.NON_A_JOUR;
+                const isBlocked  = p.participationStatus === 'BLOQUE';
+                const isLocked   = p.participationStatus === 'CONFIRME' || p.participationStatus === 'PRESENT';
+                const busy       = actionId?.startsWith(p.userId);
 
                 return (
-                  <button key={r.id} onClick={() => toggle(r.id)}
-                    className={`flex items-center w-full px-4 py-3.5 text-left transition-colors ${
-                      isSelected ? 'bg-[#f5f0ff]' : isRemoved ? 'bg-[#fff5f5]' : 'hover:bg-[#F5F5F5]'
-                    }`}>
-
-                    {/* Avatar */}
-                    <div className={`w-[48px] h-[48px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden`}>
-                      {r.avatarUrl
-                        ? <img src={r.avatarUrl} className="w-full h-full object-cover" alt="" />
-                        : `${r.nom[0]}${r.prenoms[0]}`}
-                    </div>
-
-                    {/* Infos */}
-                    <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
-                      <div className="flex justify-between items-baseline gap-2">
-                        <span className={`font-semibold text-[15px] truncate ${isRemoved ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>
-                          {r.prenoms} {r.nom}
-                        </span>
-                        {wasConfirmed && !isRemoved && (
-                          <span className="text-[10px] text-[#6A1B9A] font-bold bg-[#f0e8ff] px-1.5 py-0.5 rounded-full flex-shrink-0">
-                            Inscrit
-                          </span>
-                        )}
-                        {isNew && (
-                          <span className="text-[10px] text-[#2E7D32] font-bold bg-[#e8f5e9] px-1.5 py-0.5 rounded-full flex-shrink-0">
-                            + Nouveau
-                          </span>
-                        )}
-                        {isRemoved && (
-                          <span className="text-[10px] text-[#C62828] font-bold bg-[#fff0f0] px-1.5 py-0.5 rounded-full flex-shrink-0">
-                            À retirer
-                          </span>
-                        )}
+                  <div key={p.id} className={`flex items-center gap-3 px-4 py-3 ${isBlocked ? 'bg-[#fff5f5] opacity-75' : 'hover:bg-[#fafafa]'}`}>
+                    <Avatar user={u ?? {}} idx={idx} greyed={isBlocked} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-semibold text-sm ${isBlocked ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>{u?.prenoms} {u?.nom}</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>{statusCfg.icon} {statusCfg.label}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[12px] text-[#9b9ba8] font-mono">{r.matricule ?? '—'}</span>
-                        {isSentinelle && r.parish && (
-                          <span className="text-[11px] text-[#9b9ba8] truncate">· {r.parish.nom}</span>
-                        )}
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${adh.bg} ${adh.text} ${adh.border}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${adh.dot}`} />
-                          {adh.label}
-                        </span>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-[11px] text-[#9b9ba8] font-mono">{u?.matricule ?? '—'}</span>
+                        {p.parish?.nom && <span className="text-[11px] text-[#9b9ba8]">· {p.parish.nom}</span>}
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${adh.bg} ${adh.text} ${adh.border}`}><span className={`w-1.5 h-1.5 rounded-full ${adh.dot}`}/>{adh.label}</span>
                       </div>
                     </div>
-
-                    {/* Checkbox */}
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ml-3 flex-shrink-0 ${
-                      isSelected
-                        ? 'bg-[#6A1B9A] border-[#6A1B9A] text-white'
-                        : 'border-[#d0d0d8] bg-white'
-                    }`}>
-                      {isSelected && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
+                    {!isLocked && (
+                      <div className="flex flex-col gap-1.5 flex-shrink-0">
+                        {isBlocked ? (
+                          <button onClick={() => handle('unblock', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
+                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-40 hover:bg-[#2E7D32] hover:text-white transition-colors">
+                            {busy ? '…' : '↩ Débloquer'}
+                          </button>
+                        ) : (
+                          <>
+                            <button onClick={() => handle('remove', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8e6] text-[#9c7218] border border-[#ffe082] disabled:opacity-40 hover:bg-[#D9A441] hover:text-white transition-colors">
+                              {actionId === p.userId + '-remove' ? '…' : '− Retirer'}
+                            </button>
+                            <button onClick={() => handle('block', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-40 hover:bg-[#C62828] hover:text-white transition-colors">
+                              {actionId === p.userId + '-block' ? '…' : '🚫 Bloquer'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {isLocked && <span className="text-[10px] text-[#9b9ba8] flex-shrink-0">Verrouillé</span>}
+                  </div>
                 );
               })}
             </div>
           </>
         )}
 
-        <div className="h-28" />
-      </div>
+        {/* ── Onglet Guides ── */}
+        {!loading && tab === 'guides' && (
+          <>
+            {filteredGuides.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
+                <div className="text-3xl mb-2">📖</div>
+                <p className="text-sm">Aucun guide dans ce doyenné</p>
+              </div>
+            )}
 
-      {/* ── Bouton de sauvegarde flottant ── */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-[#ececf0] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        {hasChanges && (
-          <div className="flex items-center gap-2 mb-2 text-xs text-[#6b6b78]">
-            {toAdd.length > 0 && (
-              <span className="flex items-center gap-1 text-[#2E7D32] font-semibold">
-                <span className="w-4 h-4 rounded-full bg-[#e8f5e9] flex items-center justify-center text-[10px]">+</span>
-                {toAdd.length} à ajouter
-              </span>
+            {filteredGuides.length > 0 && (
+              <>
+                <div className="px-4 py-1.5 bg-[#F7F8FA] border-b border-[#f0f0f0]">
+                  <span className="text-[11px] text-[#9b9ba8] font-semibold uppercase tracking-wider">
+                    {filteredGuides.length} guide{filteredGuides.length > 1 ? 's' : ''} · {nbGuidesSel} sélectionné{nbGuidesSel > 1 ? 's' : ''} · {nbGuidesBloq} bloqué{nbGuidesBloq > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="divide-y divide-[#f5f5f7]">
+                  {filteredGuides.map((g, idx) => {
+                    const part       = guidePartsMap.get(g.id);
+                    const isBlocked  = part?.participationStatus === 'BLOQUE';
+                    const isSelected = !!part && !isBlocked;
+                    const busy       = actionId?.startsWith(g.id);
+                    const statusCfg  = isBlocked ? STATUS_CFG.BLOQUE : isSelected ? STATUS_CFG.SELECTIONNE : null;
+
+                    return (
+                      <div key={g.id} className={`flex items-center gap-3 px-4 py-3 ${isBlocked ? 'bg-[#fff5f5] opacity-75' : isSelected ? 'bg-[#f5f0ff]' : 'hover:bg-[#fafafa]'}`}>
+                        <Avatar user={g} idx={idx} greyed={isBlocked} size="md" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`font-semibold text-sm ${isBlocked ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>{g.prenoms} {g.nom}</span>
+                            {statusCfg && (
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
+                                {statusCfg.icon} {statusCfg.label}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-[#9b9ba8] font-mono">{g.matricule ?? '—'}</span>
+                            {g.parish?.nom && <span className="text-[11px] text-[#9b9ba8]">· {g.parish.nom}</span>}
+                          </div>
+                        </div>
+
+                        {/* Actions guides */}
+                        <div className="flex flex-col gap-1.5 flex-shrink-0">
+                          {isBlocked ? (
+                            <button onClick={() => handle('unblock', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-40 hover:bg-[#2E7D32] hover:text-white transition-colors">
+                              {busy ? '…' : '↩ Débloquer'}
+                            </button>
+                          ) : isSelected ? (
+                            <>
+                              <button onClick={() => handle('remove', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8e6] text-[#9c7218] border border-[#ffe082] disabled:opacity-40 hover:bg-[#D9A441] hover:text-white transition-colors">
+                                {actionId === g.id + '-remove' ? '…' : '− Retirer'}
+                              </button>
+                              <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-40 hover:bg-[#C62828] hover:text-white transition-colors">
+                                {actionId === g.id + '-block' ? '…' : '🚫 Bloquer'}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => handle('select', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#EDE7F6] text-[#6A1B9A] border border-[#ce93d8] disabled:opacity-40 hover:bg-[#6A1B9A] hover:text-white transition-colors">
+                                {actionId === g.id + '-select' ? '…' : '+ Sélectionner'}
+                              </button>
+                              <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-40 hover:bg-[#C62828] hover:text-white transition-colors">
+                                {actionId === g.id + '-block' ? '…' : '🚫 Bloquer'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
-            {toAdd.length > 0 && toRemove.length > 0 && <span>·</span>}
-            {toRemove.length > 0 && (
-              <span className="flex items-center gap-1 text-[#C62828] font-semibold">
-                <span className="w-4 h-4 rounded-full bg-[#fff0f0] flex items-center justify-center text-[10px]">−</span>
-                {toRemove.length} à retirer
-              </span>
-            )}
-          </div>
+          </>
         )}
-        <button
-          onClick={handleSave}
-          disabled={saving || !hasChanges}
-          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.99] ${
-            hasChanges
-              ? 'bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white shadow-md'
-              : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'
-          } disabled:opacity-60`}>
-          {saving
-            ? '⏳ Enregistrement…'
-            : hasChanges
-              ? `Enregistrer la sélection (${selected.size} participant${selected.size > 1 ? 's' : ''})`
-              : `Sélection enregistrée · ${selected.size} participant${selected.size > 1 ? 's' : ''}`
-          }
-        </button>
+        <div className="h-8" />
       </div>
-    </div>
+    </>
   );
 }

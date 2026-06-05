@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import type { Submission } from '@/types';
 import { codexApi } from '@/lib/api';
-import { useAuthStore } from '@/store/auth';
+import { useAuthHydrated, useAuthStore } from '@/store/auth';
 import { CodexItem } from '@/components/codex/CodexItem';
 
 type Cat = 'TOUS' | 'PERSONNEL' | 'COMMUNAUTAIRE' | 'SPIRITUEL' | 'LONG';
@@ -21,8 +21,9 @@ interface CodexWallProps {
 }
 
 export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
-  const { user } = useAuthStore();
-  const canReact = !!user;
+  const hydrated = useAuthHydrated();
+  const { user: storedUser } = useAuthStore();
+  const canReact = hydrated && !!storedUser;
 
   const [filter, setFilter]         = useState<Cat>('TOUS');
   const [posts, setPosts]           = useState<Submission[]>(initialPosts);

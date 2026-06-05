@@ -6,10 +6,10 @@ import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api';
 
 const PRIMARY = [
-  { href: '/dashboard/region/camps',        icon: '🏠', label: 'Accueil',  prefetch: true  },
-  { href: '/dashboard/region/participants', icon: '👥', label: 'Membres',  prefetch: true  },
-  { href: '/dashboard/region/messages',     icon: '💬', label: 'Messages', prefetch: false },
-  { href: '/dashboard/region/defis',        icon: '🎯', label: 'Défis',    prefetch: true  },
+  { href: '/dashboard/region',             icon: '🏠', label: 'Accueil',  prefetch: true,  exact: true  },
+  { href: '/dashboard/region/camps',       icon: '⛺', label: 'Camps',    prefetch: true,  exact: false },
+  { href: '/dashboard/region/messages',    icon: '💬', label: 'Messages', prefetch: false, exact: false },
+  { href: '/dashboard/region/defis',       icon: '🎯', label: 'Défis',    prefetch: true,  exact: false },
 ];
 
 const DRAWER_SECTIONS = [
@@ -81,10 +81,7 @@ export function RegionMobileNav() {
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {section.items.map(item => {
-                  const active =
-                    item.href === '/dashboard/region'
-                      ? pathname === item.href
-                      : pathname.startsWith(item.href);
+                  const active = pathname.startsWith(item.href);
                   return (
                     <Link
                       key={item.href}
@@ -124,10 +121,9 @@ export function RegionMobileNav() {
       {/* BottomNav principal */}
       <nav className="bg-white border-t border-[#e6e6ea] flex justify-around safe-area-bottom">
         {PRIMARY.map(item => {
-          const active =
-            item.href === '/dashboard/region'
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+          const active = item.exact
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}

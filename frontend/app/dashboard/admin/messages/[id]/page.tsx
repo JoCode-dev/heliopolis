@@ -415,7 +415,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                       )}
                     </div>
 
-                    {/* Actions hover (desktop) */}
+                    {/* Actions hover desktop — MES messages (à gauche de la bulle) */}
                     {isMine && !isDeleted && (
                       <div className="absolute -left-16 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" ref={menuMsgId === msg.id ? menuRef : undefined}>
                         <button
@@ -431,10 +431,26 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                           {menuMsgId === msg.id && (
                             <div className="absolute bottom-8 right-0 bg-white rounded-xl shadow-xl border border-[#e6e6ea] overflow-hidden z-20 min-w-[130px]">
                               <button onClick={() => startEdit(msg)} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#1F1B2E] hover:bg-[#f3f3f5] font-semibold">✏️ Modifier</button>
-                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: isMine }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#C62828] hover:bg-[#fff0f0] font-semibold">🗑️ Supprimer</button>
+                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: true }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#C62828] hover:bg-[#fff0f0] font-semibold">🗑️ Supprimer</button>
                             </div>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Actions hover desktop — MESSAGES REÇUS (à droite de la bulle) */}
+                    {!isMine && !isDeleted && (
+                      <div className="absolute -right-14 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <button
+                          onClick={() => setReplyingTo(msg)}
+                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-xs"
+                          title="Répondre"
+                        >↩</button>
+                        <button
+                          onClick={() => setDeleteTarget({ id: msg.id, isMine: false })}
+                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#9b9ba8] text-xs"
+                          title="Masquer pour moi"
+                        >🗑️</button>
                       </div>
                     )}
                   </div>
