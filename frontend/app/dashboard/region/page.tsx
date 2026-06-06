@@ -51,7 +51,7 @@ export default function RegionHomePage() {
     <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f6f6fa]">
 
       {/* ── Bandeau accueil ── */}
-      <div className="bg-gradient-to-br from-[#1F1B2E] to-[#3a1d4d] text-white px-4 pt-5 pb-6 lg:px-6">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-5 pb-6 lg:px-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] opacity-60 uppercase tracking-widest mb-1">Conseil d'Héliopolis</p>

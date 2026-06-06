@@ -81,9 +81,9 @@ export default function MessagesPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-white">
       {/* ── Header ── */}
-      <div className="bg-[#1F1B2E] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
         <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#F58A4B] to-[#C62828] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
+          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
             {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" /> : initials}
           </div>
           <h1 className="flex-1 text-[18px] font-black text-white tracking-tight">Messagerie</h1>
@@ -344,7 +344,7 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-white">
       {/* Drag handle */}
-      <div className="bg-[#1F1B2E] flex-shrink-0 pt-safe">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0 pt-safe">
         <div className="flex items-center gap-2 px-4 py-3">
           <button
             onClick={mode === 'pick' ? onClose : () => { setMode('pick'); setSelected([]); setSearch(''); resetFilters(); }}
@@ -462,8 +462,9 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                 <div className="flex items-center justify-center py-12 text-[#9b9ba8] text-sm">Aucun résultat</div>
               ) : visible.map(u => {
                 const isSelected = selected.includes(u.id);
-                const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
-                const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
+                const avatarCls  = ROLE_AVATAR[u.role] ?? 'from-[#1F1B2E] to-[#3a1d4d]';
+                const pillCls    = ROLE_PILL[u.role]   ?? 'bg-[#f3f3f5] text-[#6b6b78]';
+                const roleLabel  = ROLE_LABEL[u.role]  ?? u.role;
                 return (
                   <button
                     key={u.id}
@@ -474,15 +475,18 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                     <div className="relative flex-shrink-0">
                       {u.avatarUrl
                         ? <img src={u.avatarUrl} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
-                        : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom[0]}{u.prenoms[0]}</div>
+                        : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${avatarCls} flex items-center justify-center text-sm font-bold text-white`}>{u.nom[0]}{u.prenoms[0]}</div>
                       }
                       {mode === 'group' && isSelected && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#6A1B9A] border-2 border-white flex items-center justify-center text-white text-[10px] font-bold">✓</div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1 text-left">
-                      <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</p>
-                      <p className="text-[13px] text-[#9b9ba8] truncate">{u.parish?.nom ?? u.district?.nom ?? u.role}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</p>
+                        <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pillCls}`}>{roleLabel}</span>
+                      </div>
+                      <p className="text-[13px] text-[#9b9ba8] truncate">{u.parish?.nom ?? u.district?.nom ?? ''}</p>
                     </div>
                     {mode === 'group' && (
                       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#6A1B9A] border-[#6A1B9A]' : 'border-[#d0d0d0]'}`}>
@@ -864,6 +868,24 @@ function ConvRow({ conv, onPin, onDelete, msgBase }: {
   );
 }
 
+const ROLE_AVATAR: Record<string, string> = {
+  ADMIN:      'from-[#D97706] to-[#92400E]',
+  REGION:     'from-[#6A1B9A] to-[#3d1163]',
+  SENTINELLE: 'from-[#1D4ED8] to-[#1e3a8a]',
+  GUIDE:      'from-[#16A34A] to-[#14532D]',
+  GARDIEN:    'from-[#C62828] to-[#8e1a1a]',
+};
+const ROLE_PILL: Record<string, string> = {
+  ADMIN:      'bg-[#FEF3C7] text-[#D97706]',
+  REGION:     'bg-[#EDE7F6] text-[#6A1B9A]',
+  SENTINELLE: 'bg-[#DBEAFE] text-[#1D4ED8]',
+  GUIDE:      'bg-[#DCFCE7] text-[#16A34A]',
+  GARDIEN:    'bg-[#FEE2E2] text-[#C62828]',
+};
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: 'Admin', REGION: 'Région', SENTINELLE: 'Sentinelle', GUIDE: 'Guide', GARDIEN: 'Gardien',
+};
+
 function ContactRow({
   user,
   sub,
@@ -873,25 +895,29 @@ function ContactRow({
   sub?: string;
   action: React.ReactNode;
 }) {
-  const initials = `${user.nom[0]}${user.prenoms[0]}`.toUpperCase();
-  const COLORS = ['from-[#C62828] to-[#8e1a1a]', 'from-[#6A1B9A] to-[#4a1370]', 'from-[#2E7D32] to-[#1a5021]', 'from-[#1F1B2E] to-[#3a1d4d]'];
-  const color = COLORS[user.id.charCodeAt(0) % COLORS.length];
+  const initials  = `${user.nom[0]}${user.prenoms[0]}`.toUpperCase();
+  const avatarCls = ROLE_AVATAR[user.role] ?? 'from-[#1F1B2E] to-[#3a1d4d]';
+  const pillCls   = ROLE_PILL[user.role]   ?? 'bg-[#f3f3f5] text-[#6b6b78]';
+  const roleLabel = ROLE_LABEL[user.role]  ?? user.role;
 
   return (
     <div className="flex items-center px-4 py-3 bg-white hover:bg-[#F5F5F5] transition-colors">
       {(user as { avatarUrl?: string }).avatarUrl ? (
         <img src={(user as { avatarUrl?: string }).avatarUrl} alt={initials} className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" />
       ) : (
-        <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${color} flex-shrink-0`}>
+        <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${avatarCls} flex-shrink-0`}>
           {initials}
         </div>
       )}
       <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <div className="font-semibold text-[15px] text-[#1F1B2E] truncate">{user.prenoms} {user.nom}</div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="font-semibold text-[15px] text-[#1F1B2E] truncate">{user.prenoms} {user.nom}</div>
+              <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pillCls}`}>{roleLabel}</span>
+            </div>
             <div className="text-[13px] text-[#9b9ba8] truncate mt-0.5">
-              {sub ?? user.parish?.nom ?? user.district?.nom ?? user.role}
+              {sub ?? user.parish?.nom ?? user.district?.nom ?? ''}
             </div>
           </div>
           <div className="flex-shrink-0">{action}</div>

@@ -7,12 +7,12 @@ import { useAuthStore } from '@/store/auth';
 import type { Conversation, ConversationMember, Message, User } from '@/types';
 
 const HEADER_CONFIG: Record<string, { label: string; gradient: string }> = {
-  COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#F58A4B] to-[#C62828]' },
-  REGION:     { label: '🗺️ Région',              gradient: 'from-[#F58A4B] to-[#C62828]' },
-  DOYENNE:    { label: '🛡️ Doyenné',             gradient: 'from-[#6A1B9A] to-[#3d1163]' },
-  PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#C62828] to-[#7a1717]' },
-  PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#1F1B2E] to-[#3a1d4d]' },
-  GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#2E7D32] to-[#1a5021]' },
+  COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  REGION:     { label: '🗺️ Région',              gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  DOYENNE:    { label: '🛡️ Doyenné',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#C62828] to-[#8e1a1a]' },
 };
 
 function formatTime(iso: string) {
@@ -86,9 +86,10 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     setDeleteTarget(null);
   };
 
-  // Group management
+  // Group / private management
   const [showGroupPanel, setShowGroupPanel] = useState(false);
   const [groupMembers, setGroupMembers] = useState<ConversationMember[]>([]);
+  const [convMembers, setConvMembers] = useState<ConversationMember[]>([]);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   const [addSearch, setAddSearch] = useState('');
@@ -120,6 +121,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     messagingApi.getConversation(id).then(r => {
       const conv = r.data;
       setGroupMembers(conv.members ?? []);
+      setConvMembers(conv.members ?? []);
       const me = (conv.members ?? []).find((m: ConversationMember) => m.userId === user?.id);
       setMyRole(me?.role ?? null);
     }).catch(() => {});
@@ -136,7 +138,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         if (conv) {
           setConvType(conv.type);
           setConvNom(conv.nom ?? '');
-          if (conv.type === 'GROUPE') loadGroupDetails();
+          if (conv.type === 'GROUPE' || conv.type === 'PRIVE') loadGroupDetails();
         }
       })
       .catch(() => {});
@@ -280,15 +282,34 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const header = HEADER_CONFIG[convType] ?? HEADER_CONFIG.PRIVE;
   const groups = groupByDate(messages.filter(m => !hiddenMsgIds.has(m.id)));
 
+  /* Nom à afficher dans le header pour les convs privées */
+  const privatePartner = convType === 'PRIVE'
+    ? convMembers.find(m => m.userId !== user?.id)?.user
+    : null;
+  const headerLabel = convNom
+    || (privatePartner ? `${privatePartner.prenoms} ${privatePartner.nom}` : null)
+    || header.label;
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* ── Header ── */}
       <div className={`bg-gradient-to-r ${header.gradient} text-white px-4 py-2.5 flex items-center gap-3 flex-shrink-0`}>
         <button onClick={() => router.back()} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg leading-none">‹</button>
+        {convType === 'PRIVE' && privatePartner && (
+          <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
+            {privatePartner.avatarUrl
+              ? <img src={privatePartner.avatarUrl} className="w-full h-full object-cover" alt="" />
+              : `${privatePartner.nom[0]}${privatePartner.prenoms[0]}`}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm truncate">{convNom || header.label}</div>
+          <div className="font-bold text-sm truncate">{headerLabel}</div>
           <div className="text-[11px] opacity-80">
-            {convType === 'GROUPE' ? `${groupMembers.length} membre${groupMembers.length > 1 ? 's' : ''}` : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
+            {convType === 'GROUPE'
+              ? `${groupMembers.length} membre${groupMembers.length > 1 ? 's' : ''}`
+              : privatePartner
+                ? privatePartner.parish?.nom ?? 'Guide paroissial'
+                : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
           </div>
         </div>
         {convType === 'GROUPE' && (
@@ -356,7 +377,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                       isDeleted
                         ? 'bg-white text-[#9b9ba8] italic'
                         : isMine
-                          ? 'bg-gradient-to-br from-[#6A1B9A] to-[#4a1370] text-white rounded-br-[4px]'
+                          ? 'bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white rounded-br-[4px]'
                           : 'bg-white text-[#1F1B2E] rounded-bl-[4px]'
                     }`}>
 
@@ -495,7 +516,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <button
           onClick={sendMessage}
           disabled={!input.trim() || sending}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0 transition-opacity shadow"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0 transition-opacity shadow"
         >
           {sending ? <span className="text-xs animate-pulse">…</span> : (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
@@ -508,7 +529,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#2E7D32] to-[#1a5021] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
+          <div className="bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => { setShowGroupPanel(false); closeAddMember(); setSelectedToRemove([]); }}
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg"

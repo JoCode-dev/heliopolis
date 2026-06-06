@@ -2,11 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi } from '@/lib/api';
+import { usePastoralYear } from '@/store/pastoralYear';
 import { Pagination } from '@/components/ui/Pagination';
 import type { User, AdhesionStatus, Adhesion } from '@/types';
 
 const PER_PAGE = 15;
-const CURRENT_YEAR = new Date().getFullYear();
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
 
 const STATUS_LABEL: Record<AdhesionStatus, string> = {
@@ -75,6 +75,7 @@ const ADHESION_SCOPE: Record<string, { role: string; label: string; sing: string
 
 export default function GuideAdhesionsPage() {
   const { user } = useAuthStore();
+  const CURRENT_YEAR = usePastoralYear(s => s.annee);
   const scope           = ADHESION_SCOPE[user?.role ?? 'GUIDE'] ?? ADHESION_SCOPE['GUIDE'];
   const isSentinelle    = user?.role === 'SENTINELLE';
   const isAdminOrRegion = user?.role === 'ADMIN' || user?.role === 'REGION';

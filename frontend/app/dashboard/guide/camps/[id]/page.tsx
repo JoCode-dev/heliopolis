@@ -27,7 +27,7 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
   if (loading) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="bg-gradient-to-br from-[#6A1B9A] to-[#4a1370] text-white px-4 pt-4 pb-4 flex-shrink-0">
+        <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
           <button onClick={() => router.back()} className="text-sm opacity-80 mb-2">‹ Retour</button>
           <h1 className="text-xl font-bold">Chargement…</h1>
         </div>
@@ -41,7 +41,7 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
   if (!camp) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="bg-gradient-to-br from-[#6A1B9A] to-[#4a1370] text-white px-4 pt-4 pb-4 flex-shrink-0">
+        <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
           <button onClick={() => router.back()} className="text-sm opacity-80 mb-2">‹ Retour</button>
           <h1 className="text-xl font-bold">Camp introuvable</h1>
         </div>

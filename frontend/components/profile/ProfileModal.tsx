@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi, authApi } from '@/lib/api';
+import { usePastoralYear } from '@/store/pastoralYear';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export { AvatarDisplay };
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user, setUser } = useAuthStore();
+  const anneeP = usePastoralYear(s => s.annee);
   const [tab, setTab] = useState<'info' | 'password'>('info');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const preuveInputRef = useRef<HTMLInputElement>(null);
@@ -136,7 +138,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleUpdateAdhesion = async (statut: 'A_JOUR' | 'NON_A_JOUR' | 'EN_ATTENTE') => {
     if (!user) return;
-    const annee = new Date().getFullYear();
+    const annee = anneeP;
     setAdhLoading(true);
     setAdhError('');
     setAdhSuccess('');
@@ -380,7 +382,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
                 {/* Section adhésion */}
                 {(() => {
-                  const annee = new Date().getFullYear();
+                  const annee = anneeP;
                   const adhesion = user?.adhesions?.find(a => a.annee === annee) ?? user?.adhesions?.[0];
                   const canEdit = user?.role !== 'GARDIEN';
                   const LABEL: Record<string, string> = { A_JOUR: 'À jour', NON_A_JOUR: 'Non à jour', EN_ATTENTE: 'En attente' };

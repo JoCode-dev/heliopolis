@@ -46,10 +46,11 @@ const GUIDE_PRIMARY: NavItem[] = [
 ];
 
 const GUIDE_OVERFLOW_BASE: NavItem[] = [
-  { href: '/dashboard/guide/camps',     icon: '⛺', label: 'Camps'      },
-  { href: '/dashboard/guide/adhesions', icon: '📋', label: 'Adhésions'  },
-  { href: '/dashboard/guide/codex',     icon: '🪶', label: 'Codex'      },
-  { href: '/dashboard/guide/profil',    icon: '👤', label: 'Profil'     },
+  { href: '/dashboard/guide/camps',      icon: '⛺', label: 'Camps'      },
+  { href: '/dashboard/guide/adhesions',  icon: '📋', label: 'Adhésions'  },
+  { href: '/dashboard/guide/codex',      icon: '🪶', label: 'Codex'      },
+  { href: '/dashboard/guide/artefacts',  icon: '🏅', label: 'Artefacts'  },
+  { href: '/dashboard/guide/profil',     icon: '👤', label: 'Profil'     },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────────

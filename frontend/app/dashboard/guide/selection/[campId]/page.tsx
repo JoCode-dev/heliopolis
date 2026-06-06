@@ -190,10 +190,17 @@ function GuideView({ campId, user, toast }: {
 
   const countByAdh = (s: string) => visibleGardiens.filter(r => (r.adhesions?.[0]?.statut ?? 'NON_A_JOUR') === s).length;
 
+  // Non-inscrits toujours en premier
+  const sortedVisible = filteredVisible.slice().sort((a, b) => {
+    const aInscrit = confirmed.has(a.id) ? 1 : 0;
+    const bInscrit = confirmed.has(b.id) ? 1 : 0;
+    return aInscrit - bInscrit;
+  });
+
   return (
     <>
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#6A1B9A] via-[#5a1280] to-[#1F1B2E] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <button onClick={() => history.back()} className="flex items-center gap-1 text-xs opacity-75 mb-3">‹ Retour</button>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -268,7 +275,7 @@ function GuideView({ campId, user, toast }: {
                   </span>
                 </div>
                 <div className="divide-y divide-[#f5f5f7]">
-                  {filteredVisible.map((r, idx) => {
+                  {sortedVisible.map((r, idx) => {
                     const adhStatut    = r.adhesions?.[0]?.statut ?? 'NON_A_JOUR';
                     const adh          = ADH_CFG[adhStatut] ?? ADH_CFG.NON_A_JOUR;
                     const isSelected   = selected.has(r.id);
@@ -365,7 +372,7 @@ function GuideView({ campId, user, toast }: {
           </div>
         )}
         <button onClick={handleSave} disabled={saving || !hasChanges}
-          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${hasChanges ? 'bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white shadow-md' : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'} disabled:opacity-60`}>
+          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${hasChanges ? 'bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white shadow-md' : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'} disabled:opacity-60`}>
           {saving ? '⏳ Enregistrement…'
             : hasChanges ? `Enregistrer (${selected.size} participant${selected.size > 1 ? 's' : ''})`
             : `Sélection enregistrée · ${selected.size} participant${selected.size > 1 ? 's' : ''}`}
@@ -458,7 +465,7 @@ function SentinelleView({ campId, user, toast }: {
   return (
     <>
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#1F1B2E] via-[#2c1f4a] to-[#6A1B9A] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <button onClick={() => history.back()} className="flex items-center gap-1 text-xs opacity-75 mb-3">‹ Retour</button>
         <h1 className="text-xl font-black">Gestion des participants</h1>
         <p className="text-xs opacity-80 mt-0.5">{camp?.nom ?? 'Camp'} · {getTerritoryLabel(user)}</p>

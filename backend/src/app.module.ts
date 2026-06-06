@@ -12,6 +12,7 @@ import { MessagingModule } from './messaging/messaging.module.js';
 import { ExportModule } from './export/export.module.js';
 import { ContactsModule } from './contacts/contacts.module.js';
 import { CouncilsModule } from './councils/councils.module.js';
+import { SettingsModule } from './settings/settings.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CouncilsModule } from './councils/councils.module.js';
     ExportModule,
     ContactsModule,
     CouncilsModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

@@ -28,6 +28,13 @@ const ADMIN_NAV_GROUPS = [
       { href: '/dashboard/admin/doyennes',     icon: '🛡️', label: 'Doyennés' },
       { href: '/dashboard/admin/paroisses',    icon: '⛪', label: 'Paroisses' },
       { href: '/dashboard/admin/defis',        icon: '🎯', label: 'Défis & soumissions' },
+      { href: '/dashboard/admin/artefacts',    icon: '🏅', label: 'Artefacts'           },
+    ],
+  },
+  {
+    label: 'Système',
+    items: [
+      { href: '/dashboard/admin/parametres', icon: '⚙️', label: 'Paramètres' },
     ],
   },
 ];
@@ -54,6 +61,13 @@ const REGION_NAV_GROUPS = [
       { href: '/dashboard/region/doyennes',     icon: '🛡️', label: 'Doyennés' },
       { href: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses' },
       { href: '/dashboard/region/defis',        icon: '🎯', label: 'Défis & soumissions' },
+      { href: '/dashboard/region/artefacts',    icon: '🏅', label: 'Artefacts'           },
+    ],
+  },
+  {
+    label: 'Système',
+    items: [
+      { href: '/dashboard/region/parametres', icon: '⚙️', label: 'Paramètres' },
     ],
   },
 ];
@@ -71,7 +85,7 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
   const rootHref = variant === 'region' ? '/dashboard/region' : '/dashboard/admin';
 
   return (
-    <aside className="hidden lg:flex lg:flex-col w-60 bg-gradient-to-b from-[#1F1B2E] to-[#3a1d4d] text-white flex-shrink-0">
+    <aside className="hidden lg:flex lg:flex-col w-60 bg-gradient-to-b from-[#C62828] to-[#8e1a1a] text-white flex-shrink-0">
 
       {/* En-tête */}
       <div className="flex items-center gap-2.5 p-4 border-b border-white/10 flex-shrink-0">

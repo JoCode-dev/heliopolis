@@ -140,7 +140,7 @@ export default function MissionsPage() {
       )}
 
       {/* ── Header avec onglets ── */}
-      <div className="bg-[#1F1B2E] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
         <div className="flex items-end gap-3 px-4 pt-3 pb-0">
           <div>
             <h1 className="text-[18px] font-black text-white tracking-tight">Missions</h1>

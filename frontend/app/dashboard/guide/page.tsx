@@ -105,10 +105,7 @@ export default function DashboardGuidePage() {
     <div className="flex flex-col flex-1 overflow-hidden">
 
       {/* ── Header ── */}
-      <div className={`bg-gradient-to-br ${isSentinelle
-        ? 'from-[#1F1B2E] via-[#3d1163] to-[#6A1B9A]'
-        : 'from-[#6A1B9A] via-[#5a1280] to-[#1F1B2E]'
-      } text-white px-4 pt-4 pb-5 flex-shrink-0`}>
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden">
             {user?.avatarUrl

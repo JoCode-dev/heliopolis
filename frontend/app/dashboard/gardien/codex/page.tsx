@@ -23,7 +23,7 @@ export default function GardienCodexPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#1F1B2E] to-[#2c1f4a] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-xl font-bold">Mur du Codex</h1>
         <p className="text-xs opacity-85 mt-0.5">Les actions des Gardiens de la Création</p>
         {!loading && total > 0 && (

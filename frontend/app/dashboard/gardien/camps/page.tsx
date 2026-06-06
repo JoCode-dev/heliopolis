@@ -4,13 +4,18 @@ import { campsApi } from '@/lib/api';
 import { CampCard } from '@/components/camps/CampCard';
 import type { Camp } from '@/types';
 
-type CampFilter = 'TOUS' | 'OUVERT' | 'A_VENIR';
+type CampFilter = 'TOUS' | 'OUVERT' | 'EN_COURS' | 'CLOTURE';
 
 const FILTERS: { label: string; value: CampFilter }[] = [
   { label: 'Tous', value: 'TOUS' },
   { label: 'Ouverts', value: 'OUVERT' },
-  { label: 'À venir', value: 'A_VENIR' },
+  { label: 'En cours', value: 'EN_COURS' },
+  { label: 'Clôturés', value: 'CLOTURE' },
 ];
+
+const STATUS_ORDER: Record<string, number> = {
+  OUVERT: 0, EN_COURS: 1, BROUILLON: 2, CLOTURE: 3, ARCHIVE: 4,
+};
 
 export default function GardienCampsPage() {
   const [camps, setCamps] = useState<Camp[]>([]);
@@ -24,9 +29,9 @@ export default function GardienCampsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = filter === 'TOUS'
-    ? camps
-    : camps.filter(c => c.statut === filter);
+  const filtered = (filter === 'TOUS' ? camps : camps.filter(c => c.statut === filter))
+    .slice()
+    .sort((a, b) => (STATUS_ORDER[a.statut] ?? 99) - (STATUS_ORDER[b.statut] ?? 99));
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">

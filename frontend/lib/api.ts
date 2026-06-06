@@ -186,6 +186,12 @@ export const contactsApi = {
   decline: (contactId: string) => api.delete(`/contacts/${contactId}`),
 };
 
+// ─── Settings ────────────────────────────────────────────────────────────────
+export const settingsApi = {
+  getAnneePastorale: () => api.get('/settings/annee-pastorale'),
+  setAnneePastorale: (annee: number) => api.patch('/settings/annee-pastorale', { annee }),
+};
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 export const exportApi = {
   campParticipants: (campId: string) =>

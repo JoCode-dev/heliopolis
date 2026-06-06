@@ -19,6 +19,7 @@ const NAV_BASE = [
   { href: '/dashboard/guide/messages',     icon: '💬', label: 'Messages' },
   { href: '/dashboard/guide/adhesions',    icon: '📋', label: 'Adhésions' },
   { href: '/dashboard/guide/codex',        icon: '🪶', label: 'Codex' },
+  { href: '/dashboard/guide/artefacts',    icon: '🏅', label: 'Artefacts' },
   { href: '/dashboard/guide/profil',       icon: '👤', label: 'Profil' },
 ];
 
@@ -42,7 +43,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
       <div className="flex h-screen overflow-hidden bg-[#fafafa]">
 
         {/* ── Sidebar desktop ── */}
-        <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#6A1B9A] to-[#4a1370] text-white flex-shrink-0">
+        <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#C62828] to-[#8e1a1a] text-white flex-shrink-0">
           <div className="p-4 border-b border-white/20 flex-shrink-0 flex items-center gap-2.5">
             <Image src="/logo.jpeg" alt="Logo" width={36} height={36} className="object-contain rounded flex-shrink-0" loading="eager" preload />
             <div>
@@ -95,7 +96,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
           {/* ── Top bar mobile ── */}
-          <div className="lg:hidden bg-gradient-to-r from-[#6A1B9A] to-[#4a1370] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
+          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
 
             {/* Bouton retour — masqué sur l'accueil */}
             {isHome ? (

@@ -73,9 +73,9 @@ export default function MessagesPage() {
     <div className="flex flex-col flex-1 overflow-hidden bg-white">
 
       {/* ── Header ── */}
-      <div className="bg-[#1F1B2E] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
         <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
+          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
             {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" /> : initials}
           </div>
           <h1 className="flex-1 text-[18px] font-black text-white tracking-tight">Messagerie</h1>
@@ -225,6 +225,15 @@ function MessagesTab({ myId, msgsBase }: { myId?: string; msgsBase: string }) {
 
 /* ══════════════════════════════════════════════ CONTACTS TAB ══ */
 
+type ContactFilter = 'TOUS' | 'PAROISSE' | 'DOYENNE' | 'CONTACTS';
+
+const CONTACT_FILTERS: { key: ContactFilter; label: string; icon: string }[] = [
+  { key: 'TOUS',     label: 'Tous',     icon: '👥' },
+  { key: 'PAROISSE', label: 'Paroisse', icon: '⛪' },
+  { key: 'DOYENNE',  label: 'Doyenné',  icon: '🛡️' },
+  { key: 'CONTACTS', label: 'Contacts', icon: '🤝' },
+];
+
 function ContactsTab({ msgsBase }: { msgsBase: string }) {
   const router = useRouter();
   const { user: me } = useAuthStore();
@@ -239,6 +248,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
   const [dmLoading,setDmLoading]= useState<string | null>(null);
   const [addOpen,  setAddOpen]  = useState(false);
   const [toast,    setToast]    = useState<{ msg: string; ok: boolean } | null>(null);
+  const [contactFilter, setContactFilter] = useState<ContactFilter>('TOUS');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((msg: string, ok: boolean) => {
@@ -307,6 +317,26 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
     finally { setDmLoading(null); }
   };
 
+  /* ── Logique de filtrage ── */
+  const myDistrictId = (me as { district?: { id: string } } | null)?.district?.id;
+
+  const visibleParish = (() => {
+    if (contactFilter === 'CONTACTS') return [];
+    if (contactFilter === 'DOYENNE' && myDistrictId) {
+      return parish.filter(u => !u.district || u.district.id === myDistrictId);
+    }
+    return parish;
+  })();
+
+  const visibleAccepted = (() => {
+    if (contactFilter === 'PAROISSE') return [];
+    if (contactFilter === 'DOYENNE' && myDistrictId) {
+      return accepted.filter(c => !c.user.district || c.user.district.id === myDistrictId);
+    }
+    if (contactFilter === 'CONTACTS') return accepted;
+    return accepted;
+  })();
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">
@@ -332,8 +362,8 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
       )}
 
       {/* Barre de recherche */}
-      <div className="px-3 py-2 bg-white border-b border-[#f0f0f0]">
-        <div className="flex items-center bg-[#F0F2F5] rounded-full px-3.5 py-2 gap-2">
+      <div className="px-3 pt-2 pb-0 bg-white border-b border-[#f0f0f0]">
+        <div className="flex items-center bg-[#F0F2F5] rounded-full px-3.5 py-2 gap-2 mb-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
@@ -342,6 +372,25 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
             onChange={e => setSearchQ(e.target.value)} />
           {searchQ && <button onClick={() => { setSearchQ(''); setSearchRes([]); }} className="text-[#9b9ba8]">✕</button>}
         </div>
+
+        {/* Filtres */}
+        {!canSearch && (
+          <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            {CONTACT_FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setContactFilter(f.key)}
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+                  contactFilter === f.key
+                    ? 'bg-[#1F1B2E] text-white shadow-sm'
+                    : 'bg-[#F0F2F5] text-[#6b6b78]'
+                }`}
+              >
+                <span>{f.icon}</span>{f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Résultats de recherche */}
@@ -431,16 +480,18 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
       )}
 
       {/* Ma paroisse */}
-      {parish.length > 0 && (
+      {visibleParish.length > 0 && (
         <div className="px-4 pt-3">
           <ListDivider label={`⛪ Ma paroisse${me?.parish?.nom ? ` — ${me.parish.nom}` : ''}`} />
-          <div className="bg-[#EDE7F6] rounded-2xl p-3 mb-3 flex items-center gap-2">
-            <span className="text-base flex-shrink-0">ℹ️</span>
-            <p className="text-xs text-[#4a1370] leading-relaxed">
-              Les membres de ta paroisse sont automatiquement tes contacts.
-            </p>
-          </div>
-          {parish.map(u => (
+          {contactFilter === 'TOUS' && (
+            <div className="bg-[#EDE7F6] rounded-2xl p-3 mb-3 flex items-center gap-2">
+              <span className="text-base flex-shrink-0">ℹ️</span>
+              <p className="text-xs text-[#4a1370] leading-relaxed">
+                Les membres de ta paroisse sont automatiquement tes contacts.
+              </p>
+            </div>
+          )}
+          {visibleParish.map(u => (
             <ContactRow key={u.id} user={u}
               onClick={() => handleDM(u.id)}
               action={
@@ -455,10 +506,10 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
       )}
 
       {/* Mes contacts acceptés */}
-      {accepted.length > 0 && (
+      {visibleAccepted.length > 0 && (
         <div className="px-4 pt-3">
-          <ListDivider label={`🤝 Mes contacts (${accepted.length})`} />
-          {accepted.map(c => (
+          <ListDivider label={`🤝 Mes contacts (${visibleAccepted.length})`} />
+          {visibleAccepted.map(c => (
             <ContactRow key={c.contactId} user={c.user} sub={c.user.parish?.nom}
               onClick={() => handleDM(c.user.id)}
               action={
@@ -472,8 +523,8 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
         </div>
       )}
 
-      {/* Demandes envoyées */}
-      {sent.length > 0 && (
+      {/* Demandes envoyées — visible seulement en mode Tous ou Contacts */}
+      {(contactFilter === 'TOUS' || contactFilter === 'CONTACTS') && sent.length > 0 && (
         <div className="px-4 pt-3">
           <ListDivider label="⏳ Demandes envoyées" />
           {sent.map(c => (
@@ -487,7 +538,18 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
         </div>
       )}
 
-      {parish.length === 0 && accepted.length === 0 && received.length === 0 && !canSearch && (
+      {/* État vide filtré */}
+      {!canSearch && visibleParish.length === 0 && visibleAccepted.length === 0 && contactFilter !== 'TOUS' && (
+        <div className="flex flex-col items-center justify-center py-12 px-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center text-3xl mb-3">
+            {CONTACT_FILTERS.find(f => f.key === contactFilter)?.icon ?? '👥'}
+          </div>
+          <p className="text-[14px] font-bold text-[#1F1B2E]">Aucun contact dans ce filtre</p>
+          <p className="text-xs text-[#9b9ba8] mt-1">Essaie un autre filtre ou ajoute des contacts.</p>
+        </div>
+      )}
+
+      {parish.length === 0 && accepted.length === 0 && received.length === 0 && !canSearch && contactFilter === 'TOUS' && (
         <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
           <div className="w-16 h-16 rounded-full bg-[#f0e8ff] flex items-center justify-center text-3xl mb-3">👥</div>
           <p className="text-[15px] font-bold text-[#1F1B2E]">Aucun contact pour le moment</p>
@@ -616,13 +678,13 @@ function NewConvModal({ onClose, onCreated }: {
     finally { setJoiningChannel(null); }
   };
 
-  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
+  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]']; // fallback unused
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-white">
 
       {/* Header */}
-      <div className="bg-[#1F1B2E] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
         <div className="flex items-center gap-2 px-4 py-3">
           <button onClick={mode === 'pick' ? onClose : goBack}
             className="w-8 h-8 flex items-center justify-center text-white/80 text-2xl leading-none">‹</button>
@@ -796,9 +858,11 @@ function NewConvModal({ onClose, onCreated }: {
               ) : visible.length === 0 ? (
                 <div className="flex items-center justify-center py-12 text-[#9b9ba8] text-sm">Aucun résultat</div>
               ) : visible.map(u => {
-                const isSelected   = selected.includes(u.id);
-                const hasExisting  = existingConvs.has(u.id);
-                const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
+                const isSelected  = selected.includes(u.id);
+                const hasExisting = existingConvs.has(u.id);
+                const avatarCls   = ROLE_AVATAR[u.role] ?? 'from-[#1F1B2E] to-[#3a1d4d]';
+                const pillCls     = ROLE_PILL[u.role]   ?? 'bg-[#f3f3f5] text-[#6b6b78]';
+                const roleLabel   = ROLE_LABEL[u.role]  ?? u.role;
                 return (
                   <button key={u.id}
                     disabled={creating}
@@ -812,7 +876,7 @@ function NewConvModal({ onClose, onCreated }: {
                       {(u as { avatarUrl?: string }).avatarUrl
                         ? <img src={(u as { avatarUrl?: string }).avatarUrl}
                             className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
-                        : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>
+                        : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${avatarCls} flex items-center justify-center text-sm font-bold text-white`}>
                             {u.nom[0]}{u.prenoms[0]}
                           </div>
                       }
@@ -821,8 +885,9 @@ function NewConvModal({ onClose, onCreated }: {
                       )}
                     </div>
                     <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1 text-left">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</p>
+                        <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pillCls}`}>{roleLabel}</span>
                         {mode === 'individual' && hasExisting && (
                           <span className="flex-shrink-0 text-[10px] bg-[#e8f5e9] text-[#2E7D32] px-2 py-0.5 rounded-full font-bold">
                             En cours
@@ -830,7 +895,7 @@ function NewConvModal({ onClose, onCreated }: {
                         )}
                       </div>
                       <p className="text-[13px] text-[#9b9ba8] truncate">
-                        {u.parish?.nom ?? u.district?.nom ?? u.role}
+                        {u.parish?.nom ?? u.district?.nom ?? ''}
                         {mode === 'individual' && hasExisting ? ' · Continuer la conversation' : ''}
                       </p>
                     </div>
@@ -959,7 +1024,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
               const alreadySent = sent.some(c => c.receiver.id === u.id);
               const isReq       = requesting === u.id;
               return (
-                <ContactRow key={u.id} user={u} sub={u.parish?.nom ?? u.district?.nom ?? u.role}
+                <ContactRow key={u.id} user={u} sub={u.parish?.nom ?? u.district?.nom}
                   action={
                     isContact ? (
                       <button onClick={() => { onDM(u.id); onClose(); }}
@@ -1106,12 +1171,33 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
   );
 }
 
+const ROLE_AVATAR: Record<string, string> = {
+  ADMIN:      'from-[#D97706] to-[#92400E]',
+  REGION:     'from-[#6A1B9A] to-[#3d1163]',
+  SENTINELLE: 'from-[#1D4ED8] to-[#1e3a8a]',
+  GUIDE:      'from-[#16A34A] to-[#14532D]',
+  GARDIEN:    'from-[#C62828] to-[#8e1a1a]',
+};
+
+const ROLE_PILL: Record<string, string> = {
+  ADMIN:      'bg-[#FEF3C7] text-[#D97706]',
+  REGION:     'bg-[#EDE7F6] text-[#6A1B9A]',
+  SENTINELLE: 'bg-[#DBEAFE] text-[#1D4ED8]',
+  GUIDE:      'bg-[#DCFCE7] text-[#16A34A]',
+  GARDIEN:    'bg-[#FEE2E2] text-[#C62828]',
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: 'Admin', REGION: 'Région', SENTINELLE: 'Sentinelle', GUIDE: 'Guide', GARDIEN: 'Gardien',
+};
+
 function ContactRow({ user, sub, action, onClick }: {
   user: ContactUser; sub?: string; action: React.ReactNode; onClick?: () => void;
 }) {
-  const initials = `${user.nom[0]}${user.prenoms[0]}`.toUpperCase();
-  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
-  const color   = COLORS[user.id.charCodeAt(0) % COLORS.length];
+  const initials  = `${user.nom[0]}${user.prenoms[0]}`.toUpperCase();
+  const avatarCls = ROLE_AVATAR[user.role] ?? 'from-[#1F1B2E] to-[#3a1d4d]';
+  const pillCls   = ROLE_PILL[user.role]   ?? 'bg-[#f3f3f5] text-[#6b6b78]';
+  const roleLabel = ROLE_LABEL[user.role]  ?? user.role;
 
   return (
     <div
@@ -1122,16 +1208,19 @@ function ContactRow({ user, sub, action, onClick }: {
         <img src={(user as { avatarUrl?: string }).avatarUrl} alt={initials}
           className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" />
       ) : (
-        <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${color} flex-shrink-0`}>
+        <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${avatarCls} flex-shrink-0`}>
           {initials}
         </div>
       )}
       <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <div className="font-semibold text-[15px] text-[#1F1B2E] truncate">{user.prenoms} {user.nom}</div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="font-semibold text-[15px] text-[#1F1B2E] truncate">{user.prenoms} {user.nom}</div>
+              <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pillCls}`}>{roleLabel}</span>
+            </div>
             <div className="text-[13px] text-[#9b9ba8] truncate mt-0.5">
-              {sub ?? user.parish?.nom ?? user.district?.nom ?? user.role}
+              {sub ?? user.parish?.nom ?? user.district?.nom ?? ''}
             </div>
           </div>
           <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>{action}</div>

@@ -109,7 +109,7 @@ export default function DashboardGardienPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#C62828] via-[#a02020] to-[#6A1B9A] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <Avatar initials={initials} size={46} className="border-2 border-white/40 bg-white/20" />
           <div className="flex-1">

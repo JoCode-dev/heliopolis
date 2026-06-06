@@ -45,7 +45,7 @@ export default function GuideProfilPage() {
     <div className="flex-1 overflow-y-auto bg-[#f7f7fa]">
 
       {/* ── Hero ── */}
-      <div className="bg-gradient-to-br from-[#6A1B9A] via-[#5a1280] to-[#1F1B2E] text-white px-4 pt-8 pb-10 flex flex-col items-center">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-8 pb-10 flex flex-col items-center">
         <div className="w-20 h-20 rounded-full bg-white/20 border-3 border-white/40 flex items-center justify-center text-2xl font-black overflow-hidden mb-3">
           {user?.avatarUrl
             ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />

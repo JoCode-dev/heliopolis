@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthGuard } from '@/components/layout/AuthGuard';
 import { RegionMobileNav } from '@/components/layout/RegionMobileNav';
@@ -8,6 +8,7 @@ import { ProfileModal } from '@/components/profile/ProfileModal';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { useAuthStore } from '@/store/auth';
+import { usePastoralYear } from '@/store/pastoralYear';
 
 const HOME = '/dashboard/region';
 
@@ -31,6 +32,8 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
   const router   = useRouter();
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
+  const loadYear = usePastoralYear(s => s.load);
+  useEffect(() => { loadYear(); }, [loadYear]);
 
   const isHome = pathname === HOME;
   const current = NAV_LABELS.find(n => pathname.startsWith(n.prefix));
@@ -46,7 +49,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
           {/* ── Top bar mobile ── */}
-          <div className="lg:hidden bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
+          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
 
             {/* Bouton retour — masqué sur l'accueil */}
             {isHome ? (

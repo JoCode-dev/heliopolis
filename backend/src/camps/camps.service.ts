@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 import { CreateCampDto } from './dto/create-camp.dto.js';
 import {
   AdhesionStatus,
@@ -16,7 +17,10 @@ import type { AuthUser } from '../common/types/auth-user.js';
 
 @Injectable()
 export class CampsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private settings: SettingsService,
+  ) {}
 
   private isRegionalManager(user?: AuthUser) {
     return user?.role === UserRole.ADMIN || user?.role === UserRole.REGION;
@@ -224,7 +228,7 @@ export class CampsService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        adhesions: { where: { annee: new Date().getFullYear() }, take: 1 },
+        adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 },
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -303,7 +307,7 @@ export class CampsService {
     const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
     const target = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { adhesions: { where: { annee: new Date().getFullYear() }, take: 1 } },
+      include: { adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 } },
     });
     if (!actor || !target) throw new NotFoundException('Utilisateur introuvable');
     if (!this.userIsInActorScope(actor, target))

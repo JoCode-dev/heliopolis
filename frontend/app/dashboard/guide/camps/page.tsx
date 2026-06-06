@@ -18,7 +18,7 @@ export default function GuideCampsPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#6A1B9A] to-[#4a1370] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-xl font-bold">⛺ Camps</h1>
         <p className="text-xs opacity-85 mt-0.5">Sélectionne les participants</p>
       </div>

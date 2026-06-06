@@ -63,7 +63,7 @@ export default function NouveauCampPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#6A1B9A] to-[#4a1370] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <button onClick={() => router.back()} className="text-sm opacity-80 mb-2">‹ Retour</button>
         <h1 className="text-xl font-bold">Nouveau camp</h1>
         <p className="text-xs opacity-85 mt-0.5">Étape {step} / 2</p>

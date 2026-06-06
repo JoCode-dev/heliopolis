@@ -1,16 +1,17 @@
 'use client';
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { campsApi } from '@/lib/api';
+import { campsApi, contactsApi, messagingApi } from '@/lib/api';
 import { Pill, Card, SectionTitle, InfoBanner } from '@/components/ui';
 import type { Camp } from '@/types';
+import type { ContactUser } from '@/types';
 
 export default function GardienCampDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [camp, setCamp] = useState<Camp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [contacting, setContacting] = useState(false);
 
   useEffect(() => {
     campsApi.get(id)
@@ -18,6 +19,21 @@ export default function GardienCampDetailPage({ params }: { params: Promise<{ id
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleContactGuide = useCallback(async () => {
+    setContacting(true);
+    try {
+      const { data: members } = await contactsApi.parish();
+      const guide = (members as ContactUser[]).find(m => m.role === 'GUIDE');
+      if (!guide) return;
+      const { data: conv } = await messagingApi.createPrivate(guide.id);
+      router.push(`/dashboard/gardien/messages/${conv.id}`);
+    } catch {
+      /* ignore */
+    } finally {
+      setContacting(false);
+    }
+  }, [router]);
 
   if (loading) {
     return (
@@ -173,12 +189,13 @@ export default function GardienCampDetailPage({ params }: { params: Promise<{ id
               </p>
             </div>
           </div>
-          <Link
-            href="/dashboard/gardien/messages"
-            className="block w-full text-center bg-[#2E7D32] text-white font-bold text-sm py-3 rounded-xl"
+          <button
+            onClick={handleContactGuide}
+            disabled={contacting}
+            className="block w-full text-center bg-[#2E7D32] text-white font-bold text-sm py-3 rounded-xl disabled:opacity-60"
           >
-            💬 Contacter mon Guide
-          </Link>
+            {contacting ? 'Ouverture…' : '💬 Contacter mon Guide'}
+          </button>
         </div>
       </div>
     </div>
