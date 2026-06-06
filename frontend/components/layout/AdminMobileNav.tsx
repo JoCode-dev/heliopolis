@@ -7,10 +7,10 @@ import { authApi } from '@/lib/api';
 
 // 4 items principaux — stables sur toutes les pages admin
 const PRIMARY = [
-  { href: '/dashboard/admin',              icon: '🏠', label: 'Accueil' },
-  { href: '/dashboard/admin/camps',        icon: '⛺', label: 'Camps' },
-  { href: '/dashboard/admin/messages',     icon: '💬', label: 'Messages' },
-  { href: '/dashboard/admin/participants', icon: '👥', label: 'Membres' },
+  { href: '/dashboard/admin',        icon: '🏠', label: 'Accueil' },
+  { href: '/dashboard/admin/camps',  icon: '⛺', label: 'Camps' },
+  { href: '/dashboard/admin/messages', icon: '💬', label: 'Messages' },
+  { href: '/dashboard/admin/export', icon: '📤', label: 'Exports' },
 ];
 
 const DRAWER_SECTIONS = [
@@ -37,6 +37,7 @@ const DRAWER_SECTIONS = [
     items: [
       { href: '/dashboard/admin/export',        icon: '📤', label: 'Exports' },
       { href: '/dashboard/admin/camps/nouveau', icon: '➕', label: 'Nouveau camp' },
+      { href: '/dashboard/admin/parametres',    icon: '⚙️', label: 'Paramètres' },
     ],
   },
 ];
