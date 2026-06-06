@@ -5,7 +5,7 @@ interface PastoralYearStore {
   annee: number;
   loaded: boolean;
   load: () => Promise<void>;
-  update: (annee: number) => Promise<void>;
+  update: (annee: number) => Promise<{ annee: number; membresInitialises: number }>;
 }
 
 export const usePastoralYear = create<PastoralYearStore>((set, get) => ({
@@ -23,7 +23,8 @@ export const usePastoralYear = create<PastoralYearStore>((set, get) => ({
   },
 
   update: async (annee: number) => {
-    await settingsApi.setAnneePastorale(annee);
-    set({ annee });
+    const { data } = await settingsApi.setAnneePastorale(annee);
+    set({ annee: data.annee });
+    return data as { annee: number; membresInitialises: number };
   },
 }));

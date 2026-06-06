@@ -9,7 +9,7 @@ import type { Conversation, ConversationMember, Message, User } from '@/types';
 const HEADER_CONFIG: Record<string, { label: string; gradient: string }> = {
   COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#C62828] to-[#8e1a1a]' },
   REGION:     { label: '🗺️ Région',              gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  DOYENNE:    { label: '🛡️ Doyenné',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  DOYENNE:    { label: '🛡️ District',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
   PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
   PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#C62828] to-[#8e1a1a]' },
   GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#C62828] to-[#8e1a1a]' },

@@ -45,13 +45,13 @@ export class TerritoriesService {
   }
 
   async getStats() {
-    const [totalGardiens, campsOuverts, defisValides, doyennes] =
+    const [totalGardiens, campsOuverts, defisValides, districts] =
       await Promise.all([
         this.prisma.user.count({ where: { deletedAt: null, role: 'GARDIEN' } }),
         this.prisma.camp.count({ where: { statut: 'OUVERT' } }),
         this.prisma.submission.count({ where: { statut: 'VALIDE' } }),
         this.prisma.district.count({ where: { deletedAt: null } }),
       ]);
-    return { totalGardiens, campsOuverts, defisValides, doyennes };
+    return { totalGardiens, campsOuverts, defisValides, districts };
   }
 }

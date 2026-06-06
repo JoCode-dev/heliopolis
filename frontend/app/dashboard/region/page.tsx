@@ -9,13 +9,13 @@ interface Stats {
   totalGardiens: number;
   campsOuverts: number;
   defisValides: number;
-  doyennes: number;
+  districts: number;
 }
 
 const QUICK_LINKS = [
   { href: '/dashboard/region/camps',        icon: '⛺', label: 'Camps',         color: 'bg-[#C62828]/10 text-[#C62828]' },
   { href: '/dashboard/region/participants', icon: '👥', label: 'Participants',   color: 'bg-[#6A1B9A]/10 text-[#6A1B9A]' },
-  { href: '/dashboard/region/doyennes',     icon: '🛡️', label: 'Doyennés',       color: 'bg-[#D9A441]/10 text-[#D9A441]' },
+  { href: '/dashboard/region/districts',     icon: '🛡️', label: 'Districts',      color: 'bg-[#D9A441]/10 text-[#D9A441]' },
   { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants',     color: 'bg-[#2E7D32]/10 text-[#2E7D32]' },
   { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens',       color: 'bg-[#1F1B2E]/10 text-[#1F1B2E]' },
   { href: '/dashboard/region/codex',        icon: '🪶', label: 'Modération',     color: 'bg-[#6A1B9A]/10 text-[#6A1B9A]' },
@@ -78,7 +78,7 @@ export default function RegionHomePage() {
               { label: 'Camps',        value: stats.campsOuverts,  icon: '⛺' },
               { label: 'Sentinelles',  value: sentinelleCount,     icon: '🛡️' },
               { label: 'Gardiens',     value: stats.totalGardiens, icon: '🤝' },
-              { label: 'Doyennés',     value: stats.doyennes,      icon: '🗺️' },
+              { label: 'Districts',    value: stats.doyennes,      icon: '🗺️' },
             ].map(s => (
               <div key={s.label} className="bg-white/10 rounded-xl p-2.5 text-center">
                 <div className="text-base leading-none mb-0.5">{s.icon}</div>

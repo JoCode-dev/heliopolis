@@ -104,13 +104,13 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editUser]);
 
-  // Charge les doyennés pour admin/région
+  // Charge les districts pour admin/région
   useEffect(() => {
     if (!isOpen || !isAdminOrRegion) return;
     territoriesApi.districts().then(({ data }) => setDistricts(data)).catch(() => {});
   }, [isOpen, isAdminOrRegion]);
 
-  // Charge les paroisses selon le doyenné effectif
+  // Charge les paroisses selon le district effectif
   useEffect(() => {
     const id = districtId || autoDistrictId;
     if (!id || !needsParish) { setParishes([]); return; }
@@ -226,26 +226,26 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
             </div>
           )}
 
-          {/* ── Doyenné (admin/région) ── */}
+          {/* ── District (admin/région) ── */}
           {showDistrictSelector && (
             <div>
               <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-1.5">
-                Doyenné {role === 'SENTINELLE' ? '(territoire de la Sentinelle)' : ''}
+                District {role === 'SENTINELLE' ? '(territoire de la Sentinelle)' : ''}
               </label>
               <select value={districtId} onChange={e => { setDistrictId(e.target.value); setParishId(''); }}
                 className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] focus:ring-2 focus:ring-[#6A1B9A]/10">
-                <option value="">— Sélectionner un doyenné —</option>
+                <option value="">— Sélectionner un district —</option>
                 {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
               </select>
             </div>
           )}
 
-          {/* ── Doyenné auto-rempli (sentinelle) ── */}
+          {/* ── District auto-rempli (sentinelle) ── */}
           {isSentinelle && needsParish && actor?.district?.nom && (
             <div className="flex items-center gap-2 bg-[#f0e8ff] rounded-xl px-3 py-2 border border-[#c8a8f0]">
               <span className="text-base">🛡️</span>
               <div>
-                <p className="text-xs font-semibold text-[#6A1B9A]">Doyenné</p>
+                <p className="text-xs font-semibold text-[#6A1B9A]">District</p>
                 <p className="text-sm text-[#1F1B2E]">{actor.district.nom}</p>
               </div>
             </div>
@@ -276,7 +276,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
                 <p className="text-[11px] text-[#9b9ba8] mt-1">Chargement des paroisses…</p>
               )}
               {parishes.length === 0 && isAdminOrRegion && !districtId && (
-                <p className="text-[11px] text-[#9b9ba8] mt-1">Sélectionnez d'abord un doyenné.</p>
+                <p className="text-[11px] text-[#9b9ba8] mt-1">Sélectionnez d'abord un district.</p>
               )}
             </div>
           )}

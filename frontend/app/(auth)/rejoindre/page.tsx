@@ -370,7 +370,7 @@ function ParishModal({ parishes, loading, search, onSearch, onClose, onSelect }:
             <input
               value={search} onChange={e => onSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#9b9ba8]"
-              placeholder="Chercher une paroisse ou un doyenné…"
+              placeholder="Chercher une paroisse ou un district…"
               autoFocus
             />
             {search && <button onClick={() => onSearch('')} className="text-[#9b9ba8] text-base">✕</button>}

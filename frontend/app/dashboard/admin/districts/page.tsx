@@ -5,7 +5,7 @@ import { territoriesApi, usersApi } from '@/lib/api';
 import { Pill } from '@/components/ui';
 import type { District, User } from '@/types';
 
-export default function AdminDoyennesPage() {
+export default function AdminDistrictsPage() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [sentinelles, setSentinelles] = useState<User[]>([]);
   const [gardiens, setGardiens] = useState<User[]>([]);
@@ -47,8 +47,8 @@ export default function AdminDoyennesPage() {
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
       {/* Top bar */}
       <div className="flex justify-between items-center mb-5 border-b border-[#ececf0] pb-4">
-        <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">🛡️ Doyennés</h1>
-        <div className="text-sm text-[#6b6b78]">{districts.length} doyenné{districts.length > 1 ? 's' : ''}</div>
+        <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">🛡️ Districts</h1>
+        <div className="text-sm text-[#6b6b78]">{districts.length} district{districts.length > 1 ? 's' : ''}</div>
       </div>
 
       {loading && (
@@ -58,7 +58,7 @@ export default function AdminDoyennesPage() {
       {!loading && districts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-[#6b6b78]">
           <div className="text-5xl mb-3">🛡️</div>
-          <p className="font-semibold">Aucun doyenné trouvé</p>
+          <p className="font-semibold">Aucun district trouvé</p>
         </div>
       )}
 

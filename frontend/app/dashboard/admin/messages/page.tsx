@@ -20,7 +20,7 @@ const CONV_GRADIENT: Record<string, string> = {
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
 const CANAL_LABEL: Record<string, string> = {
-  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'Doyenné',
+  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'District',
   PAROISSE: 'Paroisse', GROUPE: 'Groupe', PRIVE: 'Privé',
 };
 

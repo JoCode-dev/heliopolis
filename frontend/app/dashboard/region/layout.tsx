@@ -19,7 +19,7 @@ const NAV_LABELS: { prefix: string; icon: string; label: string }[] = [
   { prefix: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens'           },
   { prefix: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants'         },
   { prefix: '/dashboard/region/region',       icon: '🌍', label: 'Membres région'     },
-  { prefix: '/dashboard/region/doyennes',     icon: '🛡️', label: 'Doyennés'           },
+  { prefix: '/dashboard/region/districts',     icon: '🛡️', label: 'Districts'          },
   { prefix: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses'           },
   { prefix: '/dashboard/region/defis',        icon: '🎯', label: 'Défis & soumissions'},
   { prefix: '/dashboard/region/codex',        icon: '🪶', label: 'Modération'         },

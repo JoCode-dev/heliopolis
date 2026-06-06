@@ -182,7 +182,7 @@ function ParticipantsContent() {
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                    {['Nom', 'Matricule', 'Paroisse', 'Doyenné', 'Adhésion', 'Statut'].map(h => (
+                    {['Nom', 'Matricule', 'Paroisse', 'District', 'Adhésion', 'Statut'].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
                     ))}
                   </tr>

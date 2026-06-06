@@ -88,7 +88,7 @@ function GuidesContent() {
     return map;
   }, [parishes]);
 
-  // Paroisses visibles dans le filtre (restreintes au doyenné sélectionné)
+  // Paroisses visibles dans le filtre (restreintes au district sélectionné)
   const visibleParishes = useMemo(
     () => districtId ? parishes.filter(p => p.district.id === districtId) : parishes,
     [parishes, districtId],
@@ -123,7 +123,7 @@ function GuidesContent() {
   };
 
   const handleExport = () => {
-    const headers = ['Rôle', 'Prénoms', 'Nom', 'Matricule', 'Email', 'Téléphone', 'Territoire', 'Doyenné', 'Région', 'Adhésion', 'Statut'];
+    const headers = ['Rôle', 'Prénoms', 'Nom', 'Matricule', 'Email', 'Téléphone', 'Territoire', 'District', 'Région', 'Adhésion', 'Statut'];
     const rows = filtered.map(u => [
       u.role, u.prenoms, u.nom, u.matricule ?? '',
       u.email ?? '', u.telephone ?? '',
@@ -221,14 +221,14 @@ function GuidesContent() {
           </div>
         </div>
 
-        {/* Ligne 2 : doyenné + paroisse */}
+        {/* Ligne 2 : district + paroisse */}
         <div className="flex flex-col sm:flex-row gap-2">
           <select
             value={districtId}
             onChange={e => { setDistrictId(e.target.value); setParishId(''); setPage(1); }}
             className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E]"
           >
-            <option value="">Tous les doyennés</option>
+            <option value="">Tous les districts</option>
             {districts.map(d => (
               <option key={d.id} value={d.id}>{d.nom}</option>
             ))}
@@ -371,7 +371,7 @@ function GuidesContent() {
               </colgroup>
               <thead>
                 <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                  {['Encadrant', 'Matricule', 'Rôle', 'Paroisse / Doyenné', 'Adhésion', 'Statut', 'Action'].map(h => (
+                  {['Encadrant', 'Matricule', 'Rôle', 'Paroisse / District', 'Adhésion', 'Statut', 'Action'].map(h => (
                     <th key={h} className="text-left px-3 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
                   ))}
                 </tr>
@@ -410,7 +410,7 @@ function GuidesContent() {
                           {ROLE_LABEL[u.role as 'GUIDE' | 'SENTINELLE']}
                         </Pill>
                       </td>
-                      {/* Paroisse / Doyenné */}
+                      {/* Paroisse / District */}
                       <td className="px-3 py-2.5">
                         <div className="font-medium text-[#1F1B2E] truncate">
                           {u.parish?.nom ?? u.district?.nom ?? '—'}

@@ -253,7 +253,7 @@ export class CampsService {
       campDistricts.length > 0 &&
       !campDistricts.some((d) => d.districtId === user.districtId)
     ) {
-      throw new ForbiddenException('Camp non ouvert à ce doyenné');
+      throw new ForbiddenException('Camp non ouvert à ce district');
     }
     const districtId = user.districtId;
     const parishId = user.parishId;

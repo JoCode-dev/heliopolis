@@ -599,7 +599,7 @@ function SentinelleView({ campId, user, toast }: {
             {filteredGuides.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
                 <div className="text-3xl mb-2">📖</div>
-                <p className="text-sm">Aucun guide dans ce doyenné</p>
+                <p className="text-sm">Aucun guide dans ce district</p>
               </div>
             )}
 

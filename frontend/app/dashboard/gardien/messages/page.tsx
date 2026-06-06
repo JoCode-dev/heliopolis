@@ -21,7 +21,7 @@ const CONV_GRADIENT: Record<string, string> = {
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
 const CANAL_LABEL: Record<string, string> = {
-  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'Doyenné',
+  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'District',
   PAROISSE: 'Paroisse', GROUPE: 'Groupe', PRIVE: 'Privé',
 };
 
@@ -230,7 +230,7 @@ type ContactFilter = 'TOUS' | 'PAROISSE' | 'DOYENNE' | 'CONTACTS';
 const CONTACT_FILTERS: { key: ContactFilter; label: string; icon: string }[] = [
   { key: 'TOUS',     label: 'Tous',     icon: '👥' },
   { key: 'PAROISSE', label: 'Paroisse', icon: '⛪' },
-  { key: 'DOYENNE',  label: 'Doyenné',  icon: '🛡️' },
+  { key: 'DOYENNE',  label: 'District', icon: '🛡️' },
   { key: 'CONTACTS', label: 'Contacts', icon: '🤝' },
 ];
 
@@ -717,7 +717,7 @@ function NewConvModal({ onClose, onCreated }: {
                 title: 'Créer un groupe', sub: 'Conversation avec plusieurs contacts',
                 action: () => setMode('group') },
               { m: 'channels' as ConvMode, icon: '📡', gradient: 'from-[#6A1B9A] to-[#4a1370]',
-                title: 'Canaux d\'équipe', sub: 'Rejoindre les canaux paroissiaux, doyennaux ou régionaux',
+                title: 'Canaux d\'équipe', sub: 'Rejoindre les canaux paroissiaux, de district ou régionaux',
                 action: openChannels },
             ].map(({ m, icon, gradient, title, sub, action }) => (
               <button key={m} onClick={action}

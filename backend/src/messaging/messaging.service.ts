@@ -322,12 +322,12 @@ export class MessagingService {
         where: { id: user.districtId }, select: { id: true, nom: true },
       });
       if (district) {
-        // Canal Équipe Doyenné (SENTINELLE + GUIDE) — visible à GUIDE et SENTINELLE
+        // Canal Équipe District (SENTINELLE + GUIDE) — visible à GUIDE et SENTINELLE
         if (([UserRole.GUIDE, UserRole.SENTINELLE] as UserRole[]).includes(user.role)) {
-          const { existing, isMember } = await checkExisting(ConversationType.DOYENNE, 'Équipe Doyenné ', { districtId: district.id });
+          const { existing, isMember } = await checkExisting(ConversationType.DOYENNE, 'Équipe District ', { districtId: district.id });
           suggestions.push({
-            channelKey: 'DOYENNE', convType: ConversationType.DOYENNE, nomPrefix: 'Équipe Doyenné ',
-            nom: `Équipe Doyenné ${district.nom}`, description: 'Canal du doyenné · Sentinelle & Guides',
+            channelKey: 'DOYENNE', convType: ConversationType.DOYENNE, nomPrefix: 'Équipe District ',
+            nom: `Équipe District ${district.nom}`, description: 'Canal du district · Sentinelle & Guides',
             icon: '🛡️', territoryId: district.id,
             conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
           });
@@ -337,7 +337,7 @@ export class MessagingService {
           const { existing, isMember } = await checkExisting(ConversationType.DOYENNE, 'Guides — ', { districtId: district.id });
           suggestions.push({
             channelKey: 'GUIDES', convType: ConversationType.DOYENNE, nomPrefix: 'Guides — ',
-            nom: `Guides — ${district.nom}`, description: 'Canal des Guides du doyenné',
+            nom: `Guides — ${district.nom}`, description: 'Canal des Guides du district',
             icon: '📖', territoryId: district.id,
             conversationId: existing?.id ?? null, memberCount: existing?._count.members ?? 0, isMember,
           });

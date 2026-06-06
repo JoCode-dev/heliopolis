@@ -12,7 +12,7 @@ import type {
   User, Conversation, Submission,
 } from '@/types';
 
-interface RegionStats { doyennes?: number; }
+interface RegionStats { districts?: number; }
 
 const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
@@ -124,7 +124,7 @@ export default function AccueilPage() {
         <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
           <input
             className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none w-56"
-            placeholder="🔍 Doyenné, paroisse, camp…"
+            placeholder="🔍 District, paroisse, camp…"
           />
           <Link
             href="/dashboard/admin/camps/nouveau"
@@ -148,10 +148,10 @@ export default function AccueilPage() {
       {/* KPIs cliquables */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         {[
-          { label: 'Doyennés', value: stats?.doyennes ?? districts.length, delta: `${districts.length} chargés`, icon: '🛡️', color: '#C62828', href: '/dashboard/region/doyennes' },
+          { label: 'Districts', value: stats?.districts ?? districts.length, delta: `${districts.length} chargés`, icon: '🛡️', color: '#C62828', href: '/dashboard/region/districts' },
           { label: 'Paroisses actives', value: parishesCount, delta: 'données territoriales', icon: '⛪', color: '#6A1B9A', href: '/dashboard/region/paroisses' },
           { label: activeCamp?.nom ?? 'Aucun camp', value: activeCamp?._count?.participants ?? 0, delta: 'participants sélectionnés', icon: '⛺', color: '#D9A441', href: activeCamp ? `/dashboard/region/participants?campId=${activeCamp.id}` : '/dashboard/region/camps' },
-          { label: 'Doyennés transmis', value: `${transmittedDistricts} / ${districts.length || 0}`, delta: activeCamp ? activeCamp.nom : 'aucun camp ouvert', icon: '✓', color: '#2E7D32', neg: transmittedDistricts < districts.length, href: '/dashboard/region/rapports' },
+          { label: 'Districts transmis', value: `${transmittedDistricts} / ${districts.length || 0}`, delta: activeCamp ? activeCamp.nom : 'aucun camp ouvert', icon: '✓', color: '#2E7D32', neg: transmittedDistricts < districts.length, href: '/dashboard/region/rapports' },
         ].map(kpi => (
           <Link key={kpi.label} href={kpi.href} className="bg-white border border-[#ececf0] rounded-2xl p-4 relative overflow-hidden hover:border-[#C62828]/30 hover:shadow-sm transition-all">
             <div className="absolute top-0 right-0 w-10 h-10 rounded-bl-2xl flex items-center justify-center text-lg"
@@ -165,11 +165,11 @@ export default function AccueilPage() {
         ))}
       </div>
 
-      {/* Tableau suivi doyennés */}
+      {/* Tableau suivi districts */}
       <div className="bg-white border border-[#ececf0] rounded-2xl p-4 mb-5">
         <h3 className="font-bold text-sm text-[#1F1B2E] mb-4 flex justify-between">
-          Suivi des doyennés — {activeCamp?.nom ?? 'aucun camp ouvert'}
-          <Link href="/dashboard/region/doyennes" className="text-xs text-[#C62828] font-semibold">
+          Suivi des districts — {activeCamp?.nom ?? 'aucun camp ouvert'}
+          <Link href="/dashboard/region/districts" className="text-xs text-[#C62828] font-semibold">
             Détail →
           </Link>
         </h3>
@@ -177,7 +177,7 @@ export default function AccueilPage() {
           <table className="w-full text-xs border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                {['Doyenné', 'Sentinelle', 'Paroisses', 'Routiers', 'Sélectionnés', 'Statut', ''].map(h => (
+                {['District', 'Sentinelle', 'Paroisses', 'Routiers', 'Sélectionnés', 'Statut', ''].map(h => (
                   <th key={h} className="text-left px-3 py-2.5 font-semibold border-b border-[#ececf0]">{h}</th>
                 ))}
               </tr>

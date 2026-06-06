@@ -40,7 +40,7 @@ export default function GuideMembresPage() {
 
   // Guide : ses gardiens / Sentinelle : ses guides
   const [membres, setMembres]           = useState<User[]>([]);
-  // Sentinelle uniquement : tous les gardiens du doyenné
+  // Sentinelle uniquement : tous les gardiens du district
   const [gardiens, setGardiens]         = useState<User[]>([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
@@ -122,7 +122,7 @@ export default function GuideMembresPage() {
           <div className="px-4 pt-3 pb-0">
             <h1 className="text-[18px] font-black text-white tracking-tight">Membres</h1>
             <p className="text-[11px] text-white/50 mt-0.5 pb-2">
-              {actor?.district?.nom ?? 'Mon doyenné'} · {membres.length} guide{membres.length > 1 ? 's' : ''}, {gardiens.length} gardien{gardiens.length > 1 ? 's' : ''}
+              {actor?.district?.nom ?? 'Mon district'} · {membres.length} guide{membres.length > 1 ? 's' : ''}, {gardiens.length} gardien{gardiens.length > 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex border-t border-white/10">

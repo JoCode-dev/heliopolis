@@ -35,7 +35,7 @@ export function getTerritoryLabel(user?: User | null) {
   if (!user) return '';
   if (user.role === 'ADMIN') return user.region?.nom ?? 'Tous les territoires';
   if (user.role === 'REGION') return user.region?.nom ?? 'Region';
-  if (user.role === 'SENTINELLE') return user.district?.nom ?? 'Doyenne';
+  if (user.role === 'SENTINELLE') return user.district?.nom ?? 'District';
   if (user.role === 'GUIDE') return user.parish?.nom ?? 'Paroisse';
   return user.parish?.nom ?? 'Paroisse';
 }

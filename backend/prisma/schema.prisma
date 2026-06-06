@@ -16,7 +16,7 @@ datasource db {
 enum UserRole {
   ADMIN // Grand Archiviste du Codex
   REGION // Hiérophante / Conseil d'Héliopolis
-  SENTINELLE // Sentinelle d'Héliopolis (Doyenné)
+  SENTINELLE // Sentinelle d'Héliopolis (District)
   GUIDE // Guide du Jardin Caché (Paroisse)
   GARDIEN // Gardien de la Création (Routier)
 }
@@ -241,7 +241,7 @@ model Region {
   @@map("regions")
 }
 
-/// District scout = Doyenné Église
+/// District scout
 model District {
   id            String       @id @default(cuid())
   nom           String
@@ -457,7 +457,7 @@ model Camp {
   region   Region? @relation(fields: [regionId], references: [id], onDelete: SetNull)
   regionId String?
 
-  /// Districts/doyennés concernés (n-n)
+  /// Districts concernés (n-n)
   districts     CampDistrict[]
   participants  CampParticipant[]
   presences     PresenceLog[]
@@ -707,7 +707,7 @@ model CodexReaction {
 model Conversation {
   id          String           @id @default(cuid())
   type        ConversationType
-  /// Nom du canal (Communauté Mahatma Gandhi, Doyenné de Cocody…)
+  /// Nom du canal (Communauté Mahatma Gandhi, District de Cocody…)
   /// Null pour les conversations privées
   nom         String?
   description String?

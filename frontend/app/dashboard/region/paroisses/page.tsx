@@ -80,7 +80,7 @@ function ParoissesContent() {
         <div className="text-sm text-[#6b6b78]">{parishes.length} paroisse{parishes.length > 1 ? 's' : ''}</div>
       </div>
 
-      {/* Select doyenné */}
+      {/* Select district */}
       <div className="mb-5 max-w-sm">
         {loading ? (
           <div className="h-10 bg-white border border-[#e6e6ea] rounded-xl animate-pulse" />
@@ -89,7 +89,7 @@ function ParoissesContent() {
             value={selectedDistrictId}
             onChange={e => setSelectedDistrictId(e.target.value)}
             className="w-full">
-            <option value="">— Tous les doyennés —</option>
+            <option value="">— Tous les districts —</option>
             {districts.map(d => (
               <option key={d.id} value={d.id}>{d.nom}</option>
             ))}
@@ -104,14 +104,14 @@ function ParoissesContent() {
       {!loadingParishes && selectedDistrictId && parishes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-[#6b6b78]">
           <div className="text-5xl mb-3">⛪</div>
-          <p className="font-semibold">Aucune paroisse dans ce doyenné</p>
+          <p className="font-semibold">Aucune paroisse dans ce district</p>
         </div>
       )}
 
       {!selectedDistrictId && !loading && (
         <div className="flex flex-col items-center justify-center py-16 text-[#6b6b78]">
           <div className="text-5xl mb-3">🛡️</div>
-          <p className="font-semibold">Sélectionnez un doyenné pour voir ses paroisses</p>
+          <p className="font-semibold">Sélectionnez un district pour voir ses paroisses</p>
         </div>
       )}
 
@@ -120,7 +120,7 @@ function ParoissesContent() {
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                {['Paroisse', 'Doyenné', 'Guide', 'Gardiens', 'Adhésions à jour', 'Actions'].map(h => (
+                {['Paroisse', 'District', 'Guide', 'Gardiens', 'Adhésions à jour', 'Actions'].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
                 ))}
               </tr>

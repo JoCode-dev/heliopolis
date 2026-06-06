@@ -69,13 +69,13 @@ export class UsersService {
       throw new ForbiddenException('Création administrateur réservée');
     }
 
-    // SENTINELLE ne peut créer que des guides dans son doyenné
+    // SENTINELLE ne peut créer que des guides dans son district
     if (actor.role === UserRole.SENTINELLE) {
       if (dto.role && dto.role !== UserRole.GUIDE) {
         throw new ForbiddenException('Une sentinelle ne peut créer que des guides');
       }
       if (!actor.districtId) {
-        throw new ForbiddenException('Aucun doyenné rattaché à ce compte');
+        throw new ForbiddenException('Aucun district rattaché à ce compte');
       }
       if (dto.parishId) {
         const parish = await this.prisma.parish.findUnique({
@@ -83,7 +83,7 @@ export class UsersService {
           select: { districtId: true },
         });
         if (!parish || parish.districtId !== actor.districtId) {
-          throw new ForbiddenException('Paroisse hors périmètre du doyenné');
+          throw new ForbiddenException('Paroisse hors périmètre du district');
         }
       }
       return;

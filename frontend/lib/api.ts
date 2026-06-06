@@ -198,4 +198,9 @@ export const exportApi = {
     `${BASE}/export/camps/${campId}/participants`,
   campParticipantsFile: (campId: string) =>
     api.get(`/export/camps/${campId}/participants`, { responseType: 'blob' }),
+  adhesionsFile: (annee?: number, campId?: string) =>
+    api.get('/export/adhesions', {
+      params: { ...(annee ? { annee } : {}), ...(campId ? { campId } : {}) },
+      responseType: 'blob',
+    }),
 };

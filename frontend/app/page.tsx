@@ -22,13 +22,13 @@ async function getData() {
       .sort((a, b) => (STATUS_ORDER[a.statut] ?? 9) - (STATUS_ORDER[b.statut] ?? 9));
     const codexData = codexRes.data as { items: Submission[]; total: number };
     return {
-      stats: statsRes.data as { totalGardiens: number; campsOuverts: number; defisValides: number; doyennes: number },
+      stats: statsRes.data as { totalGardiens: number; campsOuverts: number; defisValides: number; districts: number },
       camps: allCamps,
       recentPosts: (codexData.items ?? []).slice(0, 3),
     };
   } catch {
     return {
-      stats: { totalGardiens: 0, campsOuverts: 0, defisValides: 0, doyennes: 0 },
+      stats: { totalGardiens: 0, campsOuverts: 0, defisValides: 0, districts: 0 },
       camps: [] as Camp[],
       recentPosts: [] as Submission[],
     };
@@ -131,7 +131,7 @@ export default async function AccueilPage() {
                     <StatCard icon="⛺" value={stats.campsOuverts} label="Camps"     color="#C62828" bg="from-[#C62828]/10 to-[#C62828]/5" />
                     <StatCard icon="🤝" value={stats.totalGardiens} label="Gardiens"  color="#6A1B9A" bg="from-[#6A1B9A]/10 to-[#6A1B9A]/5" />
                     <StatCard icon="🎯" value={stats.defisValides}  label="Défis"     color="#D9A441" bg="from-[#D9A441]/15 to-[#D9A441]/5" />
-                    <StatCard icon="🛡️" value={stats.doyennes}      label="Doyennés"  color="#2E7D32" bg="from-[#2E7D32]/10 to-[#2E7D32]/5" />
+                    <StatCard icon="🛡️" value={stats.districts}     label="Districts"  color="#2E7D32" bg="from-[#2E7D32]/10 to-[#2E7D32]/5" />
                   </div>
 
                   {/* Camps */}

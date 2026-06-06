@@ -368,7 +368,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   )}
                   {user?.district && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Doyenné</span>
+                      <span className="text-gray-500">District</span>
                       <span className="text-gray-700 truncate max-w-[55%] text-right">{user.district.nom}</span>
                     </div>
                   )}

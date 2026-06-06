@@ -32,9 +32,9 @@ export default function DashboardGuidePage() {
   const { user } = useAuthStore();
   const isSentinelle = user?.role === 'SENTINELLE';
 
-  // Guide : gardiens de la paroisse / Sentinelle : guides du doyenné
+  // Guide : gardiens de la paroisse / Sentinelle : guides du district
   const [directReports, setDirectReports] = useState<User[]>([]);
-  // Sentinelle uniquement : tous les gardiens du doyenné
+  // Sentinelle uniquement : tous les gardiens du district
   const [allGardiens, setAllGardiens]     = useState<User[]>([]);
   const [camps, setCamps]                 = useState<Camp[]>([]);
   const [pending, setPending]             = useState<Submission[]>([]);
@@ -57,7 +57,7 @@ export default function DashboardGuidePage() {
       messagingApi.conversations(),
     ];
 
-    // Sentinelle : charge aussi tous les gardiens du doyenné
+    // Sentinelle : charge aussi tous les gardiens du district
     if (isSentinelle && user.district?.id) {
       promises.push(usersApi.list({ role: 'GARDIEN', districtId: user.district.id }));
     }

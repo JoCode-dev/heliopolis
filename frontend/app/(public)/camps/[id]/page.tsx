@@ -9,7 +9,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http:/
 
 const TYPE_LABEL: Record<CampType, string> = {
   REGIONAL:   'Régional',
-  DISTRICT:   'Doyenné',
+  DISTRICT:   'District',
   PAROISSIAL: 'Paroissial',
   NATIONAL:   'National',
   COMMUNAUTE: 'Communauté',

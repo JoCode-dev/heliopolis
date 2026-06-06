@@ -100,7 +100,7 @@ function GardiensContent() {
     setGardiens(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
   };
   const handleExport = () => {
-    const headers = ['Prénoms', 'Nom', 'Matricule', 'Email', 'Téléphone', 'Paroisse', 'Doyenné', 'Région', 'Adhésion', 'Statut'];
+    const headers = ['Prénoms', 'Nom', 'Matricule', 'Email', 'Téléphone', 'Paroisse', 'District', 'Région', 'Adhésion', 'Statut'];
     const rows = filtered.map(u => [
       u.prenoms, u.nom, u.matricule ?? '', u.email ?? '', u.telephone ?? '',
       u.parish?.nom ?? '', u.district?.nom ?? '', u.region?.nom ?? '',
@@ -168,7 +168,7 @@ function GardiensContent() {
         <div className="flex gap-1.5">
           <select value={districtId} onChange={e => { setDistrictId(e.target.value); setParishId(''); setPage(1); }}
             className="flex-1 bg-[#f5f5fa] border-0 rounded-xl px-2.5 py-2 text-xs outline-none text-[#1F1B2E] min-w-0">
-            <option value="">Tous doyennés</option>
+            <option value="">Tous les districts</option>
             {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
           </select>
           <select value={parishId} onChange={e => { setParishId(e.target.value); setPage(1); }}
@@ -296,7 +296,7 @@ function GardiensContent() {
                 </colgroup>
                 <thead>
                   <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                    {['Gardien', 'Matricule', 'Paroisse / Doyenné', 'Adhésion', 'Statut', 'Suspendus', 'Action', ''].map(h => (
+                    {['Gardien', 'Matricule', 'Paroisse / District', 'Adhésion', 'Statut', 'Suspendus', 'Action', ''].map(h => (
                       <th key={h} className="text-left px-3 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
                     ))}
                   </tr>

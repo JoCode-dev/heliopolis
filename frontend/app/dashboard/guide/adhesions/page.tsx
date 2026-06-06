@@ -191,7 +191,7 @@ export default function GuideAdhesionsPage() {
               <p className="text-[10px] opacity-60 uppercase tracking-widest">Adhésions {CURRENT_YEAR}</p>
               <h1 className="text-base font-black mt-0.5">
                 {isAdminOrRegion
-                  ? (user?.district?.nom ?? 'Tous les doyennés')
+                  ? (user?.district?.nom ?? 'Tous les districts')
                   : (user?.district?.nom ?? user?.parish?.nom ?? 'Mon territoire')}
               </h1>
               <p className="text-[11px] opacity-60 mt-0.5">

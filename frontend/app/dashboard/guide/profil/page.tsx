@@ -105,7 +105,7 @@ export default function GuideProfilPage() {
         {!loading && gardiens.length > 0 && (
           <div className="bg-white rounded-2xl border border-[#ececf0] shadow-sm p-4">
             <h2 className="text-xs font-bold text-[#6b6b78] uppercase tracking-wider mb-3">
-              Mon territoire · {isSentinelle ? 'Doyenné' : 'Paroisse'}
+              Mon territoire · {isSentinelle ? 'District' : 'Paroisse'}
             </h2>
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="text-center">

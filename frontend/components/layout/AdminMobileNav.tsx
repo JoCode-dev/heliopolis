@@ -26,7 +26,7 @@ const DRAWER_SECTIONS = [
   {
     group: 'Territoire',
     items: [
-      { href: '/dashboard/admin/doyennes',  icon: '🛡️', label: 'Doyennés' },
+      { href: '/dashboard/admin/districts',  icon: '🛡️', label: 'Districts' },
       { href: '/dashboard/admin/paroisses', icon: '⛪', label: 'Paroisses' },
       { href: '/dashboard/admin/defis',     icon: '🎯', label: 'Défis' },
       { href: '/dashboard/admin/codex',     icon: '🪶', label: 'Codex' },
