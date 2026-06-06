@@ -13,6 +13,7 @@ const HOME = '/dashboard/region';
 
 const NAV_LABELS: { prefix: string; icon: string; label: string }[] = [
   { prefix: '/dashboard/region/camps',        icon: '⛺', label: 'Camps'              },
+  { prefix: '/dashboard/region/conseils',    icon: '🏛️', label: 'Conseils'           },
   { prefix: '/dashboard/region/participants', icon: '👥', label: 'Participants'        },
   { prefix: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens'           },
   { prefix: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants'         },

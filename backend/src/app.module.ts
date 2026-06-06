@@ -11,6 +11,7 @@ import { CodexModule } from './codex/codex.module.js';
 import { MessagingModule } from './messaging/messaging.module.js';
 import { ExportModule } from './export/export.module.js';
 import { ContactsModule } from './contacts/contacts.module.js';
+import { CouncilsModule } from './councils/councils.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ContactsModule } from './contacts/contacts.module.js';
     MessagingModule,
     ExportModule,
     ContactsModule,
+    CouncilsModule,
   ],
 })
 export class AppModule {}

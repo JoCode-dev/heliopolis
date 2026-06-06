@@ -12,6 +12,7 @@ const ADMIN_NAV_GROUPS = [
     items: [
       { href: '/dashboard/admin',              icon: '🏠', label: 'Accueil' },
       { href: '/dashboard/admin/camps',        icon: '⛺', label: 'Gérer les camps' },
+      { href: '/dashboard/admin/conseils',    icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/admin/codex',        icon: '🪶', label: 'Modération' },
       { href: '/dashboard/admin/messages',     icon: '💬', label: 'Messagerie' },
       { href: '/dashboard/admin/export',       icon: '📤', label: 'Exports' },
@@ -36,7 +37,8 @@ const REGION_NAV_GROUPS = [
     label: 'Tableau de bord',
     items: [
       { href: '/dashboard/region',          icon: '🏠', label: 'Accueil' },
-      { href: '/dashboard/region/camps',    icon: '⛺', label: 'Camps' },
+      { href: '/dashboard/region/camps',     icon: '⛺', label: 'Camps' },
+      { href: '/dashboard/region/conseils', icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/region/codex',    icon: '🪶', label: 'Modération' },
       { href: '/dashboard/region/messages', icon: '💬', label: 'Messagerie' },
       { href: '/dashboard/region/export',   icon: '📤', label: 'Exports' },

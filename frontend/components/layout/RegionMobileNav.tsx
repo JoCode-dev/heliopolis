@@ -25,6 +25,7 @@ const DRAWER_SECTIONS = [
   {
     group: 'Contenu & Outils',
     items: [
+      { href: '/dashboard/region/conseils',  icon: '🏛️', label: 'Conseils',   prefetch: true },
       { href: '/dashboard/region/paroisses', icon: '⛪', label: 'Paroisses',  prefetch: true },
       { href: '/dashboard/region/codex',     icon: '🪶', label: 'Modération', prefetch: true },
       { href: '/dashboard/region/export',    icon: '📤', label: 'Exports',    prefetch: false },

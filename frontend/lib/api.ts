@@ -92,6 +92,14 @@ export const challengesApi = {
 };
 
 // ─── Codex ────────────────────────────────────────────────────────────────────
+export const councilsApi = {
+  list:   ()                           => api.get('/councils'),
+  get:    (id: string)                 => api.get(`/councils/${id}`),
+  create: (data: object)               => api.post('/councils', data),
+  update: (id: string, data: object)   => api.patch(`/councils/${id}`, data),
+  remove: (id: string)                 => api.delete(`/councils/${id}`),
+};
+
 export const codexApi = {
   wall: (page = 1) => api.get('/codex/wall', { params: { page } }),
   react:   (id: string, emoji = '❤️') => api.post(`/codex/${id}/react`, { emoji }),

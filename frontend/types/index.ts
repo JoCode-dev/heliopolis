@@ -70,6 +70,24 @@ export interface CampParticipant {
   commentaireInterne?: string;
 }
 
+// ─── Conseils de Communauté ───────────────────────────────────────────────────
+export type CouncilStatus = 'PLANIFIE' | 'EN_COURS' | 'TERMINE' | 'ANNULE';
+
+export interface Council {
+  id: string;
+  nom: string;
+  description?: string;
+  date: string;
+  lieu?: string;
+  statut: CouncilStatus;
+  targetRoles: string[];
+  region?:   { id: string; nom: string };
+  district?: { id: string; nom: string };
+  parish?:   { id: string; nom: string };
+  createdBy?: Partial<User>;
+  createdAt: string;
+}
+
 // ─── Challenges / Soumissions ────────────────────────────────────────────────
 export interface Challenge {
   id: string; titre: string; description: string;

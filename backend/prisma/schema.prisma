@@ -233,6 +233,8 @@ model Region {
   conversations Conversation[]
 
   createdAt DateTime  @default(now())
+  councils  Council[]
+
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
@@ -261,6 +263,8 @@ model District {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  councils  Council[]
+
   @@unique([regionId, nom])
   @@index([regionId])
   @@map("districts")
@@ -280,6 +284,7 @@ model Parish {
   communities   Community[]
   announcements Announcement[]
   conversations Conversation[]
+  councils      Council[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -369,6 +374,7 @@ model User {
   // Contacts
   contactsInitiated Contact[] @relation("ContactRequester")
   contactsReceived  Contact[] @relation("ContactReceiver")
+  councilsCreated   Council[] @relation("CouncilCreator")
 
   // Auth & audit
   refreshTokens RefreshToken[]
@@ -469,6 +475,47 @@ model Camp {
   @@index([statut, dateDebut])
   @@index([type])
   @@map("camps")
+}
+
+// ─── Conseils de Communauté ──────────────────────────────────────────────────
+
+enum CouncilStatus {
+  PLANIFIE
+  EN_COURS
+  TERMINE
+  ANNULE
+}
+
+/// Conseil de communauté : réunion ciblant des rôles précis à un échelon territorial
+model Council {
+  id          String        @id @default(cuid())
+  nom         String
+  description String?
+  date        DateTime
+  lieu        String?
+  statut      CouncilStatus @default(PLANIFIE)
+
+  /// Rôles concernés, ex. ["SENTINELLE","GUIDE"]
+  targetRoles String[]
+
+  // Périmètre territorial
+  region     Region?   @relation(fields: [regionId],   references: [id], onDelete: Cascade)
+  regionId   String?
+  district   District? @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  districtId String?
+  parish     Parish?   @relation(fields: [parishId],   references: [id], onDelete: Cascade)
+  parishId   String?
+
+  createdBy   User   @relation("CouncilCreator", fields: [createdById], references: [id])
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([regionId])
+  @@index([districtId])
+  @@index([date])
+  @@map("councils")
 }
 
 /// Lien n-n entre Camp et District (§13 Camp_Districts)
