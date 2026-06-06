@@ -42,7 +42,7 @@ async function main() {
   });
   console.log(`✔ Région : ${region.nom}`);
 
-  // ── 2. Districts / Doyennés ─────────────────────────────────────────────────
+  // ── 2. Districts ────────────────────────────────────────────────────────────
   const districtsInput = [
     { nom: 'Treichville', code: 'DOY-TRE' },
     { nom: 'Cocody', code: 'DOY-COC' },
@@ -62,7 +62,7 @@ async function main() {
     });
     districts[d.nom] = district;
   }
-  console.log(`✔ Doyennés : ${Object.keys(districts).join(', ')}`);
+  console.log(`✔ Districts : ${Object.keys(districts).join(', ')}`);
 
   // ── 3. Paroisses ────────────────────────────────────────────────────────────
   const parishesInput: Array<{ district: string; parishes: string[] }> = [
@@ -206,7 +206,7 @@ async function main() {
     `✔ REGION      : ${hierophante.prenoms} ${hierophante.nom}  (${hierophante.matricule})`,
   );
 
-  // ── 7. Sentinelles — une par Doyenné ────────────────────────────────────────
+  // ── 7. Sentinelles — une par District ───────────────────────────────────────
   const sentinellesInput = [
     {
       nom: 'Kouassi',
@@ -295,7 +295,7 @@ async function main() {
       data: { responsableId: sentinelle.id },
     });
   }
-  console.log(`✔ SENTINELLES : 7 créées (une par doyenné)`);
+  console.log(`✔ SENTINELLES : 7 créées (une par district)`);
 
   // ── Données communes — noms ivoiriens ──────────────────────────────────────
   const NOM_POOL = [

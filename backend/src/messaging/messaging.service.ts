@@ -316,7 +316,7 @@ export class MessagingService {
       }
     }
 
-    /* ── Canaux liés au DOYENNÉ ────────────────────────────────────── */
+    /* ── Canaux liés au DISTRICT ───────────────────────────────────── */
     if (user.districtId) {
       const district = await this.prisma.district.findUnique({
         where: { id: user.districtId }, select: { id: true, nom: true },
@@ -411,23 +411,23 @@ export class MessagingService {
         break;
 
       case 'DOYENNE':
-        if (!user.districtId) throw new ForbiddenException('Doyenné introuvable');
+        if (!user.districtId) throw new ForbiddenException('District introuvable');
         where = { districtId: user.districtId };
         convType = ConversationType.DOYENNE;
-        nomPrefix = 'Équipe Doyenné ';
+        nomPrefix = 'Équipe District ';
         { const d = await this.prisma.district.findUnique({ where: { id: user.districtId }, select: { nom: true } });
-          channelNom = `Équipe Doyenné ${d?.nom ?? 'Doyenné'}`; }
+          channelNom = `Équipe District ${d?.nom ?? 'District'}`; }
         memberRoles = [UserRole.SENTINELLE, UserRole.GUIDE];
         isModerated = true;
         break;
 
       case 'GUIDES':
-        if (!user.districtId) throw new ForbiddenException('Doyenné introuvable');
+        if (!user.districtId) throw new ForbiddenException('District introuvable');
         where = { districtId: user.districtId };
         convType = ConversationType.DOYENNE;
         nomPrefix = 'Guides — ';
         { const d = await this.prisma.district.findUnique({ where: { id: user.districtId }, select: { nom: true } });
-          channelNom = `Guides — ${d?.nom ?? 'Doyenné'}`; }
+          channelNom = `Guides — ${d?.nom ?? 'District'}`; }
         memberRoles = [UserRole.GUIDE];
         break;
 

@@ -68,7 +68,7 @@ export class ExportService {
       Nom: p.user.nom,
       Prénoms: p.user.prenoms,
       Matricule: p.user.matricule ?? '',
-      Doyenné: p.district.nom,
+      District: p.district.nom,
       Paroisse: p.parish.nom,
       'Adhésion (statut)': p.adhesionStatusSnapshot,
       'Statut participation': p.participationStatus,
@@ -139,7 +139,7 @@ export class ExportService {
       Matricule:      u.matricule ?? '',
       Rôle:           ROLE_LABEL[u.role] ?? u.role,
       Région:         u.region?.nom   ?? '',
-      Doyenné:        u.district?.nom ?? '',
+      District:       u.district?.nom ?? '',
       Paroisse:       u.parish?.nom   ?? '',
       [`Cotisation ${annee}`]: ADHESION_LABEL[u.adhesions[0]?.statut ?? ''] ?? 'Non renseigné',
     }));

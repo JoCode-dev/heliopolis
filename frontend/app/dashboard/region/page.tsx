@@ -78,7 +78,7 @@ export default function RegionHomePage() {
               { label: 'Camps',        value: stats.campsOuverts,  icon: '⛺' },
               { label: 'Sentinelles',  value: sentinelleCount,     icon: '🛡️' },
               { label: 'Gardiens',     value: stats.totalGardiens, icon: '🤝' },
-              { label: 'Districts',    value: stats.doyennes,      icon: '🗺️' },
+              { label: 'Districts',    value: stats.districts,     icon: '🗺️' },
             ].map(s => (
               <div key={s.label} className="bg-white/10 rounded-xl p-2.5 text-center">
                 <div className="text-base leading-none mb-0.5">{s.icon}</div>
