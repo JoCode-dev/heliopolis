@@ -25,6 +25,7 @@ const PARTICIPATION_PILL: Record<ParticipationStatus, 'vert' | 'rouge' | 'or' | 
   NON_SELECTIONNE: 'gris',
   DESISTE: 'rouge',
   ABSENT: 'rouge',
+  BLOQUE: 'rouge',
 };
 const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
   SELECTIONNE: 'Sélectionné',
@@ -34,6 +35,7 @@ const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
   NON_SELECTIONNE: 'Non sélectionné',
   DESISTE: 'Désisté',
   ABSENT: 'Absent',
+  BLOQUE: 'Bloqué',
 };
 
 function ParticipantsContent() {
@@ -60,14 +62,24 @@ function ParticipantsContent() {
 
   useEffect(() => {
     if (!selectedCampId) return;
-    setLoadingParts(true);
+    let active = true;
+
     (async () => {
+      await Promise.resolve();
+      if (!active) return;
+
+      setLoadingParts(true);
       try {
         const { data } = await campsApi.participants(selectedCampId);
-        setParticipants(data);
-      } catch { setParticipants([]); }
-      finally { setLoadingParts(false); }
+        if (active) setParticipants(data);
+      } catch {
+        if (active) setParticipants([]);
+      } finally {
+        if (active) setLoadingParts(false);
+      }
     })();
+
+    return () => { active = false; };
   }, [selectedCampId]);
 
   const filtered = participants.filter(p => {
