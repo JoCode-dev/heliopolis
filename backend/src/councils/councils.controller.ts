@@ -80,14 +80,18 @@ export class CouncilsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateCouncilDto>) {
-    return this.service.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateCouncilDto>,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.update(id, dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.remove(id, user);
   }
 }

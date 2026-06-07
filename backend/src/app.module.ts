@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -13,10 +13,13 @@ import { ExportModule } from './export/export.module.js';
 import { ContactsModule } from './contacts/contacts.module.js';
 import { CouncilsModule } from './councils/councils.module.js';
 import { SettingsModule } from './settings/settings.module.js';
+import { LogsModule } from './logs/logs.module.js';
+import { RequestContextMiddleware } from './logs/request-context.middleware.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LogsModule,
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -32,4 +35,8 @@ import { SettingsModule } from './settings/settings.module.js';
     SettingsModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}

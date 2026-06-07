@@ -64,7 +64,7 @@ export class ChallengesController {
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Post()
   create(@Body() dto: CreateChallengeDto, @CurrentUser() user: AuthUser) {
-    return this.challengesService.create(dto, user.id);
+    return this.challengesService.create(dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

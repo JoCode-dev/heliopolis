@@ -35,6 +35,7 @@ const ADMIN_NAV_GROUPS = [
     label: 'Système',
     items: [
       { href: '/dashboard/admin/parametres', icon: '⚙️', label: 'Paramètres' },
+      { href: '/dashboard/admin/logs',      icon: '📋', label: 'Journal' },
     ],
   },
 ];

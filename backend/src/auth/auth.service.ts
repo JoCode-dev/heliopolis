@@ -8,15 +8,17 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ActivateDto } from './dto/activate.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { ProfileStatus } from '../../generated/prisma/enums.js';
+import { ProfileStatus, AuditAction } from '../../generated/prisma/enums.js';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import { ActionLogService } from '../logs/action-log.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private actionLog: ActionLogService,
   ) {}
 
   async activateProfile(dto: ActivateDto) {
@@ -33,6 +35,13 @@ export class AuthService {
     const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: { statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION },
+    });
+    this.actionLog.record({
+      action: AuditAction.STATUS_CHANGE,
+      category: 'auth',
+      summary: `Activation du matricule ${dto.matricule}`,
+      target: { entityType: 'User', entityId: updated.id },
+      metadata: { matricule: dto.matricule },
     });
     return {
       message: 'Profil trouvé — veuillez définir un mot de passe',
@@ -58,6 +67,18 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
+    });
+    this.actionLog.record({
+      action: AuditAction.LOGIN,
+      category: 'auth',
+      summary: `Connexion de ${user.prenoms} ${user.nom}`,
+      actor: {
+        id: user.id,
+        role: user.role,
+        nom: user.nom,
+        prenoms: user.prenoms,
+      },
+      target: { entityType: 'User', entityId: user.id },
     });
     return this.generateTokens(user.id, user.role);
   }
@@ -94,10 +115,28 @@ export class AuthService {
       .createHash('sha256')
       .update(refreshToken)
       .digest('hex');
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      include: { user: { select: { id: true, nom: true, prenoms: true, role: true } } },
+    });
     await this.prisma.refreshToken.updateMany({
       where: { tokenHash },
       data: { revokedAt: new Date() },
     });
+    if (stored?.user) {
+      this.actionLog.record({
+        action: AuditAction.LOGOUT,
+        category: 'auth',
+        summary: `Déconnexion de ${stored.user.prenoms} ${stored.user.nom}`,
+        actor: {
+          id: stored.user.id,
+          role: stored.user.role,
+          nom: stored.user.nom,
+          prenoms: stored.user.prenoms,
+        },
+        target: { entityType: 'User', entityId: stored.user.id },
+      });
+    }
     return { message: 'Déconnecté' };
   }
 
@@ -128,6 +167,18 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Mot de passe actuel incorrect');
     const passwordHash = await bcrypt.hash(nouveauMotDePasse, 12);
     await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'auth',
+      summary: `Mot de passe modifié par ${user.prenoms} ${user.nom}`,
+      actor: {
+        id: user.id,
+        role: user.role,
+        nom: user.nom,
+        prenoms: user.prenoms,
+      },
+      target: { entityType: 'User', entityId: userId },
+    });
     return { message: 'Mot de passe modifié avec succès' };
   }
 

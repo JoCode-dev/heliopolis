@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditAction } from '../../generated/prisma/enums.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 
 @Injectable()
 export class CodexService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private actionLog: ActionLogService,
+  ) {}
 
   async getWall(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
@@ -80,6 +85,10 @@ export class CodexService {
   }
 
   async approvePublication(submissionId: string, moderatorId: string) {
+    const moderator = await this.prisma.user.findUnique({
+      where: { id: moderatorId },
+      select: { id: true, nom: true, prenoms: true, role: true },
+    });
     const [sub] = await Promise.all([
       this.prisma.submission.update({
         where: { id: submissionId },
@@ -94,6 +103,15 @@ export class CodexService {
         },
       }),
     ]);
+    if (moderator) {
+      this.actionLog.record({
+        action: AuditAction.VALIDATE,
+        category: 'codex',
+        summary: `Publication approuvée sur le Mur du Codex par ${moderator.prenoms} ${moderator.nom}`,
+        actor: moderator,
+        target: { entityType: 'Submission', entityId: submissionId },
+      });
+    }
     return sub;
   }
 
@@ -102,6 +120,10 @@ export class CodexService {
     moderatorId: string,
     reason?: string,
   ) {
+    const moderator = await this.prisma.user.findUnique({
+      where: { id: moderatorId },
+      select: { id: true, nom: true, prenoms: true, role: true },
+    });
     const [sub] = await Promise.all([
       this.prisma.submission.update({
         where: { id: submissionId },
@@ -117,6 +139,16 @@ export class CodexService {
         },
       }),
     ]);
+    if (moderator) {
+      this.actionLog.record({
+        action: AuditAction.REJECT,
+        category: 'codex',
+        summary: `Publication rejetée sur le Mur du Codex par ${moderator.prenoms} ${moderator.nom}`,
+        actor: moderator,
+        target: { entityType: 'Submission', entityId: submissionId },
+        metadata: reason ? { reason } : undefined,
+      });
+    }
     return sub;
   }
 }
