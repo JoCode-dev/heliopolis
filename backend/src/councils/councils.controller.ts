@@ -1,12 +1,21 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { CouncilsService } from './councils.service.js';
-import { CreateCouncilDto } from './dto/create-council.dto.js';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { UserRole } from '../../generated/prisma/enums.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
-import { Roles } from '../common/decorators/roles.decorator.js';
-import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../common/types/auth-user.js';
-import { UserRole } from '../../generated/prisma/enums.js';
+import { CouncilsService } from './councils.service.js';
+import { CreateCouncilDto } from './dto/create-council.dto.js';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
@@ -32,8 +41,8 @@ export class CouncilsController {
 
   @Roles(UserRole.ADMIN, UserRole.REGION)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateCouncilDto>, @CurrentUser() user: AuthUser) {
-    return this.service.update(id, dto, user);
+  update(@Param('id') id: string, @Body() dto: Partial<CreateCouncilDto>) {
+    return this.service.update(id, dto);
   }
 
   @Roles(UserRole.ADMIN, UserRole.REGION)
