@@ -12,7 +12,7 @@
   "scripts": {
     "build": "rm -rf dist && npm run prisma:generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "npm run prisma:generate && nest start --entryFile src/main.js",
+    "start": "npm run prismaerate && nest start --entryFile src/main.js",
     "start:dev": "npm run prisma:generate && node scripts/sync-prisma-dev-url.mjs && nest start --watch --entryFile src/main.js",
     "start:debug": "npm run prisma:generate && node scripts/sync-prisma-dev-url.mjs && nest start --debug --watch --entryFile src/main.js",
     "start:prod": "node dist/src/main.js",

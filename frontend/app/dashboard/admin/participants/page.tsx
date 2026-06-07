@@ -1,11 +1,25 @@
 'use client';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { campsApi } from '@/lib/api';
 import { Pill, Select } from '@/components/ui';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePaginationUrl } from '@/hooks/usePaginationUrl';
+import {
+  DataTable,
+  DataTableExportButtons,
+  DataTableFilters,
+  useDataTable,
+  useTableExport,
+  useTableFilters,
+} from '@/components/data-table';
+import {
+  ADHESION_FILTER_OPTIONS,
+  createParticipantColumns,
+  filterParticipants,
+  PARTICIPATION_FILTER_OPTIONS,
+} from '@/components/data-table/columns/participant-columns';
 import type { Camp, CampParticipant, AdhesionStatus, ParticipationStatus } from '@/types';
 
 const PER_PAGE = 10;
@@ -20,7 +34,6 @@ const ADHESION_LABELS: Record<AdhesionStatus, string> = {
   NON_A_JOUR: 'Non à jour',
   EN_ATTENTE: 'En attente',
 };
-
 const PARTICIPATION_PILL: Record<ParticipationStatus, 'vert' | 'rouge' | 'or' | 'violet' | 'gris'> = {
   SELECTIONNE: 'vert',
   CONFIRME: 'vert',
@@ -51,8 +64,16 @@ function ParticipantsContent() {
   const [participants, setParticipants] = useState<CampParticipant[]>([]);
   const [loadingCamps, setLoadingCamps] = useState(true);
   const [loadingParts, setLoadingParts] = useState(false);
-  const [search, setSearch] = useState('');
   const [page, setPage] = usePaginationUrl();
+
+  const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
+    [
+      { id: 'search', type: 'search', placeholder: 'Rechercher par nom ou matricule…' },
+      { id: 'participation', type: 'select', placeholder: 'Tous les statuts', options: PARTICIPATION_FILTER_OPTIONS },
+      { id: 'adhesion', type: 'select', placeholder: 'Toutes adhésions', options: ADHESION_FILTER_OPTIONS },
+    ],
+    () => setPage(1),
+  );
 
   useEffect(() => {
     (async () => {
@@ -77,32 +98,60 @@ function ParticipantsContent() {
     })();
   }, [selectedCampId]);
 
+  const filtered = useMemo(
+    () => filterParticipants(participants, values),
+    [participants, values],
+  );
 
-  const filtered = participants.filter(p => {
-    const q = search.toLowerCase();
-    const nom = `${p.user.prenoms ?? ''} ${p.user.nom ?? ''}`.toLowerCase();
-    const mat = (p.user.matricule ?? '').toLowerCase();
-    return !q || nom.includes(q) || mat.includes(q);
+  const columns = useMemo(() => createParticipantColumns(), []);
+
+  const { table } = useDataTable({
+    data: filtered,
+    columns,
+    pageSize: PER_PAGE,
+    page,
+    onPageChange: setPage,
   });
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const { exportExcel, exportPdf, disabled: exportDisabled } = useTableExport({
+    data: filtered,
+    columns,
+    options: { filename: 'participants', title: 'Liste des participants' },
+  });
+
+  const paginatedRows = table.getRowModel().rows;
 
   const total = participants.length;
   const confirmes = participants.filter(p => ['CONFIRME', 'PRESENT'].includes(p.participationStatus)).length;
   const enAttente = participants.filter(p => p.participationStatus === 'EN_ATTENTE').length;
   const selectionnes = participants.filter(p => p.participationStatus === 'SELECTIONNE').length;
 
+  const filterConfigs = useMemo(() => [
+    { id: 'search', type: 'search' as const, placeholder: 'Rechercher par nom ou matricule…' },
+    { id: 'participation', type: 'select' as const, placeholder: 'Tous les statuts', options: PARTICIPATION_FILTER_OPTIONS },
+    { id: 'adhesion', type: 'select' as const, placeholder: 'Toutes adhésions', options: ADHESION_FILTER_OPTIONS },
+  ], []);
+
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
-      {/* Top bar */}
       <div className="flex justify-between items-center mb-4 border-b border-[#ececf0] pb-4">
         <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">👥 Participants</h1>
-        <Link href="/dashboard/admin/export"
-          className="bg-[#6A1B9A] text-white font-bold text-xs lg:text-sm px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl shadow-sm shadow-[#6A1B9A]/20 hover:bg-[#5a1280] hover:shadow-md hover:shadow-[#6A1B9A]/30 hover:-translate-y-px transition-all duration-150 flex-shrink-0">
-          📤 Export
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          {selectedCampId && filtered.length > 0 && (
+            <DataTableExportButtons
+              compact
+              onExportExcel={exportExcel}
+              onExportPdf={exportPdf}
+              disabled={exportDisabled}
+            />
+          )}
+          <Link href="/dashboard/admin/export"
+            className="bg-[#6A1B9A] text-white font-bold text-xs lg:text-sm px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl hover:bg-[#5a1280] transition-colors">
+            📤 Export
+          </Link>
+        </div>
       </div>
 
-      {/* Select camp */}
       <div className="mb-5 max-w-sm">
         {loadingCamps ? (
           <div className="h-10 bg-white border border-[#e6e6ea] rounded-xl animate-pulse" />
@@ -119,14 +168,13 @@ function ParticipantsContent() {
         )}
       </div>
 
-      {/* KPIs */}
       {selectedCampId && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
           {[
-            { label: 'Total',     value: total,        color: '#1F1B2E' },
-            { label: 'Confirmés', value: confirmes,    color: '#2E7D32' },
-            { label: 'Attente',   value: enAttente,    color: '#D9A441' },
-            { label: 'Sélect.',   value: selectionnes, color: '#6A1B9A' },
+            { label: 'Total', value: total, color: '#1F1B2E' },
+            { label: 'Confirmés', value: confirmes, color: '#2E7D32' },
+            { label: 'Attente', value: enAttente, color: '#D9A441' },
+            { label: 'Sélect.', value: selectionnes, color: '#6A1B9A' },
           ].map(kpi => (
             <div key={kpi.label} className="bg-white border border-[#ececf0] rounded-xl p-3">
               <div className="text-2xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
@@ -136,19 +184,18 @@ function ParticipantsContent() {
         </div>
       )}
 
-      {/* Search */}
       {selectedCampId && (
         <div className="mb-4">
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none w-72"
-            placeholder="🔍 Rechercher par nom ou matricule…"
+          <DataTableFilters
+            configs={filterConfigs}
+            values={values}
+            onChange={setFilter}
+            onReset={resetFilters}
+            hasActiveFilters={hasActiveFilters}
           />
         </div>
       )}
 
-      {/* Table */}
       {selectedCampId && (
         loadingParts ? (
           <div className="flex items-center justify-center py-16 text-[#6b6b78] text-sm">Chargement…</div>
@@ -159,11 +206,10 @@ function ParticipantsContent() {
           </div>
         ) : (
           <>
-            {/* Mobile : cartes */}
             <div className="lg:hidden flex flex-col gap-2">
-              {paginated.map(p => (
+              {paginatedRows.map(({ original: p }) => (
                 <div key={p.id} className="bg-white border border-[#ececf0] rounded-xl p-3 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-xs font-bold shrink-0">
                     {p.user.nom?.[0]}{p.user.prenoms?.[0]}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -174,7 +220,7 @@ function ParticipantsContent() {
                       {p.user.matricule ?? '—'} · {p.parish?.nom ?? '—'}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     <Pill variant={ADHESION_PILL[p.adhesionStatusSnapshot]} className="text-[10px]">
                       {ADHESION_LABELS[p.adhesionStatusSnapshot]}
                     </Pill>
@@ -186,38 +232,14 @@ function ParticipantsContent() {
               ))}
             </div>
 
-            {/* Desktop : table */}
-            <div className="hidden lg:block bg-white border border-[#ececf0] rounded-2xl overflow-hidden">
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                    {['Nom', 'Matricule', 'Paroisse', 'District', 'Adhésion', 'Statut'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map(p => (
-                    <tr key={p.id} className="border-b border-[#f0f0f4] hover:bg-[#fafafc]">
-                      <td className="px-4 py-3 font-semibold text-[#1F1B2E]">{p.user.prenoms} {p.user.nom}</td>
-                      <td className="px-4 py-3 text-[#6b6b78] font-mono">{p.user.matricule ?? '—'}</td>
-                      <td className="px-4 py-3 text-[#6b6b78]">{p.parish?.nom ?? '—'}</td>
-                      <td className="px-4 py-3 text-[#6b6b78]">{p.district?.nom ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <Pill variant={ADHESION_PILL[p.adhesionStatusSnapshot]}>
-                          {ADHESION_LABELS[p.adhesionStatusSnapshot]}
-                        </Pill>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Pill variant={PARTICIPATION_PILL[p.participationStatus]}>
-                          {PARTICIPATION_LABELS[p.participationStatus]}
-                        </Pill>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              table={table}
+              page={page}
+              perPage={PER_PAGE}
+              onPageChange={setPage}
+              totalItems={filtered.length}
+              hidePagination
+            />
             <Pagination
               page={page}
               totalItems={filtered.length}

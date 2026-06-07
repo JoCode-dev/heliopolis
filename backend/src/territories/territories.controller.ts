@@ -14,6 +14,13 @@ export class TerritoriesController {
     return this.territoriesService.getStats();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Get('dashboard-stats')
+  getDashboardStats() {
+    return this.territoriesService.getDashboardStats();
+  }
+
   @Get('regions')
   getRegions() {
     return this.territoriesService.getRegions();
