@@ -29,6 +29,7 @@ const PARTICIPATION_PILL: Record<ParticipationStatus, 'vert' | 'rouge' | 'or' | 
   NON_SELECTIONNE: 'gris',
   DESISTE: 'rouge',
   ABSENT: 'rouge',
+  BLOQUE: 'rouge',
 };
 const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
   SELECTIONNE: 'Sélectionné',
@@ -38,6 +39,7 @@ const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
   NON_SELECTIONNE: 'Non sélectionné',
   DESISTE: 'Désisté',
   ABSENT: 'Absent',
+  BLOQUE: 'Bloqué',
 };
 
 function ParticipantsContent() {

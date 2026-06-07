@@ -89,7 +89,7 @@ export default function SelectionPage({ params }: { params: Promise<{ campId: st
 
 function GuideView({ campId, user, toast }: {
   campId: string;
-  user: ReturnType<typeof useAuthStore>['user'];
+  user: User | null;
   toast: (msg: string, ok: boolean) => void;
 }) {
   const [camp, setCamp]             = useState<Camp | null>(null);
@@ -388,7 +388,7 @@ function GuideView({ campId, user, toast }: {
 
 function SentinelleView({ campId, user, toast }: {
   campId: string;
-  user: ReturnType<typeof useAuthStore>['user'];
+  user: User | null;
   toast: (msg: string, ok: boolean) => void;
 }) {
   const [camp, setCamp]                   = useState<Camp | null>(null);
