@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 type BadgeConditionMeta =
@@ -37,11 +38,20 @@ export class BadgesService {
   }
 
   async create(dto: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }) {
-    return this.prisma.badge.create({ data: { ...dto, niveau: dto.niveau as any } });
+    const { conditionMeta, ...rest } = dto;
+    return this.prisma.badge.create({ data: { ...rest, niveau: dto.niveau as any, conditionMeta: conditionMeta as Prisma.InputJsonValue } });
   }
 
   async update(id: string, dto: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>) {
-    return this.prisma.badge.update({ where: { id }, data: { ...dto, ...(dto.niveau ? { niveau: dto.niveau as any } : {}) } });
+    const { conditionMeta, ...rest } = dto;
+    return this.prisma.badge.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(rest.niveau ? { niveau: rest.niveau as any } : {}),
+        ...(conditionMeta !== undefined ? { conditionMeta: conditionMeta as Prisma.InputJsonValue } : {}),
+      },
+    });
   }
 
   async remove(id: string) {
