@@ -81,11 +81,39 @@ export interface Council {
   lieu?: string;
   statut: CouncilStatus;
   targetRoles: string[];
+  qrToken?: string;
   region?:   { id: string; nom: string };
   district?: { id: string; nom: string };
   parish?:   { id: string; nom: string };
   createdBy?: Partial<User>;
   createdAt: string;
+}
+
+export interface CouncilPublic {
+  nom: string;
+  description?: string;
+  date: string;
+  lieu?: string;
+  statut: CouncilStatus;
+  targetRoles: string[];
+  region?:   { id: string; nom: string };
+  district?: { id: string; nom: string };
+  parish?:   { id: string; nom: string };
+  registrationOpen: boolean;
+}
+
+export interface CouncilParticipant {
+  id: string;
+  nom: string;
+  prenoms: string;
+  contact?: string;
+  district?: { id: string; nom: string };
+  parish?: { id: string; nom: string };
+  fonction?: string;
+  note?: number;
+  avis?: string;
+  registeredAt: string;
+  user?: { id: string; nom: string; prenoms: string };
 }
 
 // ─── Challenges / Soumissions ────────────────────────────────────────────────
