@@ -62,14 +62,24 @@ function ParticipantsContent() {
 
   useEffect(() => {
     if (!selectedCampId) return;
-    setLoadingParts(true);
+    let active = true;
+
     (async () => {
+      await Promise.resolve();
+      if (!active) return;
+
+      setLoadingParts(true);
       try {
         const { data } = await campsApi.participants(selectedCampId);
-        setParticipants(data);
-      } catch { setParticipants([]); }
-      finally { setLoadingParts(false); }
+        if (active) setParticipants(data);
+      } catch {
+        if (active) setParticipants([]);
+      } finally {
+        if (active) setLoadingParts(false);
+      }
     })();
+
+    return () => { active = false; };
   }, [selectedCampId]);
 
   const filtered = participants.filter(p => {
