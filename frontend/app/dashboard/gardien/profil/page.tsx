@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import { badgesApi, challengesApi } from '@/lib/api';
 import { Card, SectionTitle, Progress } from '@/components/ui';
 import { LogoutButton } from '@/components/auth/LogoutButton';
+import { usePastoralYear } from '@/store/pastoralYear';
 import type { UserBadge, Submission } from '@/types';
 
 const BADGE_LEVEL_EMOJI: Record<string, string> = {
@@ -13,6 +14,7 @@ const BADGE_LEVEL_EMOJI: Record<string, string> = {
 
 export default function GardienProfilPage() {
   const { user } = useAuthStore();
+  const annee = usePastoralYear(s => s.annee);
   const [myBadges, setMyBadges] = useState<UserBadge[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [totalChallenges, setTotalChallenges] = useState(0);
@@ -25,7 +27,7 @@ export default function GardienProfilPage() {
       challengesApi.list(),
     ])
       .then(([badgesRes, submissionsRes, challengesRes]) => {
-        setMyBadges(badgesRes.data);
+        setMyBadges((badgesRes.data as { badges: UserBadge[]; newlyAwarded: unknown[] }).badges ?? badgesRes.data);
         setSubmissions(submissionsRes.data);
         setTotalChallenges(challengesRes.data.length);
       })
@@ -35,7 +37,8 @@ export default function GardienProfilPage() {
 
   const validated = submissions.filter(s => s.statut === 'VALIDE').length;
   const total = Math.max(totalChallenges, validated, 1);
-  const adhesionStatut = user?.adhesions?.[0]?.statut;
+  const currentAdhesion = user?.adhesions?.find(a => a.annee === annee);
+  const adhesionStatut = currentAdhesion?.statut;
   const recentBadges = myBadges.slice(0, 3);
 
   return (
@@ -68,10 +71,12 @@ export default function GardienProfilPage() {
               <div className="font-bold tracking-widest text-sm text-[#1F1B2E]">{user?.matricule ?? '—'}</div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] text-[#6b6b78]">Adhésion 2026</div>
+              <div className="text-[11px] text-[#6b6b78]">Adhésion {annee}</div>
               {adhesionStatut === 'A_JOUR'
                 ? <span className="inline-flex items-center gap-1 bg-[#e8f5e9] text-[#2E7D32] text-[10px] font-bold px-2 py-0.5 rounded-full">✓ À jour</span>
-                : <span className="inline-flex items-center gap-1 bg-[#fff3cd] text-[#9c7218] text-[10px] font-bold px-2 py-0.5 rounded-full">⏳ En attente</span>
+                : adhesionStatut === 'EN_ATTENTE'
+                  ? <span className="inline-flex items-center gap-1 bg-[#fff3cd] text-[#9c7218] text-[10px] font-bold px-2 py-0.5 rounded-full">⏳ En attente</span>
+                  : <span className="inline-flex items-center gap-1 bg-[#ffeaea] text-[#C62828] text-[10px] font-bold px-2 py-0.5 rounded-full">✗ Non à jour</span>
               }
             </div>
           </div>

@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react';
 import { badgesApi } from '@/lib/api';
 import { SectionTitle } from '@/components/ui';
+import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
 import type { Badge, UserBadge } from '@/types';
+
+const ANNOUNCED_KEY = 'heliopolis_announced_badges';
 
 const LEVEL_EMOJI: Record<string, string> = {
   BRONZE: '🪨', ARGENT: '🥈', OR: '🏅', LEGENDE: '⚜️',
 };
-
 const LEVEL_PILL: Record<string, string> = {
   BRONZE:  'bg-amber-700/15 text-amber-700',
   ARGENT:  'bg-gray-300/40 text-gray-500',
@@ -15,19 +17,41 @@ const LEVEL_PILL: Record<string, string> = {
   LEGENDE: 'bg-purple-500/20 text-purple-700',
 };
 
+function getAnnounced(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(ANNOUNCED_KEY) ?? '[]')); }
+  catch { return new Set(); }
+}
+function markAnnounced(ids: string[]) {
+  const set = getAnnounced();
+  ids.forEach(id => set.add(id));
+  localStorage.setItem(ANNOUNCED_KEY, JSON.stringify([...set]));
+}
+
 export default function ArtefactsPage() {
-  const [allBadges, setAllBadges] = useState<Badge[]>([]);
-  const [myBadges, setMyBadges]   = useState<UserBadge[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [allBadges, setAllBadges]       = useState<Badge[]>([]);
+  const [myBadges, setMyBadges]         = useState<UserBadge[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [modalBadges, setModalBadges]   = useState<Badge[]>([]);
 
   useEffect(() => {
     Promise.all([badgesApi.list(), badgesApi.mine()])
       .then(([all, mine]) => {
         setAllBadges(all.data);
-        setMyBadges(mine.data);
-        setLoading(false);
+        const { badges, newlyAwarded } = mine.data as { badges: UserBadge[]; newlyAwarded: Badge[] };
+        setMyBadges(badges);
+
+        // Afficher l'animation uniquement pour les badges pas encore annoncés
+        if (newlyAwarded.length > 0) {
+          const announced = getAnnounced();
+          const toShow = newlyAwarded.filter(b => !announced.has(b.id));
+          if (toShow.length > 0) {
+            setModalBadges(toShow);
+            markAnnounced(toShow.map(b => b.id));
+          }
+        }
       })
-      .catch(() => setLoading(false));
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const ownedIds = new Set(myBadges.map(ub => ub.badge.id));
@@ -36,6 +60,14 @@ export default function ArtefactsPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
+
+      {modalBadges.length > 0 && (
+        <BadgeUnlockModal
+          badges={modalBadges}
+          onClose={() => setModalBadges([])}
+        />
+      )}
+
       <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-xl font-bold">🏅 Mes artefacts</h1>
         <p className="text-xs opacity-85 mt-0.5">
@@ -77,7 +109,11 @@ export default function ArtefactsPage() {
             <SectionTitle>Règles d&apos;acquisition</SectionTitle>
 
             <div className="flex flex-col gap-3">
-              {allBadges.map(b => {
+              {[...allBadges].sort((a, b) => {
+                const aEarned = ownedIds.has(a.id) ? 0 : 1;
+                const bEarned = ownedIds.has(b.id) ? 0 : 1;
+                return aEarned - bEarned;
+              }).map(b => {
                 const earned = ownedIds.has(b.id);
                 const ub     = myBadges.find(u => u.badge.id === b.id);
 
@@ -125,6 +161,16 @@ export default function ArtefactsPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Bouton revoir */}
+                      {earned && (
+                        <button
+                          onClick={() => setModalBadges([b])}
+                          className="flex-shrink-0 text-[10px] font-semibold text-[#D9A441] bg-[#fff9e6] border border-[#f0d98a] px-2.5 py-1 rounded-full hover:bg-[#fef3cd] transition-colors"
+                        >
+                          ▶ Revoir
+                        </button>
+                      )}
                     </div>
 
                     {/* Description */}
@@ -132,7 +178,7 @@ export default function ArtefactsPage() {
                       <p className="text-xs text-[#6b6b78] leading-relaxed mb-2 pl-1">{b.description}</p>
                     )}
 
-                    {/* Condition — toujours visible en entier */}
+                    {/* Condition */}
                     <div className={`rounded-xl p-3 ${
                       earned
                         ? 'bg-[#f0d98a]/25 border border-[#f0d98a]/50'

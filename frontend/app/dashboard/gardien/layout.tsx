@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import { LogoutButton } from '@/components/auth/LogoutButton';
 import { ProfileModal } from '@/components/profile/ProfileModal';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
+import { usePastoralYear } from '@/store/pastoralYear';
 
 const NAV = [
   { href: '/dashboard/gardien',            icon: '🤝', label: 'Accueil' },
@@ -26,6 +27,8 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
+  const loadYear = usePastoralYear(s => s.load);
+  useEffect(() => { loadYear(); }, [loadYear]);
 
   const isHome = pathname === HOME;
   const currentSection = NAV.find(item =>

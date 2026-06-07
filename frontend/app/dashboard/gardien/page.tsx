@@ -75,7 +75,7 @@ export default function DashboardGardienPage() {
           messagingApi.conversations(),
         ]);
         setSubmissions(subRes.data);
-        setBadges(badgeRes.data);
+        setBadges((badgeRes.data as { badges: UserBadge[]; newlyAwarded: unknown[] }).badges ?? badgeRes.data);
         setAllBadges(allBadgeRes.data);
         setChallenges(challengeRes.data);
         if (campsRes.data.length > 0) setCamp(campsRes.data[0]);
