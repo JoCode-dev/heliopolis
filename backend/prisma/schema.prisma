@@ -263,7 +263,8 @@ model District {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  councils  Council[]
+  councils             Council[]
+  councilParticipants  CouncilParticipant[]
 
   @@unique([regionId, nom])
   @@index([regionId])
@@ -284,7 +285,8 @@ model Parish {
   communities   Community[]
   announcements Announcement[]
   conversations Conversation[]
-  councils      Council[]
+  councils             Council[]
+  councilParticipants  CouncilParticipant[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -374,7 +376,8 @@ model User {
   // Contacts
   contactsInitiated Contact[] @relation("ContactRequester")
   contactsReceived  Contact[] @relation("ContactReceiver")
-  councilsCreated   Council[] @relation("CouncilCreator")
+  councilsCreated       Council[]            @relation("CouncilCreator")
+  councilParticipations CouncilParticipant[]
 
   // Auth & audit
   refreshTokens RefreshToken[]
@@ -509,6 +512,10 @@ model Council {
   createdBy   User   @relation("CouncilCreator", fields: [createdById], references: [id])
   createdById String
 
+  /// Token opaque pour le QR code public (/conseil/{qrToken})
+  qrToken      String               @unique @default(cuid())
+  participants CouncilParticipant[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -516,6 +523,33 @@ model Council {
   @@index([districtId])
   @@index([date])
   @@map("councils")
+}
+
+/// Participant inscrit à un conseil via le QR code
+model CouncilParticipant {
+  id        String   @id @default(cuid())
+  council   Council  @relation(fields: [councilId], references: [id], onDelete: Cascade)
+  councilId String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+
+  nom      String
+  prenoms  String
+  contact  String?
+  district   District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  districtId String?
+  parish     Parish?   @relation(fields: [parishId], references: [id], onDelete: SetNull)
+  parishId   String?
+  fonction   String?
+
+  note Int?
+  avis String?
+
+  registeredAt DateTime @default(now())
+
+  @@unique([councilId, userId])
+  @@index([councilId])
+  @@map("council_participants")
 }
 
 /// Lien n-n entre Camp et District (§13 Camp_Districts)
