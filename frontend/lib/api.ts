@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { DashboardStats } from '@/types/dashboard-stats';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
@@ -53,6 +54,7 @@ export const authApi = {
 // ─── Territories ─────────────────────────────────────────────────────────────
 export const territoriesApi = {
   stats: () => api.get('/territories/stats'),
+  dashboardStats: () => api.get<DashboardStats>('/territories/dashboard-stats'),
   regions: () => api.get('/territories/regions'),
   districts: (regionId?: string) => api.get('/territories/districts', { params: { regionId } }),
   parishes: (districtId?: string) => api.get('/territories/parishes', { params: { districtId } }),

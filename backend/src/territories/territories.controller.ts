@@ -1,5 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { TerritoriesService } from './territories.service.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../../generated/prisma/enums.js';
 
 @Controller('territories')
 export class TerritoriesController {
@@ -8,6 +12,13 @@ export class TerritoriesController {
   @Get('stats')
   getStats() {
     return this.territoriesService.getStats();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Get('dashboard-stats')
+  getDashboardStats() {
+    return this.territoriesService.getDashboardStats();
   }
 
   @Get('regions')

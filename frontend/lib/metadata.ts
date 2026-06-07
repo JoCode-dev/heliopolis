@@ -2,9 +2,11 @@ import { Metadata } from "next";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-const SITE_NAME = "Codex des Gardiens";
+export const SITE_NAME = "Codex des Gardiens";
+export const SITE_TAGLINE = "Route en Joie 2026";
+export const SITE_LOGO_PATH = "/logo.jpeg";
 const DEFAULT_LOCALE = "fr_FR";
-const DEFAULT_OG_IMAGE = "/logo.jpeg";
+const DEFAULT_OG_IMAGE = SITE_LOGO_PATH;
 
 type GenerateMetadataParams = {
   title: string;
