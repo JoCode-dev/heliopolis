@@ -56,6 +56,10 @@ export const territoriesApi = {
   regions: () => api.get('/territories/regions'),
   districts: (regionId?: string) => api.get('/territories/districts', { params: { regionId } }),
   parishes: (districtId?: string) => api.get('/territories/parishes', { params: { districtId } }),
+  createDistrict: (data: { nom: string; code?: string; regionId: string }) => api.post('/territories/districts', data),
+  deleteDistrict: (id: string) => api.delete(`/territories/districts/${id}`),
+  createParish: (data: { nom: string; districtId: string }) => api.post('/territories/parishes', data),
+  deleteParish: (id: string) => api.delete(`/territories/parishes/${id}`),
 };
 
 // ─── Camps ───────────────────────────────────────────────────────────────────

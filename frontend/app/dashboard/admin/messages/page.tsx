@@ -248,7 +248,7 @@ function MessagesTab({ msgBase }: { msgBase: string }) {
 
       {/* Modal confirmation suppression */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-[60] pb-16">
           <div className="bg-white rounded-t-2xl w-full max-w-lg p-5 pb-8">
             <p className="text-[15px] font-bold text-[#1F1B2E] mb-1">Supprimer cette conversation ?</p>
             <p className="text-sm text-[#9b9ba8] mb-5">Elle disparaîtra de votre liste.</p>

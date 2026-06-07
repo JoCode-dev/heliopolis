@@ -700,7 +700,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 
       {/* ── Modal suppression WhatsApp-style ── */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[60] pb-16"
           onClick={() => setDeleteTarget(null)}>
           <div className="bg-white rounded-t-2xl w-full max-w-lg shadow-xl overflow-hidden"
             onClick={e => e.stopPropagation()}>
