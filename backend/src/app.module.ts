@@ -20,11 +20,13 @@ import { SettingsModule } from './settings/settings.module.js';
 import { SchedulerModule } from './scheduler/scheduler.module.js';
 import { LogsModule } from './logs/logs.module.js';
 import { RequestContextMiddleware } from './logs/request-context.middleware.js';
+import { StorageModule } from './storage/storage.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    StorageModule,
     LogsModule,
     PrismaModule,
     RedisModule,
