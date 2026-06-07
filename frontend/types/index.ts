@@ -116,6 +116,36 @@ export interface CouncilParticipant {
   user?: { id: string; nom: string; prenoms: string };
 }
 
+// ─── Journal d'actions ───────────────────────────────────────────────────────
+export type AuditAction =
+  | 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  | 'EXPORT' | 'STATUS_CHANGE' | 'VALIDATE' | 'REJECT';
+
+export type ActionLogCategory =
+  | 'auth' | 'user' | 'camp' | 'challenge' | 'codex'
+  | 'council' | 'badge' | 'export' | 'settings';
+
+export interface ActionLogEntry {
+  id: string;
+  timestamp: string;
+  action: AuditAction;
+  category: ActionLogCategory;
+  summary: string;
+  actor?: { id: string; role: string; label: string };
+  target: { entityType: string; entityId: string };
+  metadata?: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+}
+
+export interface ActionLogsResponse {
+  items: ActionLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  date: string;
+}
+
 // ─── Challenges / Soumissions ────────────────────────────────────────────────
 export interface Challenge {
   id: string; titre: string; description: string;

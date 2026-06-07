@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
@@ -18,11 +18,14 @@ import { ContactsModule } from './contacts/contacts.module.js';
 import { CouncilsModule } from './councils/councils.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { SchedulerModule } from './scheduler/scheduler.module.js';
+import { LogsModule } from './logs/logs.module.js';
+import { RequestContextMiddleware } from './logs/request-context.middleware.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    LogsModule,
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -42,4 +45,8 @@ import { SchedulerModule } from './scheduler/scheduler.module.js';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}

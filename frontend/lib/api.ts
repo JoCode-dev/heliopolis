@@ -152,6 +152,19 @@ export const councilsPublicApi = {
     }, accessToken),
 };
 
+export const logsApi = {
+  dates: () => api.get<string[]>('/logs/dates'),
+  list: (params?: {
+    date?: string;
+    action?: string;
+    category?: string;
+    actorId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/logs', { params }),
+};
+
 export const codexApi = {
   wall: (page = 1) => api.get('/codex/wall', { params: { page } }),
   react:   (id: string, emoji = '❤️') => api.post(`/codex/${id}/react`, { emoji }),

@@ -12,15 +12,18 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import {
   ChallengeCategory,
   ChallengeStatus,
+  AuditAction,
   UserRole,
 } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 
 @Injectable()
 export class ChallengesService {
   constructor(
     private prisma: PrismaService,
     private badges: BadgesService,
+    private actionLog: ActionLogService,
   ) {}
 
   private submissionScopeWhere(actor: AuthUser): Prisma.SubmissionWhereInput {
@@ -69,8 +72,18 @@ export class ChallengesService {
     return c;
   }
 
-  async create(dto: CreateChallengeDto, createdById: string) {
-    return this.prisma.challenge.create({ data: { ...dto, createdById } });
+  async create(dto: CreateChallengeDto, actor: AuthUser) {
+    const challenge = await this.prisma.challenge.create({
+      data: { ...dto, createdById: actor.id },
+    });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'challenge',
+      summary: `Création du défi « ${challenge.titre} »`,
+      actor: actor,
+      target: { entityType: 'Challenge', entityId: challenge.id },
+    });
+    return challenge;
   }
 
   async getMySubmissions(userId: string) {
@@ -139,7 +152,7 @@ export class ChallengesService {
       }
     }
 
-    return this.prisma.submission.create({
+    const submission = await this.prisma.submission.create({
       data: {
         challengeId,
         gardienId,
@@ -147,6 +160,21 @@ export class ChallengesService {
         preuveUrl: data.preuveUrl,
       },
     });
+    const gardien = await this.prisma.user.findUnique({
+      where: { id: gardienId },
+      select: { id: true, nom: true, prenoms: true, role: true },
+    });
+    if (gardien) {
+      this.actionLog.record({
+        action: AuditAction.CREATE,
+        category: 'challenge',
+        summary: `Soumission de preuve par ${gardien.prenoms} ${gardien.nom}`,
+        actor: gardien,
+        target: { entityType: 'Submission', entityId: submission.id },
+        metadata: { challengeId },
+      });
+    }
+    return submission;
   }
 
   async validateSubmission(
@@ -175,6 +203,17 @@ export class ChallengesService {
         validatedAt: new Date(),
         moderation: approved ? 'APPROUVE' : 'REJETE',
       },
+    });
+
+    this.actionLog.record({
+      action: approved ? AuditAction.VALIDATE : AuditAction.REJECT,
+      category: 'challenge',
+      summary: approved
+        ? `Validation d'une soumission par ${validateur.prenoms} ${validateur.nom}`
+        : `Rejet d'une soumission par ${validateur.prenoms} ${validateur.nom}`,
+      actor: validateur,
+      target: { entityType: 'Submission', entityId: submissionId },
+      metadata: { approved, gardienId: submission.gardienId },
     });
 
     // Vérification et attribution automatique des artefacts

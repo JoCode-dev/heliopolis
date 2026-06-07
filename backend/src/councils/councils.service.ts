@@ -10,12 +10,14 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import {
+  AuditAction,
   CouncilStatus,
   GuideRole,
   UserRole,
 } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 import { CreateCouncilDto } from './dto/create-council.dto.js';
 import { RegisterCouncilParticipantDto } from './dto/register-council-participant.dto.js';
 import { UpdateCouncilFeedbackDto } from './dto/update-council-feedback.dto.js';
@@ -36,7 +38,10 @@ type CouncilParticipantWithRelations = Prisma.CouncilParticipantGetPayload<{
 
 @Injectable()
 export class CouncilsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private actionLog: ActionLogService,
+  ) {}
 
   private readonly include = {
     region: { select: { id: true, nom: true } },
@@ -279,7 +284,7 @@ export class CouncilsService {
       });
     }
 
-    return this.createParticipantRecord({
+    const participant = await this.createParticipantRecord({
       council: { connect: { id: council.id } },
       user: merged.userId ? { connect: { id: merged.userId } } : undefined,
       nom: merged.nom,
@@ -295,6 +300,15 @@ export class CouncilsService {
       note: dto.note ?? null,
       avis: dto.avis ?? null,
     });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'council',
+      summary: `Inscription au conseil « ${council.nom} » par ${merged.prenoms} ${merged.nom}`,
+      actor: user ?? undefined,
+      target: { entityType: 'CouncilParticipant', entityId: participant.id },
+      metadata: { councilId: council.id },
+    });
+    return participant;
   }
 
   async updateFeedback(
@@ -353,10 +367,17 @@ export class CouncilsService {
       },
       include: this.include,
     });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'council',
+      summary: `Création du conseil « ${council.nom} »`,
+      actor: actor,
+      target: { entityType: 'Council', entityId: council.id },
+    });
     return this.enrichCouncil(council);
   }
 
-  async update(id: string, dto: Partial<CreateCouncilDto>) {
+  async update(id: string, dto: Partial<CreateCouncilDto>, actor: AuthUser) {
     await this.findOne(id);
     const data: Record<string, unknown> = {};
     if (dto.nom) data.nom = dto.nom;
@@ -371,12 +392,26 @@ export class CouncilsService {
       data,
       include: this.include,
     });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'council',
+      summary: `Modification du conseil « ${council.nom} »`,
+      actor: actor,
+      target: { entityType: 'Council', entityId: id },
+    });
     return this.enrichCouncil(council);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, actor: AuthUser) {
+    const council = await this.findOne(id);
     await this.prisma.council.delete({ where: { id } });
+    this.actionLog.record({
+      action: AuditAction.DELETE,
+      category: 'council',
+      summary: `Suppression du conseil « ${council.nom} »`,
+      actor: actor,
+      target: { entityType: 'Council', entityId: id },
+    });
     return { success: true };
   }
 }
