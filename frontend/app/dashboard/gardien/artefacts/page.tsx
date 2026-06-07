@@ -21,6 +21,14 @@ function getAnnounced(): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(ANNOUNCED_KEY) ?? '[]')); }
   catch { return new Set(); }
 }
+function toAccomplissement(condition: string): string {
+  return condition
+    .replace(/^Valider /, 'En validant ')
+    .replace(/^Atteindre /, 'En atteignant ')
+    .replace(/^Être /, 'En étant ')
+    .replace(/^Avoir /, 'En ayant ');
+}
+
 function markAnnounced(ids: string[]) {
   const set = getAnnounced();
   ids.forEach(id => set.add(id));
@@ -178,18 +186,20 @@ export default function ArtefactsPage() {
                       <p className="text-xs text-[#6b6b78] leading-relaxed mb-2 pl-1">{b.description}</p>
                     )}
 
-                    {/* Condition */}
+                    {/* Condition / accomplissement */}
                     <div className={`rounded-xl p-3 ${
                       earned
-                        ? 'bg-[#f0d98a]/25 border border-[#f0d98a]/50'
+                        ? 'bg-[#e8f5e9]/60 border border-[#2E7D32]/20'
                         : 'bg-[#f7f5ff] border border-[#6A1B9A]/15'
                     }`}>
                       <div className={`text-[10px] font-bold uppercase tracking-wide mb-1.5 ${
-                        earned ? 'text-[#b58530]' : 'text-[#6A1B9A]'
+                        earned ? 'text-[#2E7D32]' : 'text-[#6A1B9A]'
                       }`}>
-                        Comment obtenir cet artefact
+                        {earned ? '✓ Comment il a été gagné' : 'Comment obtenir cet artefact'}
                       </div>
-                      <p className="text-xs text-[#1F1B2E] leading-relaxed">{b.condition}</p>
+                      <p className="text-xs text-[#1F1B2E] leading-relaxed">
+                        {earned ? toAccomplissement(b.condition) : b.condition}
+                      </p>
                     </div>
                   </div>
                 );

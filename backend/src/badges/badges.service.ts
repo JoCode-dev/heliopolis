@@ -36,6 +36,19 @@ export class BadgesService {
     return this.prisma.badge.findMany({ orderBy: { niveau: 'asc' } });
   }
 
+  async create(dto: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }) {
+    return this.prisma.badge.create({ data: { ...dto, niveau: dto.niveau as any } });
+  }
+
+  async update(id: string, dto: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>) {
+    return this.prisma.badge.update({ where: { id }, data: { ...dto, ...(dto.niveau ? { niveau: dto.niveau as any } : {}) } });
+  }
+
+  async remove(id: string) {
+    await this.prisma.userBadge.deleteMany({ where: { badgeId: id } });
+    return this.prisma.badge.delete({ where: { id } });
+  }
+
   async getMyBadges(userId: string) {
     const newlyAwardedNames = await this.checkAndAwardBadges(userId);
     const badges = await this.prisma.userBadge.findMany({

@@ -111,8 +111,11 @@ export const codexApi = {
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 export const badgesApi = {
-  list: () => api.get('/badges'),
-  mine: () => api.get('/badges/mine'),
+  list:   () => api.get('/badges'),
+  mine:   () => api.get('/badges/mine'),
+  create: (body: object) => api.post('/badges', body),
+  update: (id: string, body: object) => api.patch(`/badges/${id}`, body),
+  remove: (id: string) => api.delete(`/badges/${id}`),
 };
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
