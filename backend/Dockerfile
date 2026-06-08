@@ -22,6 +22,8 @@ COPY backend/src ./src
 
 RUN npm run build
 
+RUN echo "=== Contenu dist/ ===" && find dist -type f 2>/dev/null | head -30 || echo "dist/ VIDE ou ABSENT"
+
 # Compile prisma.config.ts → prisma.config.js (pour le runtime)
 RUN node_modules/.bin/tsc \
       --target ES2020 \
