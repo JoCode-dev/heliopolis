@@ -14,7 +14,7 @@ COPY frontend/ .
 
 # Variables NEXT_PUBLIC_* injectées au build (Next.js les inlined)
 ARG NEXT_PUBLIC_API_URL=https://heliopolis-backend.jocode.cloud/api
-ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ARG NEXT_PUBLIC_SITE_URL=https://heliopolis-frontend.jocode.cloud
 ARG NEXT_PUBLIC_R2_PUBLIC_URL
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
