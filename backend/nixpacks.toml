@@ -1,0 +1,12 @@
+# Fallback si Dokploy utilise Nixpacks au lieu du Dockerfile
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+
+[phases.install]
+cmds = ["npm ci --ignore-scripts"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node dist/src/main.js"
