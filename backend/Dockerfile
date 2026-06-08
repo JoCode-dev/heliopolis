@@ -11,7 +11,6 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY backend/prisma ./prisma
-COPY backend/prisma.config.ts ./
 COPY backend/scripts ./scripts
 COPY backend/nest-cli.json backend/tsconfig.json backend/tsconfig.build.json ./
 
