@@ -179,7 +179,7 @@ export default function ExportPage() {
             type="button"
             onClick={handleDownloadAdhesions}
             disabled={dlAdhesions || !cotisationAnnee}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white font-bold text-sm py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white font-bold text-sm py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {dlAdhesions ? (
               <>
@@ -239,7 +239,7 @@ export default function ExportPage() {
             type="button"
             onClick={handleDownload}
             disabled={!campId || downloading || !previewReady}
-            className="w-full flex items-center justify-center gap-2 bg-[#1F1B2E] text-white font-bold text-sm py-3 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-[#1F1B2E] text-white font-bold text-sm py-3 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {downloading ? (
               <>

@@ -264,7 +264,7 @@ export default function GuideAdhesionsPage() {
               {mySuccess && <p className="text-xs text-[#2E7D32] font-medium mt-2">✓ Mis à jour.</p>}
               {myError   && <p className="text-xs text-[#C62828] mt-1.5">{myError}</p>}
               <button onClick={handleMySave} disabled={myLoading || !myStatut}
-                className="w-full mt-3 bg-[#6A1B9A] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition-colors hover:bg-[#5a1280]">
+                className="w-full mt-3 bg-[#6A1B9A] text-white py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-[#6A1B9A]/20 enabled:hover:bg-[#5a1280] enabled:hover:shadow-md enabled:hover:shadow-[#6A1B9A]/30 enabled:hover:-translate-y-px disabled:opacity-60 transition-all duration-150">
                 {myLoading ? 'Enregistrement…' : 'Enregistrer'}
               </button>
             </div>
@@ -407,7 +407,7 @@ export default function GuideAdhesionsPage() {
                             Annuler
                           </button>
                           <button onClick={() => handleRowSave(g.id)} disabled={rs.loading || !rs.selectedStatut}
-                            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-[#6A1B9A] text-white disabled:opacity-40 hover:bg-[#5a1280] transition-colors">
+                            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-[#6A1B9A] text-white shadow-sm shadow-[#6A1B9A]/20 enabled:hover:bg-[#5a1280] enabled:hover:shadow-md enabled:hover:shadow-[#6A1B9A]/25 enabled:hover:-translate-y-px disabled:opacity-60 transition-all duration-150">
                             {rs.loading ? '…' : 'Enregistrer'}
                           </button>
                         </div>

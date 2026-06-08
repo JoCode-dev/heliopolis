@@ -268,7 +268,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
               <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-1.5">Paroisse</label>
               <select value={parishId} onChange={e => setParishId(e.target.value)}
                 disabled={parishes.length === 0}
-                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] focus:ring-2 focus:ring-[#6A1B9A]/10 disabled:opacity-50">
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] focus:ring-2 focus:ring-[#6A1B9A]/10 disabled:opacity-60">
                 <option value="">— Sélectionner une paroisse —</option>
                 {parishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
               </select>
@@ -337,7 +337,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
           </button>
           <button onClick={handleSubmit}
             disabled={loading || !nom.trim() || !prenoms.trim() || (isEditMode && !matricule.trim())}
-            className={`flex-1 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition bg-gradient-to-r ${ROLE_COLOR[role] ?? 'from-[#C62828] to-[#8e1a1a]'}`}>
+            className={`flex-1 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 transition bg-gradient-to-r ${ROLE_COLOR[role] ?? 'from-[#C62828] to-[#8e1a1a]'}`}>
             {loading
               ? (isEditMode ? 'Enregistrement…' : 'Création…')
               : (isEditMode ? 'Enregistrer les modifications' : `Créer ${selectedOption?.label ?? ''}`)

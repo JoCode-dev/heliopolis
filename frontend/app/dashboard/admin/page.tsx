@@ -250,14 +250,14 @@ export default function AccueilPage() {
                     <button
                       onClick={() => handleApprove(sub.id)}
                       disabled={!!modActionId}
-                      className="w-7 h-7 rounded-lg bg-[#2E7D32] text-white text-xs flex items-center justify-center disabled:opacity-50"
+                      className="w-7 h-7 rounded-lg bg-[#2E7D32] text-white text-xs flex items-center justify-center disabled:opacity-60"
                     >
                       {modActionId === sub.id + '-approve' ? '…' : '✓'}
                     </button>
                     <button
                       onClick={() => handleReject(sub.id)}
                       disabled={!!modActionId}
-                      className="w-7 h-7 rounded-lg bg-[#C62828] text-white text-xs flex items-center justify-center disabled:opacity-50"
+                      className="w-7 h-7 rounded-lg bg-[#C62828] text-white text-xs flex items-center justify-center disabled:opacity-60"
                     >
                       {modActionId === sub.id + '-reject' ? '…' : '✕'}
                     </button>

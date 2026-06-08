@@ -361,13 +361,13 @@ function ValidationPanel({ sub, onClose, onValidated }: {
                   <button
                     onClick={() => handle(true)}
                     disabled={!!processing}
-                    className="flex-1 py-3.5 rounded-xl bg-[#2E7D32] text-white font-bold text-sm disabled:opacity-50 active:scale-95 transition">
+                    className="flex-1 py-3.5 rounded-xl bg-[#2E7D32] text-white font-bold text-sm disabled:opacity-60 active:scale-95 transition">
                     {processing === 'approve' ? '…' : '✓ Valider'}
                   </button>
                   <button
                     onClick={() => setShowRejectForm(true)}
                     disabled={!!processing}
-                    className="flex-1 py-3.5 rounded-xl bg-white border-2 border-[#C62828] text-[#C62828] font-bold text-sm disabled:opacity-50 active:scale-95 transition">
+                    className="flex-1 py-3.5 rounded-xl bg-white border-2 border-[#C62828] text-[#C62828] font-bold text-sm disabled:opacity-60 active:scale-95 transition">
                     ✕ Rejeter
                   </button>
                 </div>
@@ -393,7 +393,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
                     <button
                       onClick={() => handle(false)}
                       disabled={!!processing}
-                      className="flex-1 py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-50 active:scale-95 transition">
+                      className="flex-1 py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-60 active:scale-95 transition">
                       {processing === 'reject' ? '…' : 'Confirmer le rejet'}
                     </button>
                   </div>

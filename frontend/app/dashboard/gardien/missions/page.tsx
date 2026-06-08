@@ -650,7 +650,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                     <button
                       onClick={() => handleRetract(lastSub.id)}
                       disabled={retracting === lastSub.id}
-                      className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition disabled:opacity-50">
+                      className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition disabled:opacity-60">
                       {retracting === lastSub.id ? '…' : '✕ Annuler'}
                     </button>
                   </div>
@@ -682,7 +682,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                       <button
                         onClick={() => handleRetract(lastSub.id)}
                         disabled={retracting === lastSub.id}
-                        className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1.5 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition ml-3 disabled:opacity-50">
+                        className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1.5 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition ml-3 disabled:opacity-60">
                         {retracting === lastSub.id ? '…' : '✕ Annuler'}
                       </button>
                     </div>
@@ -741,7 +741,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
 
                   <button onClick={handleSubmit}
                     disabled={submitting || (!proofText.trim() && !photo)}
-                    className="w-full mt-3 py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-40 active:scale-95 transition"
+                    className="w-full mt-3 py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-60 active:scale-95 transition"
                     style={{ background: style.accent }}>
                     {submitting ? 'Envoi en cours…'
                       : isDuration ? `Soumettre — Jour ${nextDay} sur ${c.duree}`

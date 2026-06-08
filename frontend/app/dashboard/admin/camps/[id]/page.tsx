@@ -113,7 +113,7 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
                   className={`py-2.5 rounded-xl text-xs font-bold border transition-colors ${
                     camp.statut === s.value
                       ? 'bg-[#1F1B2E] text-white border-[#1F1B2E] cursor-default'
-                      : 'bg-white border-[#e6e6ea] text-[#1F1B2E] hover:border-[#6A1B9A] hover:text-[#6A1B9A] disabled:opacity-40'
+                      : 'bg-white border-[#e6e6ea] text-[#1F1B2E] hover:border-[#6A1B9A] hover:text-[#6A1B9A] disabled:opacity-60'
                   }`}
                 >
                   {updating && camp.statut !== s.value ? '…' : s.label}

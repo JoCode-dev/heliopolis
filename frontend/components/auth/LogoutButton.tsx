@@ -70,7 +70,7 @@ export function LogoutButton({ className, children, confirm = false }: LogoutBut
               <button
                 onClick={doLogout}
                 disabled={loading}
-                className="flex-1 py-3 rounded-xl bg-[#C62828] text-white text-sm font-bold hover:bg-[#a82020] transition active:scale-[0.98] disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl bg-[#C62828] text-white text-sm font-bold hover:bg-[#a82020] transition active:scale-[0.98] disabled:opacity-60"
               >
                 {loading ? '…' : 'Déconnecter'}
               </button>

@@ -38,3 +38,23 @@ html, body {
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 2px; }
+
+/* ─── Base boutons — s'applique à TOUS les <button> sans exception ─────────── */
+@layer base {
+  button {
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    transition-property: background-color, border-color, color, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  /* État désactivé : curseur interdit + légère désaturation (plus lisible que opacity seule) */
+  button:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+  }
+  /* Effet de pression sur tous les boutons actifs */
+  button:not(:disabled):active {
+    scale: 0.97;
+  }
+}

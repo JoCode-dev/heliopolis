@@ -164,7 +164,7 @@ function GuidesContent() {
           <button
             onClick={handleExport}
             disabled={filtered.length === 0}
-            className="bg-white border border-[#e0e0e8] text-[#1F1B2E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#f6f6fa] transition-colors disabled:opacity-40"
+            className="bg-white border border-[#e0e0e8] text-[#1F1B2E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#f6f6fa] transition-colors disabled:opacity-60"
           >
             📥 Exporter
           </button>
@@ -238,7 +238,7 @@ function GuidesContent() {
             value={parishId}
             onChange={e => { setParishId(e.target.value); setPage(1); }}
             disabled={visibleParishes.length === 0}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E] disabled:opacity-50"
+            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E] disabled:opacity-60"
           >
             <option value="">Toutes les paroisses</option>
             {visibleParishes.map(p => (
@@ -319,7 +319,7 @@ function GuidesContent() {
                         <button
                           onClick={() => handleStatut(u, 'ACTIF')}
                           disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60"
                         >
                           {isLoading ? '…' : '✓ Réactiver le compte'}
                         </button>
@@ -328,7 +328,7 @@ function GuidesContent() {
                         <button
                           onClick={() => setPendingSuspend(u.id)}
                           disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60"
                         >
                           Suspendre le compte
                         </button>
@@ -344,7 +344,7 @@ function GuidesContent() {
                           <button
                             onClick={() => handleStatut(u, 'SUSPENDU')}
                             disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50"
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-60"
                           >
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
@@ -441,7 +441,7 @@ function GuidesContent() {
                           <button
                             onClick={() => handleStatut(u, 'ACTIF')}
                             disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60"
                           >
                             {isLoading ? '…' : '✓ Réactiver'}
                           </button>
@@ -450,7 +450,7 @@ function GuidesContent() {
                           <button
                             onClick={() => setPendingSuspend(u.id)}
                             disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60"
                           >
                             Suspendre
                           </button>
@@ -460,7 +460,7 @@ function GuidesContent() {
                             <button
                               onClick={() => handleStatut(u, 'SUSPENDU')}
                               disabled={isLoading}
-                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50"
+                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-60"
                             >
                               {isLoading ? '…' : 'Oui'}
                             </button>

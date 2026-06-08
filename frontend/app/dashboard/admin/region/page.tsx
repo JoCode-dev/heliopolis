@@ -97,7 +97,7 @@ function RegionContent() {
           <button
             onClick={handleExport}
             disabled={filtered.length === 0}
-            className="bg-white border border-[#e0e0e8] text-[#1F1B2E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#f6f6fa] transition-colors disabled:opacity-40"
+            className="bg-white border border-[#e0e0e8] text-[#1F1B2E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#f6f6fa] transition-colors disabled:opacity-60"
           >
             📥 Exporter
           </button>
@@ -191,13 +191,13 @@ function RegionContent() {
                     <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4]">
                       {canReact && (
                         <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60">
                           {isLoading ? '…' : '✓ Réactiver'}
                         </button>
                       )}
                       {canSuspend && !isPending && (
                         <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50">
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60">
                           Suspendre
                         </button>
                       )}
@@ -206,7 +206,7 @@ function RegionContent() {
                           <button onClick={() => setPendingSuspend(null)}
                             className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#f6f6fa] text-[#6b6b78]">Annuler</button>
                           <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-60">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </div>
@@ -269,20 +269,20 @@ function RegionContent() {
                       <td className="px-3 py-2.5">
                         {canReact && (
                           <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">
+                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60">
                             {isLoading ? '…' : '✓ Réactiver'}
                           </button>
                         )}
                         {canSuspend && !isPending && (
                           <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50">
+                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60">
                             Suspendre
                           </button>
                         )}
                         {canSuspend && isPending && (
                           <div className="flex gap-1">
                             <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
+                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-60">
                               {isLoading ? '…' : 'Oui'}
                             </button>
                             <button onClick={() => setPendingSuspend(null)}

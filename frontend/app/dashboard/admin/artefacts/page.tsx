@@ -49,7 +49,7 @@ export default function AdminArtefactsPage() {
         </div>
         <button
           onClick={() => setModal({ open: true })}
-          className="bg-[#1F1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors"
+          className="bg-[#1F1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150"
         >
           + Nouvel artefact
         </button>
@@ -65,7 +65,7 @@ export default function AdminArtefactsPage() {
           <p className="font-semibold">Aucun artefact configuré</p>
           <p className="text-sm mt-1">Créez le premier artefact pour les Gardiens.</p>
           <button onClick={() => setModal({ open: true })}
-            className="mt-4 bg-[#1F1B2E] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors">
+            className="mt-4 bg-[#1F1B2E] text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150">
             + Créer un artefact
           </button>
         </div>

@@ -9,20 +9,20 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const btnClasses: Record<BtnVariant, string> = {
-  rouge:  'bg-[#C62828] text-white hover:bg-[#b51d1d]',
-  violet: 'bg-[#6A1B9A] text-white hover:bg-[#5a1280]',
-  or:     'bg-[#D9A441] text-white hover:bg-[#c49338]',
-  vert:   'bg-[#2E7D32] text-white hover:bg-[#256128]',
-  ghost:  'bg-white border border-[#e6e6ea] text-[#1F1B2E] hover:bg-gray-50',
-  nuit:   'bg-[#1F1B2E] text-white hover:bg-[#2c2640]',
-  sunset: 'bg-gradient-to-r from-[#F58A4B] to-[#C62828] text-white',
+  rouge:  'bg-[#C62828] text-white shadow-sm shadow-[#C62828]/20 enabled:hover:bg-[#b51d1d] enabled:hover:shadow-md enabled:hover:shadow-[#C62828]/30 enabled:hover:-translate-y-px',
+  violet: 'bg-[#6A1B9A] text-white shadow-sm shadow-[#6A1B9A]/20 enabled:hover:bg-[#5a1280] enabled:hover:shadow-md enabled:hover:shadow-[#6A1B9A]/30 enabled:hover:-translate-y-px',
+  or:     'bg-[#D9A441] text-white shadow-sm shadow-[#D9A441]/20 enabled:hover:bg-[#c49338] enabled:hover:shadow-md enabled:hover:shadow-[#D9A441]/30 enabled:hover:-translate-y-px',
+  vert:   'bg-[#2E7D32] text-white shadow-sm shadow-[#2E7D32]/20 enabled:hover:bg-[#256128] enabled:hover:shadow-md enabled:hover:shadow-[#2E7D32]/30 enabled:hover:-translate-y-px',
+  ghost:  'bg-white border border-[#e0e0ea] text-[#1F1B2E] enabled:hover:bg-[#f5f5fb] enabled:hover:border-[#c8c8d8] enabled:hover:shadow-sm',
+  nuit:   'bg-[#1F1B2E] text-white shadow-sm shadow-[#1F1B2E]/20 enabled:hover:bg-[#2c2640] enabled:hover:shadow-md enabled:hover:shadow-[#1F1B2E]/25 enabled:hover:-translate-y-px',
+  sunset: 'bg-gradient-to-r from-[#F58A4B] to-[#C62828] text-white shadow-sm shadow-[#C62828]/20 enabled:hover:shadow-md enabled:hover:shadow-[#C62828]/30 enabled:hover:-translate-y-px',
 };
 
 export function Button({ variant = 'rouge', full = true, className = '', children, ...props }: ButtonProps) {
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 ${btnClasses[variant]} ${full ? 'w-full' : ''} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-150 disabled:opacity-60 ${btnClasses[variant]} ${full ? 'w-full' : ''} ${className}`}
     >
       {children}
     </button>

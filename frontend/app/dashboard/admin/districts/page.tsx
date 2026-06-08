@@ -112,7 +112,7 @@ export default function AdminDistrictsPage() {
           <span className="text-sm text-[#6b6b78]">{districts.length} district{districts.length > 1 ? 's' : ''}</span>
           <button
             onClick={openModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F1B2E] text-white text-xs font-semibold hover:bg-[#2d2740] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F1B2E] text-white text-xs font-semibold shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150"
           >
             <span className="text-base leading-none">+</span>
             Ajouter un district
@@ -190,13 +190,13 @@ export default function AdminDistrictsPage() {
               <div className="flex gap-2 mt-auto">
                 <Link
                   href={`/dashboard/admin/paroisses?districtId=${district.id}`}
-                  className="flex-1 text-center text-xs border border-[#e6e6ea] text-[#1F1B2E] rounded-lg px-3 py-2 font-semibold hover:bg-[#f6f6fa] transition-colors">
+                  className="flex-1 text-center text-xs border border-[#e0e0ea] text-[#1F1B2E] rounded-lg px-3 py-2 font-semibold hover:bg-[#f5f5fb] hover:border-[#c8c8d8] hover:shadow-sm transition-all duration-150">
                   Voir paroisses →
                 </Link>
                 <button
                   onClick={() => handleDelete(district)}
                   disabled={deletingId === district.id}
-                  className="text-xs border border-[#fce8e8] text-red-400 rounded-lg px-3 py-2 font-semibold hover:bg-red-50 disabled:opacity-40 transition-colors"
+                  className="text-xs border border-[#fce8e8] text-red-400 rounded-lg px-3 py-2 font-semibold enabled:hover:bg-red-50 enabled:hover:border-red-200 enabled:hover:shadow-sm disabled:opacity-60 transition-all duration-150"
                 >
                   {deletingId === district.id ? '…' : 'Suppr.'}
                 </button>
@@ -267,14 +267,14 @@ export default function AdminDistrictsPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-[#6b6b78] hover:bg-[#f4f4f8] transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold border border-[#e0e0ea] text-[#6b6b78] hover:bg-[#f5f5fb] hover:border-[#c8c8d8] hover:shadow-sm transition-all duration-150"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !modalNom.trim() || !modalRegionId}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#1F1B2E] text-white hover:bg-[#2d2740] disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#1F1B2E] text-white shadow-sm shadow-[#1F1B2E]/20 enabled:hover:bg-[#2c2640] enabled:hover:shadow-md enabled:hover:shadow-[#1F1B2E]/25 enabled:hover:-translate-y-px disabled:opacity-60 transition-all duration-150"
                 >
                   {saving ? 'Création…' : 'Créer'}
                 </button>

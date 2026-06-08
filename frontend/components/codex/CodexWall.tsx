@@ -133,7 +133,7 @@ export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="px-6 py-2.5 rounded-full bg-[#1F1B2E] text-white text-sm font-bold hover:bg-[#2c2840] disabled:opacity-50 transition-all"
+            className="px-6 py-2.5 rounded-full bg-[#1F1B2E] text-white text-sm font-bold hover:bg-[#2c2840] disabled:opacity-60 transition-all"
           >
             {loadingMore ? 'Chargement…' : 'Charger plus'}
           </button>

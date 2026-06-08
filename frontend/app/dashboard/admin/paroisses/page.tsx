@@ -123,7 +123,7 @@ function ParoissesContent() {
           </span>
           <button
             onClick={openModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F1B2E] text-white text-xs font-semibold hover:bg-[#2d2740] transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F1B2E] text-white text-xs font-semibold shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150 whitespace-nowrap"
           >
             <span className="text-base leading-none">+</span>
             <span className="hidden sm:inline">Ajouter une paroisse</span>
@@ -187,7 +187,7 @@ function ParoissesContent() {
                     <button
                       onClick={() => handleDelete(parish)}
                       disabled={deletingId === parish.id}
-                      className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 flex-shrink-0 px-2 py-1 rounded-lg border border-red-100 hover:bg-red-50 transition-colors"
+                      className="text-xs text-red-400 enabled:hover:text-red-600 enabled:hover:bg-red-50 enabled:hover:border-red-200 enabled:hover:shadow-sm disabled:opacity-60 flex-shrink-0 px-2 py-1 rounded-lg border border-red-100 transition-all duration-150"
                     >
                       {deletingId === parish.id ? '…' : 'Suppr.'}
                     </button>
@@ -243,7 +243,7 @@ function ParoissesContent() {
                         <button
                           onClick={() => handleDelete(parish)}
                           disabled={deletingId === parish.id}
-                          className="text-[#6b6b78] hover:text-red-500 transition-colors disabled:opacity-40 text-xs"
+                          className="text-[#6b6b78] enabled:hover:text-red-500 enabled:hover:underline disabled:opacity-60 text-xs transition-all duration-150"
                         >
                           {deletingId === parish.id ? '…' : 'Supprimer'}
                         </button>
@@ -304,14 +304,14 @@ function ParoissesContent() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-[#6b6b78] hover:bg-[#f4f4f8] transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold border border-[#e0e0ea] text-[#6b6b78] hover:bg-[#f5f5fb] hover:border-[#c8c8d8] hover:shadow-sm transition-all duration-150"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !modalNom.trim() || !modalDistrictId}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#1F1B2E] text-white hover:bg-[#2d2740] disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#1F1B2E] text-white shadow-sm shadow-[#1F1B2E]/20 enabled:hover:bg-[#2c2640] enabled:hover:shadow-md enabled:hover:shadow-[#1F1B2E]/25 enabled:hover:-translate-y-px disabled:opacity-60 transition-all duration-150"
                 >
                   {saving ? 'Création…' : 'Créer'}
                 </button>

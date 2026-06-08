@@ -355,7 +355,7 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           </h2>
           {mode === 'group' && (
             <button onClick={handleCreateGroup} disabled={!groupName.trim() || selected.length === 0 || creating}
-              className="text-[13px] font-bold text-white/90 bg-white/20 px-3 py-1 rounded-full disabled:opacity-40">
+              className="text-[13px] font-bold text-white/90 bg-white/20 px-3 py-1 rounded-full disabled:opacity-60">
               {creating ? '…' : `Créer${selected.length > 0 ? ` (${selected.length})` : ''}`}
             </button>
           )}
@@ -662,7 +662,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
                   <LetterGroup key={gKey} letter={letter} groupKey={gKey} count={contacts.length} collapsed={collapsedGroups.has(gKey)} onToggle={toggleGroup}>
                     {contacts.map(c => (
                       <ContactRow key={c.contactId} user={c.user} sub={c.user.parish?.nom} action={
-                        <button onClick={() => handleDM(c.user.id)} disabled={dmLoading === c.user.id} className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                        <button onClick={() => handleDM(c.user.id)} disabled={dmLoading === c.user.id} className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                           {dmLoading === c.user.id ? '…' : '💬'}
                         </button>
                       } />
@@ -699,7 +699,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
                   return (
                     <ContactRow key={u.id} user={u} sub={u.parish?.nom} action={
                       canDMDirectly ? (
-                        <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id} className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                        <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id} className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                           {dmLoading === u.id ? '…' : '💬'}
                         </button>
                       ) : pendingReq ? (
@@ -708,7 +708,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
                           <button onClick={() => handleDecline(pendingReq.id)} className="text-[11px] bg-white border border-[#e6e6ea] text-[#6b6b78] px-2 py-1 rounded-full font-bold">✕</button>
                         </div>
                       ) : accepted.some(c => c.user.id === u.id) ? (
-                        <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id} className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                        <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id} className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                           {dmLoading === u.id ? '…' : '💬'}
                         </button>
                       ) : sent.some(c => c.receiver.id === u.id) ? (

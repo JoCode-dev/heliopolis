@@ -118,7 +118,7 @@ export default function GestionCampsPage() {
                 <button
                   onClick={() => handleStatusChange(camp.id, STATUS_SUIVANT[camp.statut as CampStatus]!.value)}
                   disabled={updatingId === camp.id}
-                  className="flex-1 text-center bg-[#6A1B9A] text-white font-semibold text-xs py-2 rounded-xl disabled:opacity-50 hover:bg-[#4a1370] transition-colors"
+                  className="flex-1 text-center bg-[#6A1B9A] text-white font-semibold text-xs py-2 rounded-xl disabled:opacity-60 hover:bg-[#4a1370] transition-colors"
                 >
                   {updatingId === camp.id ? '…' : STATUS_SUIVANT[camp.statut as CampStatus]!.label}
                 </button>

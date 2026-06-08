@@ -516,7 +516,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <button
           onClick={sendMessage}
           disabled={!input.trim() || sending}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0 transition-opacity shadow"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex items-center justify-center text-white disabled:opacity-60 flex-shrink-0 transition-opacity shadow"
         >
           {sending ? <span className="text-xs animate-pulse">…</span> : (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
@@ -616,7 +616,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   <button
                     onClick={handleConfirmAdd}
                     disabled={applyingChanges}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2E7D32] to-[#1a5021] text-white font-bold text-sm disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2E7D32] to-[#1a5021] text-white font-bold text-sm disabled:opacity-60"
                   >
                     {applyingChanges ? 'Ajout en cours…' : `Ajouter ${selectedToAdd.length} membre${selectedToAdd.length > 1 ? 's' : ''}`}
                   </button>
@@ -687,7 +687,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   <button
                     onClick={handleConfirmRemove}
                     disabled={applyingChanges}
-                    className="w-full py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-60"
                   >
                     {applyingChanges ? 'Retrait en cours…' : `Retirer ${selectedToRemove.length} membre${selectedToRemove.length > 1 ? 's' : ''}`}
                   </button>

@@ -310,7 +310,7 @@ function GuideView({ campId, user, toast }: {
                             onClick={() => handleBlock(r.id, `${r.prenoms} ${r.nom}`)}
                             disabled={blockingId === r.id}
                             title="Bloquer ce gardien pour ce camp"
-                            className="w-7 h-7 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] flex items-center justify-center text-xs hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-40">
+                            className="w-7 h-7 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] flex items-center justify-center text-xs hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-60">
                             {blockingId === r.id ? '…' : '🚫'}
                           </button>
                           <button onClick={() => toggle(r.id)}
@@ -342,7 +342,7 @@ function GuideView({ campId, user, toast }: {
                         <div className="text-[11px] text-[#9b9ba8] font-mono mt-0.5">{r.matricule ?? '—'}</div>
                       </div>
                       <button onClick={() => handleUnblock(r.id, `${r.prenoms} ${r.nom}`)} disabled={blockingId === r.id}
-                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40">
+                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-60">
                         {blockingId === r.id ? '…' : '↩ Débloquer'}
                       </button>
                     </div>
@@ -568,17 +568,17 @@ function SentinelleView({ campId, user, toast }: {
                       <div className="flex flex-col gap-1.5 flex-shrink-0">
                         {isBlocked ? (
                           <button onClick={() => handle('unblock', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
-                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-40 hover:bg-[#2E7D32] hover:text-white transition-colors">
+                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-60 hover:bg-[#2E7D32] hover:text-white transition-colors">
                             {busy ? '…' : '↩ Débloquer'}
                           </button>
                         ) : (
                           <>
                             <button onClick={() => handle('remove', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
-                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8e6] text-[#9c7218] border border-[#ffe082] disabled:opacity-40 hover:bg-[#D9A441] hover:text-white transition-colors">
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8e6] text-[#9c7218] border border-[#ffe082] disabled:opacity-60 hover:bg-[#D9A441] hover:text-white transition-colors">
                               {actionId === p.userId + '-remove' ? '…' : '− Retirer'}
                             </button>
                             <button onClick={() => handle('block', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
-                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-40 hover:bg-[#C62828] hover:text-white transition-colors">
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#C62828] hover:text-white transition-colors">
                               {actionId === p.userId + '-block' ? '…' : '🚫 Bloquer'}
                             </button>
                           </>
@@ -640,28 +640,28 @@ function SentinelleView({ campId, user, toast }: {
                         <div className="flex flex-col gap-1.5 flex-shrink-0">
                           {isBlocked ? (
                             <button onClick={() => handle('unblock', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-40 hover:bg-[#2E7D32] hover:text-white transition-colors">
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-60 hover:bg-[#2E7D32] hover:text-white transition-colors">
                               {busy ? '…' : '↩ Débloquer'}
                             </button>
                           ) : isSelected ? (
                             <>
                               <button onClick={() => handle('remove', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8e6] text-[#9c7218] border border-[#ffe082] disabled:opacity-40 hover:bg-[#D9A441] hover:text-white transition-colors">
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8e6] text-[#9c7218] border border-[#ffe082] disabled:opacity-60 hover:bg-[#D9A441] hover:text-white transition-colors">
                                 {actionId === g.id + '-remove' ? '…' : '− Retirer'}
                               </button>
                               <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-40 hover:bg-[#C62828] hover:text-white transition-colors">
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#C62828] hover:text-white transition-colors">
                                 {actionId === g.id + '-block' ? '…' : '🚫 Bloquer'}
                               </button>
                             </>
                           ) : (
                             <>
                               <button onClick={() => handle('select', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#EDE7F6] text-[#6A1B9A] border border-[#ce93d8] disabled:opacity-40 hover:bg-[#6A1B9A] hover:text-white transition-colors">
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#EDE7F6] text-[#6A1B9A] border border-[#ce93d8] disabled:opacity-60 hover:bg-[#6A1B9A] hover:text-white transition-colors">
                                 {actionId === g.id + '-select' ? '…' : '+ Sélectionner'}
                               </button>
                               <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-40 hover:bg-[#C62828] hover:text-white transition-colors">
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#C62828] hover:text-white transition-colors">
                                 {actionId === g.id + '-block' ? '…' : '🚫 Bloquer'}
                               </button>
                             </>

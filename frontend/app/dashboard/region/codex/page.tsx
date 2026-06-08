@@ -143,13 +143,13 @@ export default function CodexPage() {
                           <button
                             onClick={() => handleApprove(sub.id)}
                             disabled={!!actionLoading}
-                            className="text-xs bg-[#e1f4e3] text-[#2E7D32] border border-[#2E7D32]/30 rounded-lg px-3 py-1.5 font-semibold hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-50">
+                            className="text-xs bg-[#e1f4e3] text-[#2E7D32] border border-[#2E7D32]/30 rounded-lg px-3 py-1.5 font-semibold hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-60">
                             {isApproving ? '…' : '✓ Valider'}
                           </button>
                           <button
                             onClick={() => handleReject(sub.id)}
                             disabled={!!actionLoading}
-                            className="text-xs bg-[#ffe6e6] text-[#C62828] border border-[#C62828]/30 rounded-lg px-3 py-1.5 font-semibold hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-50">
+                            className="text-xs bg-[#ffe6e6] text-[#C62828] border border-[#C62828]/30 rounded-lg px-3 py-1.5 font-semibold hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-60">
                             {isRejecting ? '…' : '✕ Rejeter'}
                           </button>
                         </div>

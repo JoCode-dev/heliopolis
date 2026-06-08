@@ -405,7 +405,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
               <ContactRow key={u.id} user={u} action={
                 isContact ? (
                   <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id}
-                    className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                    className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                     {dmLoading === u.id ? '…' : '💬'}
                   </button>
                 ) : alreadySent ? (
@@ -496,7 +496,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
               onClick={() => handleDM(u.id)}
               action={
                 <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id}
-                  className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                  className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                   {dmLoading === u.id ? '…' : '💬'}
                 </button>
               }
@@ -514,7 +514,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
               onClick={() => handleDM(c.user.id)}
               action={
                 <button onClick={() => handleDM(c.user.id)} disabled={dmLoading === c.user.id}
-                  className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                  className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                   {dmLoading === c.user.id ? '…' : '💬'}
                 </button>
               }
@@ -697,7 +697,7 @@ function NewConvModal({ onClose, onCreated }: {
           {mode === 'group' && (
             <button onClick={handleCreateGroup}
               disabled={!groupName.trim() || selected.length === 0 || creating}
-              className="text-[13px] font-bold text-white/90 bg-white/20 px-3 py-1 rounded-full disabled:opacity-40">
+              className="text-[13px] font-bold text-white/90 bg-white/20 px-3 py-1 rounded-full disabled:opacity-60">
               {creating ? '…' : `Créer${selected.length > 0 ? ` (${selected.length})` : ''}`}
             </button>
           )}
@@ -793,7 +793,7 @@ function NewConvModal({ onClose, onCreated }: {
                       <button
                         onClick={() => handleJoinChannel(ch.channelKey)}
                         disabled={isJoining}
-                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 ${
+                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-60 ${
                           ch.isMember
                             ? 'bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white'
                             : `bg-gradient-to-r ${typeGradient[ch.channelKey]} text-white shadow-sm`
@@ -1029,7 +1029,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
                     isContact ? (
                       <button onClick={() => { onDM(u.id); onClose(); }}
                         disabled={dmLoading === u.id}
-                        className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-50">
+                        className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-60">
                         {dmLoading === u.id ? '…' : '💬 Message'}
                       </button>
                     ) : alreadySent ? (
@@ -1040,7 +1040,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
                       <button
                         onClick={() => handleRequest(u.id, `${u.prenoms} ${u.nom}`)}
                         disabled={isReq}
-                        className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-50">
+                        className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-60">
                         {isReq ? '…' : '+ Ajouter'}
                       </button>
                     )

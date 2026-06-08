@@ -126,7 +126,7 @@ function GardiensContent() {
           <h1 className="text-base font-black text-[#1F1B2E] flex-1">🤝 Gardiens</h1>
           <span className="text-[11px] text-[#9b9ba8] font-medium flex-shrink-0">{gardiens.length}</span>
           <button onClick={handleExport} disabled={filtered.length === 0}
-            className="w-8 h-8 flex items-center justify-center bg-[#f3f3f5] rounded-lg text-sm hover:bg-[#ececf0] disabled:opacity-40 flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center bg-[#f3f3f5] rounded-lg text-sm hover:bg-[#ececf0] disabled:opacity-60 flex-shrink-0"
             title="Exporter CSV">
             📥
           </button>
@@ -173,7 +173,7 @@ function GardiensContent() {
           </select>
           <select value={parishId} onChange={e => { setParishId(e.target.value); setPage(1); }}
             disabled={visibleParishes.length === 0}
-            className="flex-1 bg-[#f5f5fa] border-0 rounded-xl px-2.5 py-2 text-xs outline-none text-[#1F1B2E] min-w-0 disabled:opacity-40">
+            className="flex-1 bg-[#f5f5fa] border-0 rounded-xl px-2.5 py-2 text-xs outline-none text-[#1F1B2E] min-w-0 disabled:opacity-60">
             <option value="">Toutes paroisses</option>
             {visibleParishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
           </select>
@@ -259,13 +259,13 @@ function GardiensContent() {
                       </button>
                       {canReact && (
                         <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                          className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#e8f5e9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40">
+                          className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#e8f5e9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-60">
                           {isLoading ? '…' : '✓ Réactiver'}
                         </button>
                       )}
                       {canSuspend && !isPending && (
                         <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                          className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#f5f5f5] text-[#9b9ba8] hover:bg-[#ffebee] hover:text-[#C62828] transition-colors disabled:opacity-40">
+                          className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#f5f5f5] text-[#9b9ba8] hover:bg-[#ffebee] hover:text-[#C62828] transition-colors disabled:opacity-60">
                           Suspendre
                         </button>
                       )}
@@ -276,7 +276,7 @@ function GardiensContent() {
                             Annuler
                           </button>
                           <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-40">
+                            className="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-60">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </>
@@ -336,20 +336,20 @@ function GardiensContent() {
                         <td className="px-3 py-2.5">
                           {canReact && (
                             <button onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                              className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">
+                              className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60">
                               {isLoading ? '…' : '✓ Réactiver'}
                             </button>
                           )}
                           {canSuspend && !isPending && (
                             <button onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                              className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50">
+                              className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60">
                               Suspendre
                             </button>
                           )}
                           {canSuspend && isPending && (
                             <div className="flex gap-1">
                               <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                                className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
+                                className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-60">
                                 {isLoading ? '…' : 'Oui'}
                               </button>
                               <button onClick={() => setPendingSuspend(null)}

@@ -341,7 +341,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     <button
                       onClick={handleAvatarUpload}
                       disabled={avatarLoading}
-                      className="mt-3 w-full bg-[#1F1B2E] text-white py-2 rounded-xl text-xs font-semibold hover:bg-[#2d2640] transition-colors disabled:opacity-50"
+                      className="mt-3 w-full bg-[#1F1B2E] text-white py-2 rounded-xl text-xs font-semibold hover:bg-[#2d2640] transition-colors disabled:opacity-60"
                     >
                       {avatarLoading ? 'Envoi en cours…' : 'Enregistrer la photo'}
                     </button>
@@ -411,21 +411,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                             <button
                               onClick={() => handleUpdateAdhesion('A_JOUR')}
                               disabled={adhLoading || adhesion?.statut === 'A_JOUR'}
-                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-40 transition-colors"
+                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60 transition-colors"
                             >
                               {adhLoading ? '…' : '✓ À jour'}
                             </button>
                             <button
                               onClick={() => handleUpdateAdhesion('EN_ATTENTE')}
                               disabled={adhLoading || adhesion?.statut === 'EN_ATTENTE'}
-                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-40 transition-colors"
+                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-60 transition-colors"
                             >
                               En attente
                             </button>
                             <button
                               onClick={() => handleUpdateAdhesion('NON_A_JOUR')}
                               disabled={adhLoading || adhesion?.statut === 'NON_A_JOUR'}
-                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 transition-colors"
+                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60 transition-colors"
                             >
                               Non à jour
                             </button>
@@ -527,7 +527,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <button
                   onClick={handleSaveInfo}
                   disabled={loading || !nom.trim() || !prenoms.trim()}
-                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Enregistrement…' : 'Enregistrer les modifications'}
                 </button>
@@ -581,7 +581,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <button
                   onClick={handleChangePassword}
                   disabled={loading || !ancienMdp || !nouveauMdp || !confirmMdp}
-                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Modification…' : 'Modifier le mot de passe'}
                 </button>

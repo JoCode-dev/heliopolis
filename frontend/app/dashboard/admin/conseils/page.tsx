@@ -63,7 +63,7 @@ export default function AdminConseils() {
         <div className="flex items-center justify-between">
           <h1 className="text-base font-black text-[#1F1B2E]">🏛️ Conseils de communauté</h1>
           <button onClick={() => { setEditTarget(null); setShowForm(true); }}
-            className="flex items-center gap-1 bg-[#1F1B2E] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#2d2640] transition-colors">
+            className="flex items-center gap-1 bg-[#1F1B2E] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150">
             + Nouveau
           </button>
         </div>
@@ -129,11 +129,11 @@ export default function AdminConseils() {
                   {/* Actions */}
                   <div className="flex gap-2 mt-3">
                     <button onClick={() => { setEditTarget(c); setShowForm(true); }}
-                      className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#f0e8ff] text-[#6A1B9A] hover:bg-[#6A1B9A] hover:text-white transition-colors">
+                      className="flex-1 py-1.5 rounded-xl text-[11px] font-semibold bg-[#f0e8ff] text-[#6A1B9A] hover:bg-[#6A1B9A] hover:text-white hover:shadow-sm transition-all duration-150">
                       ✎ Modifier
                     </button>
                     <button onClick={() => handleDelete(c.id)} disabled={deleting === c.id}
-                      className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#fff5f5] text-[#C62828] hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-40">
+                      className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#fff5f5] text-[#C62828] enabled:hover:bg-[#C62828] enabled:hover:text-white enabled:hover:shadow-sm disabled:opacity-60 transition-all duration-150">
                       {deleting === c.id ? '…' : '🗑️'}
                     </button>
                   </div>
@@ -202,7 +202,7 @@ function CouncilForm({ initial, onClose, onSaved }: {
         {/* Header */}
         <div className="bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
           <h2 className="font-bold text-base">{initial ? 'Modifier le conseil' : 'Nouveau conseil'}</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-sm">✕</button>
+          <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-sm hover:bg-white/25 transition-all duration-150">✕</button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
@@ -289,11 +289,11 @@ function CouncilForm({ initial, onClose, onSaved }: {
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[#f0f0f0] flex gap-3 flex-shrink-0">
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#f7f7fa] text-[#6b6b78] hover:bg-[#ebebf0] transition">
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-[#e0e0ea] text-[#6b6b78] hover:bg-[#f5f5fb] hover:border-[#c8c8d8] hover:shadow-sm transition-all duration-150">
             Annuler
           </button>
           <button onClick={handleSave} disabled={saving || !nom.trim() || !date || selectedRoles.length === 0}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white disabled:opacity-40 transition">
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white shadow-sm shadow-[#1F1B2E]/20 enabled:hover:shadow-md enabled:hover:shadow-[#1F1B2E]/25 enabled:hover:-translate-y-px disabled:opacity-60 transition-all duration-150">
             {saving ? 'Enregistrement…' : (initial ? 'Enregistrer' : 'Créer le conseil')}
           </button>
         </div>

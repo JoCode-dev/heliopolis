@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { codexApi } from '@/lib/api';
+import { CreateChallengeModal } from '@/components/defis/CreateChallengeModal';
 import type { Submission, SubmissionStatus } from '@/types';
 
 type TabFilter = 'TOUTES' | 'EN_ATTENTE' | 'VALIDE' | 'REJETE';
@@ -32,6 +33,7 @@ export default function DefisPage() {
   const [loading, setLoading]         = useState(true);
   const [tab, setTab]                 = useState<TabFilter>('TOUTES');
   const [actionId, setActionId]       = useState<string | null>(null);
+  const [createOpen, setCreateOpen]   = useState(false);
 
   const load = async () => {
     try {
@@ -71,12 +73,20 @@ export default function DefisPage() {
       <div className="bg-white border-b border-[#ececf0] px-4 pt-4 pb-0 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-lg font-black text-[#1F1B2E]">🎯 Défis & soumissions</h1>
-          {nbAttente > 0 && (
-            <span className="flex items-center gap-1.5 bg-[#fff8e1] border border-[#ffe082] text-[#D9A441] text-[11px] font-bold px-2.5 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D9A441] animate-pulse" />
-              {nbAttente} en attente
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {nbAttente > 0 && (
+              <span className="flex items-center gap-1.5 bg-[#fff8e1] border border-[#ffe082] text-[#D9A441] text-[11px] font-bold px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D9A441] animate-pulse" />
+                {nbAttente}
+              </span>
+            )}
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-1 bg-[#C62828] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-[#C62828]/20 hover:bg-[#b51d1d] hover:shadow-md hover:shadow-[#C62828]/30 hover:-translate-y-px transition-all duration-150"
+            >
+              + Nouveau défi
+            </button>
+          </div>
         </div>
 
         {/* Onglets tab-bar */}
@@ -173,11 +183,11 @@ export default function DefisPage() {
                   {isPending && (
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => handleApprove(sub.id)} disabled={busy}
-                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40">
+                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] enabled:hover:bg-[#2E7D32] enabled:hover:text-white enabled:hover:shadow-sm enabled:hover:border-[#2E7D32] disabled:opacity-60 transition-all duration-150">
                         {isApproving ? '…' : '✓ Valider'}
                       </button>
                       <button onClick={() => handleReject(sub.id)} disabled={busy}
-                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#ffebee] text-[#C62828] border border-[#ef9a9a] hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-40">
+                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#ffebee] text-[#C62828] border border-[#ef9a9a] enabled:hover:bg-[#C62828] enabled:hover:text-white enabled:hover:shadow-sm enabled:hover:border-[#C62828] disabled:opacity-60 transition-all duration-150">
                         {isRejecting ? '…' : '✕ Rejeter'}
                       </button>
                     </div>
@@ -190,6 +200,12 @@ export default function DefisPage() {
 
         <div className="h-4" />
       </div>
+
+      <CreateChallengeModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => setCreateOpen(false)}
+      />
     </div>
   );
 }

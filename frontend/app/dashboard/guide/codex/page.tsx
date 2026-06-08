@@ -116,14 +116,14 @@ export default function GuideCodexPage() {
                   <button
                     onClick={() => handleApprove(sub.id)}
                     disabled={moderating === sub.id}
-                    className="flex-1 bg-[#2E7D32] text-white font-bold text-sm py-2.5 rounded-xl disabled:opacity-50"
+                    className="flex-1 bg-[#2E7D32] text-white font-bold text-sm py-2.5 rounded-xl disabled:opacity-60"
                   >
                     {moderating === sub.id ? '…' : '✓ Valider'}
                   </button>
                   <button
                     onClick={() => handleReject(sub.id)}
                     disabled={moderating === sub.id}
-                    className="flex-1 bg-white border border-[#e6e6ea] text-[#C62828] font-bold text-sm py-2.5 rounded-xl disabled:opacity-50"
+                    className="flex-1 bg-white border border-[#e6e6ea] text-[#C62828] font-bold text-sm py-2.5 rounded-xl disabled:opacity-60"
                   >
                     {moderating === sub.id ? '…' : '✕ Rejeter'}
                   </button>

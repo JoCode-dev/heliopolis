@@ -272,7 +272,7 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
         <div className="px-5 py-4 border-t border-[#ececf0] flex items-center gap-3 flex-shrink-0 bg-white">
           {canDelete && isEdit && (
             <button type="button" onClick={handleDelete} disabled={deleting}
-              className="text-[#C62828] text-xs font-semibold px-3 py-2 rounded-xl border border-[#C62828]/30 hover:bg-[#ffeaea] transition-colors disabled:opacity-50">
+              className="text-[#C62828] text-xs font-semibold px-3 py-2 rounded-xl border border-[#C62828]/30 hover:bg-[#ffeaea] transition-colors disabled:opacity-60">
               {deleting ? '…' : '🗑 Supprimer'}
             </button>
           )}
@@ -283,7 +283,7 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
           </button>
           <button type="submit" form="badge-form" disabled={saving}
             onClick={handleSubmit as any}
-            className="bg-[#1F1B2E] text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-50">
+            className="bg-[#1F1B2E] text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-60">
             {saving ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer l\'artefact'}
           </button>
         </div>

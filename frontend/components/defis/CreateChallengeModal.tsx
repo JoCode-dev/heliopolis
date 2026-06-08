@@ -16,13 +16,6 @@ const NIVEAUX = [
   { value: 'MAITRISE',   label: 'Maîtrise' },
 ];
 
-const REGNES = [
-  { value: 'EAU',    label: '💧 Eau' },
-  { value: 'TERRE',  label: '🌿 Terre' },
-  { value: 'AIR',    label: '🌬️ Air' },
-  { value: 'FEU',    label: '🔥 Feu' },
-  { value: 'ESPRIT', label: '✨ Esprit' },
-];
 
 interface CreateChallengeModalProps {
   isOpen: boolean;
@@ -37,13 +30,12 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
   const [niveau, setNiveau]             = useState('DECOUVERTE');
   const [points, setPoints]             = useState('');
   const [preuveDemandee, setPreuve]     = useState('');
-  const [regne, setRegne]               = useState('');
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState('');
 
   const reset = () => {
     setTitre(''); setDescription(''); setCategorie('PERSONNEL');
-    setNiveau('DECOUVERTE'); setPoints(''); setPreuve(''); setRegne('');
+    setNiveau('DECOUVERTE'); setPoints(''); setPreuve('');
     setError('');
   };
 
@@ -64,7 +56,6 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
         niveau,
         preuveDemandee: preuveDemandee.trim() || undefined,
         points:         points ? Number(points) : undefined,
-        regne:          regne || undefined,
       };
       const { data } = await challengesApi.create(payload);
       onCreated(data as Challenge);
@@ -81,11 +72,11 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 pb-16 sm:pb-4 bg-black/50 backdrop-blur-sm"
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col"
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[85vh] sm:max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* En-tête */}
@@ -150,30 +141,17 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
             </div>
           </div>
 
-          {/* Points + Règne */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Points</label>
-              <input
-                type="number"
-                min="0"
-                value={points}
-                onChange={e => setPoints(e.target.value)}
-                placeholder="0"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Règne</label>
-              <select
-                value={regne}
-                onChange={e => setRegne(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828]"
-              >
-                <option value="">— Aucun —</option>
-                {REGNES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-            </div>
+          {/* Points */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Points</label>
+            <input
+              type="number"
+              min="0"
+              value={points}
+              onChange={e => setPoints(e.target.value)}
+              placeholder="0"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828]"
+            />
           </div>
 
           {/* Preuve demandée */}
@@ -192,14 +170,14 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
         <div className="p-5 border-t border-gray-100 flex-shrink-0 flex gap-3">
           <button
             onClick={handleClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-50 text-[#6b6b78] hover:bg-gray-100 transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white border border-[#e0e0ea] text-[#6b6b78] hover:bg-[#f5f5fb] hover:border-[#c8c8d8] hover:shadow-sm transition-all duration-150"
           >
             Annuler
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || !titre.trim() || !description.trim()}
-            className="flex-1 bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-50"
+            className="flex-1 bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-[#C62828]/20 enabled:hover:bg-[#b51d1d] enabled:hover:shadow-md enabled:hover:shadow-[#C62828]/30 enabled:hover:-translate-y-px transition-all duration-150 disabled:opacity-60"
           >
             {loading ? 'Création…' : 'Créer le défi'}
           </button>

@@ -97,7 +97,7 @@ function ParticipantsContent() {
       <div className="flex justify-between items-center mb-4 border-b border-[#ececf0] pb-4">
         <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">👥 Participants</h1>
         <Link href="/dashboard/admin/export"
-          className="bg-[#6A1B9A] text-white font-bold text-xs lg:text-sm px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl hover:bg-[#5a1280] transition-colors flex-shrink-0">
+          className="bg-[#6A1B9A] text-white font-bold text-xs lg:text-sm px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl shadow-sm shadow-[#6A1B9A]/20 hover:bg-[#5a1280] hover:shadow-md hover:shadow-[#6A1B9A]/30 hover:-translate-y-px transition-all duration-150 flex-shrink-0">
           📤 Export
         </Link>
       </div>
