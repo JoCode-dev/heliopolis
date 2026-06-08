@@ -1,10 +1,9 @@
-import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { memoryStorage } from 'multer';
 
 export function memoryFileOptions(
   allowedMimeTypes: string[],
   maxSizeBytes: number,
-): MulterOptions {
+) {
   return {
     storage: memoryStorage(),
     fileFilter: (_req, file, cb) => {
