@@ -1082,6 +1082,7 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
   const lastMsg  = conv.messages?.[0];
   const timeStr  = convTimeLabel(conv.lastMessageAt);
   const preview  = lastMsg?.deletedAt ? '🚫 Message supprimé' : lastMsg?.contenu ?? '';
+  const unread   = conv.unreadCount ?? 0;
 
   /* Pour les convs privées : nom et avatar de l'interlocuteur */
   const otherMember = conv.type === 'PRIVE' && myId
@@ -1122,7 +1123,7 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
         style={{ transform: `translateX(-${swipeX}px)`, transition: swipeX === 0 || swipeX === ACTION_W ? 'transform 0.2s ease-out' : 'none' }}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         <Link href={`${msgsBase}/${conv.id}`}
-          className="flex items-center px-3 py-2.5 bg-white hover:bg-[#F5F5F5] transition-colors pr-10">
+          className={`flex items-center px-3 py-2.5 hover:bg-[#F5F5F5] transition-colors pr-10 ${unread > 0 ? 'bg-[#fafafa]' : 'bg-white'}`}>
           {/* Avatar : photo réelle pour PRIVE, icône pour les canaux */}
           {otherAvatar?.avatarUrl ? (
             <img src={otherAvatar.avatarUrl}
@@ -1137,13 +1138,28 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
             </div>
           )}
           <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
-            <div className="flex justify-between items-baseline gap-2">
-              <span className="font-semibold text-[15px] text-[#1F1B2E] truncate">{displayName}</span>
-              {timeStr && <span className="text-[12px] text-[#9b9ba8] flex-shrink-0">{timeStr}</span>}
+            <div className="flex justify-between items-center gap-2">
+              <span className={`text-[15px] truncate ${unread > 0 ? 'font-bold text-[#1F1B2E]' : 'font-semibold text-[#1F1B2E]'}`}>
+                {displayName}
+              </span>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {timeStr && (
+                  <span className={`text-[12px] ${unread > 0 ? 'text-[#2E7D32] font-semibold' : 'text-[#9b9ba8]'}`}>
+                    {timeStr}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[13px] text-[#9b9ba8] truncate flex-1 leading-snug">{preview}</span>
-              {conv.isPinned && <span className="text-[11px] flex-shrink-0">📌</span>}
+              <span className={`text-[13px] truncate flex-1 leading-snug ${unread > 0 ? 'text-[#1F1B2E] font-medium' : 'text-[#9b9ba8]'}`}>
+                {preview}
+              </span>
+              {conv.isPinned && !unread && <span className="text-[11px] flex-shrink-0">📌</span>}
+              {unread > 0 && (
+                <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[#2E7D32] text-white text-[11px] font-bold flex items-center justify-center leading-none">
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
             </div>
           </div>
         </Link>

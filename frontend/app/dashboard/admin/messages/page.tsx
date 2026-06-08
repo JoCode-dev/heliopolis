@@ -264,8 +264,10 @@ function MessagesTab({ msgBase }: { msgBase: string }) {
 }
 
 // ── Modal nouvelle conversation ───────────────────────────────────────────────
+type AdminConvMode = 'pick' | 'individual' | 'group' | 'channels';
+
 function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
-  const [mode, setMode] = useState<'pick' | 'individual' | 'group'>('pick');
+  const [mode, setMode] = useState<AdminConvMode>('pick');
   const [annuaire, setAnnuaire] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [search, setSearch] = useState('');
@@ -274,12 +276,39 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [creating, setCreating] = useState(false);
   const [filterDistrict, setFilterDistrict] = useState<string | null>(null);
   const [filterParish, setFilterParish] = useState<string | null>(null);
+  const [channels, setChannels] = useState<{
+    channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES';
+    convType: string; nom: string; description: string; icon: string;
+    territoryId: string; conversationId: string | null;
+    memberCount: number; isMember: boolean;
+  }[]>([]);
+  const [channelsLoading, setChannelsLoading] = useState(false);
+  const [joiningChannel, setJoiningChannel]   = useState<string | null>(null);
 
   useEffect(() => {
-    if (mode === 'pick') return;
+    if (mode === 'pick' || mode === 'channels') return;
     setLoadingUsers(true);
     usersApi.list().then(r => setAnnuaire(r.data)).catch(() => {}).finally(() => setLoadingUsers(false));
   }, [mode]);
+
+  const openChannels = () => {
+    setMode('channels');
+    if (channels.length > 0) return;
+    setChannelsLoading(true);
+    messagingApi.suggestedChannels()
+      .then(r => setChannels(r.data ?? []))
+      .catch(() => {})
+      .finally(() => setChannelsLoading(false));
+  };
+
+  const handleJoinChannel = async (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES') => {
+    setJoiningChannel(channelKey);
+    try {
+      const { data } = await messagingApi.createOrJoinChannel(channelKey);
+      onCreated(data.id);
+    } catch { /* ignore */ }
+    finally { setJoiningChannel(null); }
+  };
 
   // Listes uniques de districts et paroisses
   const districts = Array.from(
@@ -351,7 +380,10 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
             className="w-8 h-8 flex items-center justify-center text-white/80 text-2xl leading-none"
           >‹</button>
           <h2 className="flex-1 text-[16px] font-bold text-white">
-            {mode === 'pick' ? 'Nouvelle conversation' : mode === 'individual' ? 'Message individuel' : 'Nouveau groupe'}
+            {mode === 'pick'       ? 'Nouvelle conversation'
+              : mode === 'individual' ? 'Message individuel'
+              : mode === 'channels'   ? 'Canaux d\'équipe'
+              : 'Nouveau groupe'}
           </h2>
           {mode === 'group' && (
             <button onClick={handleCreateGroup} disabled={!groupName.trim() || selected.length === 0 || creating}
@@ -368,23 +400,97 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         {mode === 'pick' && (
           <div className="p-4 flex flex-col gap-3">
             {[
-              { m: 'individual' as const, icon: '🤝', gradient: 'from-[#1F1B2E] to-[#3a1d4d]', title: 'Message individuel', sub: 'Conversation privée avec un utilisateur' },
-              { m: 'group' as const,      icon: '👥', gradient: 'from-[#2E7D32] to-[#1a5021]', title: 'Groupe', sub: 'Conversation avec plusieurs personnes' },
-            ].map(({ m, icon, gradient, title, sub }) => (
-              <button key={m} onClick={() => setMode(m)}
-                className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-[#e6e6ea] active:bg-[#F0F0F0] text-left">
+              { m: 'individual' as AdminConvMode, icon: '🤝', gradient: 'from-[#1F1B2E] to-[#3a1d4d]',
+                title: 'Message individuel', sub: 'Conversation privée avec un utilisateur',
+                action: () => setMode('individual') },
+              { m: 'group' as AdminConvMode, icon: '👥', gradient: 'from-[#2E7D32] to-[#1a5021]',
+                title: 'Créer un groupe', sub: 'Conversation avec plusieurs personnes',
+                action: () => setMode('group') },
+              { m: 'channels' as AdminConvMode, icon: '📡', gradient: 'from-[#6A1B9A] to-[#4a1370]',
+                title: 'Canaux d\'équipe', sub: 'Rejoindre les canaux paroissiaux, de district ou régionaux',
+                action: openChannels },
+            ].map(({ m, icon, gradient, title, sub, action }) => (
+              <button key={m} onClick={action}
+                className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-[#e6e6ea] active:bg-[#F0F0F0] text-left hover:border-[#c0c0cc] transition-all duration-150">
                 <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-xl flex-shrink-0`}>{icon}</div>
                 <div>
                   <p className="text-[14px] font-bold text-[#1F1B2E]">{title}</p>
                   <p className="text-[12px] text-[#9b9ba8] mt-0.5">{sub}</p>
                 </div>
+                <svg className="ml-auto text-[#d0d0d8] flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
               </button>
             ))}
           </div>
         )}
 
+        {/* Canaux d'équipe */}
+        {mode === 'channels' && (
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {channelsLoading && (
+              <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
+                <div className="text-3xl animate-pulse mb-3">📡</div>
+                <p className="text-sm">Recherche des canaux…</p>
+              </div>
+            )}
+            {!channelsLoading && channels.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
+                <div className="text-3xl mb-3">📡</div>
+                <p className="text-sm font-semibold text-[#1F1B2E]">Aucun canal disponible</p>
+                <p className="text-xs mt-1 text-center">Aucun canal d'équipe n'est disponible.</p>
+              </div>
+            )}
+            {!channelsLoading && channels.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <p className="text-[11px] text-[#9b9ba8] uppercase tracking-wider font-semibold mb-1">
+                  Canaux disponibles
+                </p>
+                {channels.map(ch => {
+                  const typeGradient: Record<string, string> = {
+                    PAROISSE:    'from-[#C62828] to-[#7a1717]',
+                    GARDIENS:    'from-[#C62828] to-[#7a1717]',
+                    DOYENNE:     'from-[#6A1B9A] to-[#4a1370]',
+                    GUIDES:      'from-[#6A1B9A] to-[#4a1370]',
+                    REGION:      'from-[#1F1B2E] to-[#3a1d4d]',
+                    SENTINELLES: 'from-[#1F1B2E] to-[#3a1d4d]',
+                  };
+                  const isJoining = joiningChannel === ch.channelKey;
+                  return (
+                    <div key={ch.channelKey}
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-[#e6e6ea] bg-white hover:border-[#c0c0cc] transition-all duration-150">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${typeGradient[ch.channelKey]} flex items-center justify-center text-2xl flex-shrink-0 shadow-sm`}>
+                        {ch.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold text-[#1F1B2E] truncate">{ch.nom}</p>
+                        <p className="text-[12px] text-[#9b9ba8] mt-0.5">{ch.description}</p>
+                        {ch.memberCount > 0 && (
+                          <p className="text-[11px] text-[#6b6b78] mt-0.5">
+                            👥 {ch.memberCount} membre{ch.memberCount > 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleJoinChannel(ch.channelKey)}
+                        disabled={isJoining}
+                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-150 disabled:opacity-60 ${
+                          ch.isMember
+                            ? 'bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white'
+                            : `bg-gradient-to-r ${typeGradient[ch.channelKey]} text-white shadow-sm`
+                        }`}>
+                        {isJoining ? '…' : ch.isMember ? 'Ouvrir' : 'Rejoindre'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Liste utilisateurs */}
-        {mode !== 'pick' && (
+        {mode !== 'pick' && mode !== 'channels' && (
           <>
             {/* Nom du groupe */}
             {mode === 'group' && (
@@ -786,6 +892,7 @@ function ConvRow({ conv, onPin, onDelete, msgBase }: {
   const lastMsg  = conv.messages?.[0];
   const timeStr  = convTimeLabel(conv.lastMessageAt);
   const preview  = lastMsg?.deletedAt ? '🚫 Message supprimé' : lastMsg?.contenu ?? '';
+  const unread   = conv.unreadCount ?? 0;
 
   const [swipeX, setSwipeX] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -826,19 +933,34 @@ function ConvRow({ conv, onPin, onDelete, msgBase }: {
       >
         <Link
           href={`${msgBase}/${conv.id}`}
-          className="flex items-center px-3 py-2.5 bg-white hover:bg-[#F5F5F5] transition-colors pr-10"
+          className={`flex items-center px-3 py-2.5 hover:bg-[#F5F5F5] transition-colors pr-10 ${unread > 0 ? 'bg-[#fafafa]' : 'bg-white'}`}
         >
           <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-xl text-white bg-gradient-to-br ${gradient} flex-shrink-0 shadow-sm`}>
             {icon}
           </div>
           <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
-            <div className="flex justify-between items-baseline gap-2">
-              <span className="font-semibold text-[15px] text-[#1F1B2E] truncate">{conv.nom ?? 'Conversation'}</span>
-              {timeStr && <span className="text-[12px] text-[#9b9ba8] flex-shrink-0">{timeStr}</span>}
+            <div className="flex justify-between items-center gap-2">
+              <span className={`text-[15px] truncate ${unread > 0 ? 'font-bold text-[#1F1B2E]' : 'font-semibold text-[#1F1B2E]'}`}>
+                {conv.nom ?? 'Conversation'}
+              </span>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {timeStr && (
+                  <span className={`text-[12px] ${unread > 0 ? 'text-[#2E7D32] font-semibold' : 'text-[#9b9ba8]'}`}>
+                    {timeStr}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[13px] text-[#9b9ba8] truncate flex-1 leading-snug">{preview}</span>
-              {conv.isPinned && <span className="text-[11px] flex-shrink-0">📌</span>}
+              <span className={`text-[13px] truncate flex-1 leading-snug ${unread > 0 ? 'text-[#1F1B2E] font-medium' : 'text-[#9b9ba8]'}`}>
+                {preview}
+              </span>
+              {conv.isPinned && !unread && <span className="text-[11px] flex-shrink-0">📌</span>}
+              {unread > 0 && (
+                <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[#2E7D32] text-white text-[11px] font-bold flex items-center justify-center leading-none">
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
             </div>
           </div>
         </Link>

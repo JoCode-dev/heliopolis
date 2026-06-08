@@ -8,7 +8,7 @@ import type { Submission } from '@/types';
 type Tab = 'attente' | 'publies';
 
 export default function AdminCodexPage() {
-  const [tab, setTab] = useState<Tab>('attente');
+  const [tab, setTab] = useState<Tab>('publies');
   const [pending, setPending] = useState<Submission[]>([]);
   const [wall, setWall] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,8 +77,8 @@ export default function AdminCodexPage() {
         </div>
         <div className="flex">
           {([
-            { value: 'attente', label: `⏳ À modérer (${pending.length})` },
             { value: 'publies', label: '✓ Publiés' },
+            { value: 'attente', label: `⏳ À modérer (${pending.length})` },
           ] as { value: Tab; label: string }[]).map(t => (
             <button key={t.value} onClick={() => setTab(t.value)}
               className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider relative ${tab === t.value ? 'text-[#1F1B2E]' : 'text-[#6b6b78]'}`}>

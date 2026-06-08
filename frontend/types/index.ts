@@ -127,6 +127,7 @@ export interface Conversation {
   members?: ConversationMember[];
   messages?: Message[];
   _count?: { messages: number };
+  unreadCount?: number;
 }
 export interface ConversationMember {
   id: string; userId: string; role: string;

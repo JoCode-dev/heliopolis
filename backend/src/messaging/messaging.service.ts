@@ -22,7 +22,7 @@ export class MessagingService {
   }
 
   async getMyConversations(userId: string) {
-    return this.prisma.conversation.findMany({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
         members: { some: { userId, leftAt: null } },
         archivedAt: null,
@@ -56,6 +56,27 @@ export class MessagingService {
       },
       orderBy: { lastMessageAt: 'desc' },
     });
+
+    /* Calcul des messages non lus par conversation (batch) */
+    const unreadCounts = await this.prisma.$transaction(
+      conversations.map(conv => {
+        const myMember = conv.members.find(m => m.userId === userId);
+        const lastRead = myMember?.lastReadAt;
+        return this.prisma.message.count({
+          where: {
+            conversationId: conv.id,
+            authorId: { not: userId },
+            deletedAt: null,
+            ...(lastRead ? { createdAt: { gt: lastRead } } : {}),
+          },
+        });
+      }),
+    );
+
+    return conversations.map((conv, i) => ({
+      ...conv,
+      unreadCount: unreadCounts[i] ?? 0,
+    }));
   }
 
   async getMessages(
