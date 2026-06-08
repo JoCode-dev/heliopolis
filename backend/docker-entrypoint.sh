@@ -9,4 +9,4 @@ else
 fi
 
 echo ">> démarrage API sur le port ${PORT:-4000}"
-exec node dist/main.js
+exec node dist/src/main.js
