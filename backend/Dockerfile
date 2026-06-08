@@ -21,10 +21,6 @@ COPY backend/src ./src
 
 RUN npm run build
 
-# Dans le stage builder, après npm run build :
-RUN npx tsc --outDir dist-prisma-config --module commonjs --esModuleInterop true prisma.config.ts 2>/dev/null || \
-  npx esbuild prisma.config.ts --bundle --platform=node --outfile=prisma.config.js
-
 # ─── Stage de production ──────────────────────────────────────────────────────
 FROM node:22-alpine AS production
 
@@ -36,14 +32,12 @@ WORKDIR /app
 
 COPY backend/package.json backend/package-lock.json ./
 
-COPY --from=builder /app/prisma.config.js ./
-
 RUN npm ci --omit=dev --ignore-scripts
 
 # App compilée
 COPY --from=builder /app/dist ./dist
 
-# Prisma : schéma + client généré dans /generated (output custom via prisma.config.ts)
+# Prisma : schéma + client généré
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/generated ./generated
 
