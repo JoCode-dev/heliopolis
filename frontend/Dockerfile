@@ -1,13 +1,16 @@
+# Build context : racine du monorepo (Dokploy)
+# docker build -f frontend/Dockerfile -t heliopolis-frontend .
+
 # Stage de build
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 
 RUN npm ci --ignore-scripts
 
-COPY . .
+COPY frontend/ .
 
 # Variables NEXT_PUBLIC_* injectées au build (Next.js les inlined)
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api
@@ -22,7 +25,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # Stage de production (standalone — pas de npm install)
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 -G nodejs

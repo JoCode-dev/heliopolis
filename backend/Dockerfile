@@ -1,19 +1,22 @@
+# Build context : racine du monorepo (Dokploy)
+# docker build -f backend/Dockerfile -t heliopolis-backend .
+
 # Stage de build
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 RUN npm ci --ignore-scripts
 
-COPY prisma ./prisma
-COPY scripts ./scripts
-COPY nest-cli.json tsconfig.json tsconfig.build.json ./
+COPY backend/prisma ./prisma
+COPY backend/scripts ./scripts
+COPY backend/nest-cli.json backend/tsconfig.json backend/tsconfig.build.json ./
 
 RUN npm run prisma:generate
 
-COPY src ./src
+COPY backend/src ./src
 
 RUN npm run build
 
@@ -25,7 +28,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 RUN npm ci --omit=dev --ignore-scripts
 

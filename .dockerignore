@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/out
+**/dist
+**/generated
+**/coverage
+**/.env*
+**/.git
+**/*.md
+**/uploads
+**/logs
+**/.DS_Store
+**/.vercel
+**/*.tsbuildinfo
