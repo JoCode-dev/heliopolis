@@ -6516,6 +6516,11 @@ async function main() {
         guideAllIds.push(guideUser.id);
         if (guideRole === 'PLEIN') {
           guidePleinIds.push(guideUser.id);
+          // Un guide ne peut diriger qu'une seule paroisse (guideId @unique)
+          await prisma.parish.updateMany({
+            where: { guideId: guideUser.id, NOT: { id: parish.id } },
+            data: { guideId: null },
+          });
           await prisma.parish.update({
             where: { id: parish.id },
             data: { guideId: guideUser.id },
