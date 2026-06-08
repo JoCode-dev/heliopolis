@@ -8,18 +8,21 @@ import { SettingsService } from '../settings/settings.service.js';
 import { CreateCampDto } from './dto/create-camp.dto.js';
 import {
   AdhesionStatus,
+  AuditAction,
   CampStatus,
   CampType,
   UserRole,
 } from '../../generated/prisma/enums.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 
 @Injectable()
 export class CampsService {
   constructor(
     private prisma: PrismaService,
     private settings: SettingsService,
+    private actionLog: ActionLogService,
   ) {}
 
   private isRegionalManager(user?: AuthUser) {
@@ -170,7 +173,7 @@ export class CampsService {
         throw new ForbiddenException('District hors périmètre régional');
       }
     }
-    return this.prisma.camp.create({
+    const camp = await this.prisma.camp.create({
       data: {
         ...rest,
         dateDebut: new Date(dto.dateDebut),
@@ -183,16 +186,34 @@ export class CampsService {
       },
       select: this.campSelect,
     });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'camp',
+      summary: `Création du camp « ${camp.nom} »`,
+      actor: createdBy,
+      target: { entityType: 'Camp', entityId: camp.id },
+      metadata: { type: camp.type, statut: camp.statut },
+    });
+    return camp;
   }
 
   async updateStatus(id: string, statut: CampStatus, actor: AuthUser) {
     await this.findOne(id, actor);
     await this.assertCampRegionalScope(id, actor);
-    return this.prisma.camp.update({
+    const camp = await this.prisma.camp.update({
       where: { id },
       data: { statut },
       select: this.campSelect,
     });
+    this.actionLog.record({
+      action: AuditAction.STATUS_CHANGE,
+      category: 'camp',
+      summary: `Statut du camp « ${camp.nom} » → ${statut}`,
+      actor: actor,
+      target: { entityType: 'Camp', entityId: id },
+      metadata: { statut },
+    });
+    return camp;
   }
 
   async getParticipants(campId: string, actor: AuthUser) {
@@ -270,7 +291,7 @@ export class CampsService {
       throw new ForbiddenException('Ce participant a été bloqué pour ce camp par un supérieur hiérarchique.');
     }
 
-    return this.prisma.campParticipant.upsert({
+    const participant = await this.prisma.campParticipant.upsert({
       where: { campId_userId: { campId, userId } },
       create: {
         campId,
@@ -283,6 +304,17 @@ export class CampsService {
       },
       update: { participationStatus: 'SELECTIONNE', selectedById },
     });
+    if (selector) {
+      this.actionLog.record({
+        action: AuditAction.CREATE,
+        category: 'camp',
+        summary: `Sélection de ${user.prenoms} ${user.nom} pour le camp « ${camp.nom} »`,
+        actor: selector,
+        target: { entityType: 'CampParticipant', entityId: participant.id },
+        metadata: { campId, userId },
+      });
+    }
+    return participant;
   }
 
   async removeParticipant(campId: string, userId: string, actorId: string) {
@@ -300,6 +332,14 @@ export class CampsService {
     }
 
     await this.prisma.campParticipant.deleteMany({ where: { campId, userId } });
+    this.actionLog.record({
+      action: AuditAction.DELETE,
+      category: 'camp',
+      summary: `Retrait de ${target.prenoms} ${target.nom} du camp`,
+      actor: actor,
+      target: { entityType: 'CampParticipant', entityId: `${campId}:${userId}` },
+      metadata: { campId, userId },
+    });
     return { success: true };
   }
 
@@ -319,15 +359,24 @@ export class CampsService {
       where: { campId_userId: { campId, userId } },
     });
     if (existing) {
-      return this.prisma.campParticipant.update({
+      const updated = await this.prisma.campParticipant.update({
         where: { campId_userId: { campId, userId } },
         data: { participationStatus: 'BLOQUE' },
       });
+      this.actionLog.record({
+        action: AuditAction.STATUS_CHANGE,
+        category: 'camp',
+        summary: `Blocage de ${target.prenoms} ${target.nom} pour le camp`,
+        actor: actor,
+        target: { entityType: 'CampParticipant', entityId: updated.id },
+        metadata: { campId, userId },
+      });
+      return updated;
     }
     const districtId = target.districtId;
     const parishId   = target.parishId;
     if (!districtId || !parishId) throw new ForbiddenException('Territoire introuvable');
-    return this.prisma.campParticipant.create({
+    const created = await this.prisma.campParticipant.create({
       data: {
         campId, userId, selectedById: actorId,
         districtId, parishId,
@@ -335,6 +384,15 @@ export class CampsService {
         participationStatus: 'BLOQUE',
       },
     });
+    this.actionLog.record({
+      action: AuditAction.STATUS_CHANGE,
+      category: 'camp',
+      summary: `Blocage de ${target.prenoms} ${target.nom} pour le camp`,
+      actor: actor,
+      target: { entityType: 'CampParticipant', entityId: created.id },
+      metadata: { campId, userId },
+    });
+    return created;
   }
 
   async unblockParticipant(campId: string, userId: string, actorId: string) {
@@ -348,6 +406,14 @@ export class CampsService {
 
     await this.prisma.campParticipant.deleteMany({
       where: { campId, userId, participationStatus: 'BLOQUE' },
+    });
+    this.actionLog.record({
+      action: AuditAction.STATUS_CHANGE,
+      category: 'camp',
+      summary: `Déblocage de ${target.prenoms} ${target.nom} pour le camp`,
+      actor: actor,
+      target: { entityType: 'CampParticipant', entityId: `${campId}:${userId}` },
+      metadata: { campId, userId },
     });
     return { success: true };
   }

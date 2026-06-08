@@ -81,11 +81,69 @@ export interface Council {
   lieu?: string;
   statut: CouncilStatus;
   targetRoles: string[];
+  qrToken?: string;
   region?:   { id: string; nom: string };
   district?: { id: string; nom: string };
   parish?:   { id: string; nom: string };
   createdBy?: Partial<User>;
   createdAt: string;
+}
+
+export interface CouncilPublic {
+  nom: string;
+  description?: string;
+  date: string;
+  lieu?: string;
+  statut: CouncilStatus;
+  targetRoles: string[];
+  region?:   { id: string; nom: string };
+  district?: { id: string; nom: string };
+  parish?:   { id: string; nom: string };
+  registrationOpen: boolean;
+}
+
+export interface CouncilParticipant {
+  id: string;
+  nom: string;
+  prenoms: string;
+  contact?: string;
+  district?: { id: string; nom: string };
+  parish?: { id: string; nom: string };
+  fonction?: string;
+  note?: number;
+  avis?: string;
+  registeredAt: string;
+  user?: { id: string; nom: string; prenoms: string };
+}
+
+// ─── Journal d'actions ───────────────────────────────────────────────────────
+export type AuditAction =
+  | 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  | 'EXPORT' | 'STATUS_CHANGE' | 'VALIDATE' | 'REJECT';
+
+export type ActionLogCategory =
+  | 'auth' | 'user' | 'camp' | 'challenge' | 'codex'
+  | 'council' | 'badge' | 'export' | 'settings';
+
+export interface ActionLogEntry {
+  id: string;
+  timestamp: string;
+  action: AuditAction;
+  category: ActionLogCategory;
+  summary: string;
+  actor?: { id: string; role: string; label: string };
+  target: { entityType: string; entityId: string };
+  metadata?: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+}
+
+export interface ActionLogsResponse {
+  items: ActionLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  date: string;
 }
 
 // ─── Challenges / Soumissions ────────────────────────────────────────────────

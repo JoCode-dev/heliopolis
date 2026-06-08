@@ -9,16 +9,21 @@ import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import {
   AdhesionStatus,
+  AuditAction,
   ProfileStatus,
   UserRole,
 } from '../../generated/prisma/enums.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private actionLog: ActionLogService,
+  ) {}
 
   private noScope(): Prisma.UserWhereInput {
     return { id: '__no_scope__' };
@@ -210,7 +215,7 @@ export class UsersService {
       UserRole.GARDIEN
     );
 
-    return this.prisma.user.create({
+    const created = await this.prisma.user.create({
       data: {
         nom: dto.nom,
         prenoms: dto.prenoms,
@@ -229,19 +234,37 @@ export class UsersService {
       },
       select: this.userSelect,
     });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'user',
+      summary: `Création du membre ${created.prenoms} ${created.nom} (${created.role})`,
+      actor: actor,
+      target: { entityType: 'User', entityId: created.id },
+      metadata: { role: created.role, matricule: created.matricule },
+    });
+    return created;
   }
 
   async updateStatut(id: string, statut: ProfileStatus, actor: AuthUser) {
-    await this.findOne(id, actor);
-    return this.prisma.user.update({
+    const before = await this.findOne(id, actor);
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { statutProfil: statut },
       select: this.userSelect,
     });
+    this.actionLog.record({
+      action: AuditAction.STATUS_CHANGE,
+      category: 'user',
+      summary: `Statut de ${updated.prenoms} ${updated.nom} → ${statut}`,
+      actor: actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { before: before.statutProfil, after: statut },
+    });
+    return updated;
   }
 
   async updateMe(userId: string, dto: { nom?: string; prenoms?: string; email?: string; telephone?: string }) {
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(dto.nom && { nom: dto.nom }),
@@ -251,10 +274,17 @@ export class UsersService {
       },
       select: this.userSelect,
     });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'user',
+      summary: `Mise à jour du profil de ${updated.prenoms} ${updated.nom}`,
+      actor: updated,
+      target: { entityType: 'User', entityId: userId },
+    });
+    return updated;
   }
 
-  async updateAvatar(userId: string, filename: string) {
-    const avatarUrl = `/uploads/avatars/${filename}`;
+  async updateAvatar(userId: string, avatarUrl: string) {
     return this.prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },
@@ -267,18 +297,34 @@ export class UsersService {
     await this.assertCreateScope(dto, actor);
     const { password, ...rest } = dto;
     const passwordHash = password ? await bcrypt.hash(password, 12) : undefined;
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { ...rest, ...(passwordHash && { passwordHash }) },
       select: this.userSelect,
     });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'user',
+      summary: `Modification du membre ${updated.prenoms} ${updated.nom}`,
+      actor: actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { role: updated.role },
+    });
+    return updated;
   }
 
   async remove(id: string, actor: AuthUser) {
-    await this.findOne(id, actor);
+    const target = await this.findOne(id, actor);
     await this.prisma.user.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+    this.actionLog.record({
+      action: AuditAction.DELETE,
+      category: 'user',
+      summary: `Archivage du membre ${target.prenoms} ${target.nom}`,
+      actor: actor,
+      target: { entityType: 'User', entityId: id },
     });
     return { message: 'Gardien archivé' };
   }
@@ -294,8 +340,8 @@ export class UsersService {
       where: { id: validateurId },
     });
     if (!validateur) throw new ForbiddenException('Validateur introuvable');
-    await this.findOne(userId, validateur);
-    return this.prisma.adhesion.upsert({
+    const target = await this.findOne(userId, validateur);
+    const adhesion = await this.prisma.adhesion.upsert({
       where: { userId_annee: { userId, annee } },
       create: {
         userId,
@@ -312,5 +358,14 @@ export class UsersService {
         ...(preuveUrl !== undefined && { preuveUrl }),
       },
     });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'user',
+      summary: `Adhésion ${annee} de ${target.prenoms} ${target.nom} → ${statut}`,
+      actor: validateur,
+      target: { entityType: 'Adhesion', entityId: adhesion.id },
+      metadata: { annee, statut, userId },
+    });
+    return adhesion;
   }
 }

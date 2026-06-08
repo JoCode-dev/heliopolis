@@ -4,7 +4,7 @@
 /build
 
 # Logs
-logs
+# logs
 *.log
 npm-debug.log*
 pnpm-debug.log*
@@ -45,6 +45,9 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+
+# Local uploads (legacy — files now stored on R2)
+/uploads
 
 # Runtime data
 pids

@@ -11,9 +11,6 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { randomUUID } from 'crypto';
 import { ChallengesService } from './challenges.service.js';
 import { CreateChallengeDto } from './dto/create-challenge.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -27,6 +24,11 @@ import {
   ChallengeStatus,
   UserRole,
 } from '../../generated/prisma/enums.js';
+import { R2StorageService } from '../storage/r2-storage.service.js';
+import {
+  memoryFileOptions,
+  PREUVE_MIME_TYPES,
+} from '../storage/multer-options.js';
 
 interface ChallengeListQuery {
   categorie?: ChallengeCategory;
@@ -46,7 +48,10 @@ interface ValidateSubmissionBody {
 
 @Controller('challenges')
 export class ChallengesController {
-  constructor(private challengesService: ChallengesService) {}
+  constructor(
+    private challengesService: ChallengesService,
+    private storage: R2StorageService,
+  ) {}
 
   @UseGuards(OptionalJwtGuard)
   @Get()
@@ -64,7 +69,7 @@ export class ChallengesController {
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Post()
   create(@Body() dto: CreateChallengeDto, @CurrentUser() user: AuthUser) {
-    return this.challengesService.create(dto, user.id);
+    return this.challengesService.create(dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -77,25 +82,21 @@ export class ChallengesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.GARDIEN)
   @Post(':id/submit')
-  @UseInterceptors(FileInterceptor('preuve', {
-    storage: diskStorage({
-      destination: join(process.cwd(), 'uploads', 'preuves'),
-      filename: (req, file, cb) => {
-        cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase() || '.jpg'}`);
-      },
-    }),
-    fileFilter: (req, file, cb) => {
-      cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype));
-    },
-    limits: { fileSize: 10 * 1024 * 1024 },
-  }))
-  submit(
+  @UseInterceptors(
+    FileInterceptor(
+      'preuve',
+      memoryFileOptions(PREUVE_MIME_TYPES, 10 * 1024 * 1024),
+    ),
+  )
+  async submit(
     @Param('id') id: string,
     @Body() body: SubmitChallengeBody,
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: AuthUser,
   ) {
-    const preuveUrl = file ? `/uploads/preuves/${file.filename}` : body.preuveUrl;
+    const preuveUrl = file
+      ? await this.storage.upload('preuves', file)
+      : body.preuveUrl;
     return this.challengesService.submit(id, user.id, { ...body, preuveUrl });
   }
 
@@ -118,10 +119,7 @@ export class ChallengesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.GARDIEN)
   @Delete('submissions/:id')
-  retractSubmission(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  retractSubmission(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.challengesService.retractSubmission(id, user.id);
   }
 

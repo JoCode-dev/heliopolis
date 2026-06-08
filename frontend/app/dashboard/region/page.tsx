@@ -2,15 +2,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
-import { territoriesApi, campsApi, usersApi } from '@/lib/api';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { DashboardChartsSection } from '@/components/dashboard/DashboardChartsSection';
+import { campsApi } from '@/lib/api';
 import type { Camp } from '@/types';
-
-interface Stats {
-  totalGardiens: number;
-  campsOuverts: number;
-  defisValides: number;
-  districts: number;
-}
 
 const QUICK_LINKS = [
   { href: '/dashboard/region/camps',        icon: '⛺', label: 'Camps',         color: 'bg-[#C62828]/10 text-[#C62828]' },
@@ -25,32 +20,27 @@ const QUICK_LINKS = [
 
 export default function RegionHomePage() {
   const { user } = useAuthStore();
-  const [stats, setStats]         = useState<Stats | null>(null);
-  const [camps, setCamps]         = useState<Camp[]>([]);
-  const [sentinelleCount, setSentinelleCount] = useState(0);
-  const [loading, setLoading]     = useState(true);
+  const { data: dashboard, loading: dashboardLoading } = useDashboardStats();
+  const [camps, setCamps] = useState<Camp[]>([]);
+  const [campsLoading, setCampsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([
-      territoriesApi.stats(),
-      campsApi.list(),
-      usersApi.list({ role: 'SENTINELLE' }),
-    ]).then(([s, c, sent]) => {
-      if (s.status === 'fulfilled') setStats(s.value.data);
-      if (c.status === 'fulfilled') {
-        const all = c.value.data as Camp[];
+    campsApi.list()
+      .then(r => {
+        const all = r.data as Camp[];
         setCamps(all.filter(camp => ['EN_COURS', 'OUVERT'].includes(camp.statut)));
-      }
-      if (sent.status === 'fulfilled') setSentinelleCount((sent.value.data as unknown[]).length);
-    }).finally(() => setLoading(false));
+      })
+      .catch(() => {})
+      .finally(() => setCampsLoading(false));
   }, []);
 
+  const overview = dashboard?.overview;
   const activeCamp = camps.find(c => c.statut === 'EN_COURS');
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f6f6fa]">
 
-      {/* ── Bandeau accueil ── */}
+      {/* Bandeau accueil */}
       <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-5 pb-6 lg:px-6">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -72,13 +62,13 @@ export default function RegionHomePage() {
         </div>
 
         {/* Stats rapides */}
-        {!loading && stats && (
+        {!dashboardLoading && overview && (
           <div className="grid grid-cols-4 gap-2 mt-4">
             {[
-              { label: 'Camps',        value: stats.campsOuverts,  icon: '⛺' },
-              { label: 'Sentinelles',  value: sentinelleCount,     icon: '🛡️' },
-              { label: 'Gardiens',     value: stats.totalGardiens, icon: '🤝' },
-              { label: 'Districts',    value: stats.districts,     icon: '🗺️' },
+              { label: 'Camps',       value: overview.campsOuverts,  icon: '⛺' },
+              { label: 'Sentinelles', value: overview.sentinelles,   icon: '🛡️' },
+              { label: 'Gardiens',    value: overview.totalGardiens, icon: '🤝' },
+              { label: 'Districts',   value: overview.districts,     icon: '🗺️' },
             ].map(s => (
               <div key={s.label} className="bg-white/10 rounded-xl p-2.5 text-center">
                 <div className="text-base leading-none mb-0.5">{s.icon}</div>
@@ -88,12 +78,19 @@ export default function RegionHomePage() {
             ))}
           </div>
         )}
+        {dashboardLoading && (
+          <div className="grid grid-cols-4 gap-2 mt-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white/10 rounded-xl p-2.5 h-14 animate-pulse" />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-4 pb-8 lg:px-6 space-y-5">
 
-        {/* ── Camps en cours / ouverts ── */}
-        {camps.length > 0 && (
+        {/* Camps en cours / ouverts */}
+        {!campsLoading && camps.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-2.5">
               <h2 className="text-sm font-bold text-[#1F1B2E]">⛺ Camps actifs</h2>
@@ -117,7 +114,13 @@ export default function RegionHomePage() {
           </section>
         )}
 
-        {/* ── Accès rapides ── */}
+        {/* Graphiques statistiques */}
+        <section>
+          <h2 className="text-sm font-bold text-[#1F1B2E] mb-2.5">📊 Statistiques</h2>
+          <DashboardChartsSection data={dashboard} loading={dashboardLoading} compact />
+        </section>
+
+        {/* Accès rapides */}
         <section>
           <h2 className="text-sm font-bold text-[#1F1B2E] mb-2.5">Accès rapides</h2>
           <div className="grid grid-cols-4 gap-2">
@@ -133,7 +136,7 @@ export default function RegionHomePage() {
           </div>
         </section>
 
-        {/* ── Nouveau camp ── */}
+        {/* Nouveau camp */}
         <Link href="/dashboard/region/camps/nouveau"
           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-[#C62828] text-white font-bold text-sm hover:bg-[#b51d1d] transition-colors shadow-sm">
           ⛺ Créer un nouveau camp
