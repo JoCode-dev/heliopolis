@@ -21,6 +21,10 @@ COPY backend/src ./src
 
 RUN npm run build
 
+# Dans le stage builder, après npm run build :
+RUN npx tsc --outDir dist-prisma-config --module commonjs --esModuleInterop true prisma.config.ts 2>/dev/null || \
+  npx esbuild prisma.config.ts --bundle --platform=node --outfile=prisma.config.js
+
 # ─── Stage de production ──────────────────────────────────────────────────────
 FROM node:22-alpine AS production
 
@@ -31,6 +35,8 @@ RUN apk add --no-cache openssl ca-certificates wget && \
 WORKDIR /app
 
 COPY backend/package.json backend/package-lock.json ./
+
+COPY --from=builder /app/prisma.config.js ./
 
 RUN npm ci --omit=dev --ignore-scripts
 
