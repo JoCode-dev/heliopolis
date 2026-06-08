@@ -84,12 +84,6 @@ export default function MessagesPage() {
             {user?.avatarUrl ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="36px" /> : initials}
           </div>
           <h1 className="flex-1 text-[18px] font-black text-white tracking-tight">Messagerie</h1>
-          <button className="w-8 h-8 flex items-center justify-center text-white/70">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          </button>
-          <button className="w-8 h-8 flex items-center justify-center text-white/70">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-          </button>
         </div>
         <div className="flex">
           {(['messages', 'contacts'] as Tab[]).map(t => (
