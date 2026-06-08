@@ -11,6 +11,7 @@ const BACKEND_PORT = new URL(BACKEND).port || undefined;
 const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   allowedDevOrigins: ['host.docker.internal'],
   images: {
     unoptimized: isDev,
