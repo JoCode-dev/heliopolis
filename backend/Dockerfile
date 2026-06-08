@@ -11,14 +11,26 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY backend/prisma ./prisma
+COPY backend/prisma.config.ts ./
 COPY backend/scripts ./scripts
 COPY backend/nest-cli.json backend/tsconfig.json backend/tsconfig.build.json ./
 
+# Génère le client Prisma (DATABASE_URL pas nécessaire ici)
 RUN npm run prisma:generate
 
 COPY backend/src ./src
 
 RUN npm run build
+
+# Compile prisma.config.ts → prisma.config.js (pour le runtime)
+RUN node_modules/.bin/tsc \
+      --target ES2020 \
+      --module commonjs \
+      --moduleResolution node \
+      --esModuleInterop true \
+      --skipLibCheck true \
+      --outDir . \
+      prisma.config.ts
 
 # ─── Stage de production ──────────────────────────────────────────────────────
 FROM node:22-alpine AS production
@@ -36,9 +48,10 @@ RUN npm ci --omit=dev --ignore-scripts
 # App compilée
 COPY --from=builder /app/dist ./dist
 
-# Prisma : schéma + client généré
+# Prisma
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/prisma.config.js ./
 
 # Entrypoint
 COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
