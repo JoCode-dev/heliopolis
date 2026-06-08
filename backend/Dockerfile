@@ -32,18 +32,14 @@ WORKDIR /app
 
 COPY backend/package.json backend/package-lock.json ./
 
-# --ignore-scripts ici aussi pour éviter que postinstall re-génère Prisma
-# sans les sources disponibles
 RUN npm ci --omit=dev --ignore-scripts
 
 # App compilée
 COPY --from=builder /app/dist ./dist
 
-# Prisma : schéma + client généré (binaires déjà compilés pour linux-musl)
+# Prisma : schéma + client généré dans /generated (output custom via prisma.config.ts)
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/generated ./generated
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Entrypoint
 COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
