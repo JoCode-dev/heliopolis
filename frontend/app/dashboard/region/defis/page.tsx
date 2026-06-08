@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { codexApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { CreateChallengeModal } from '@/components/defis/CreateChallengeModal';
 import type { Submission, SubmissionStatus } from '@/types';
 
@@ -35,15 +36,15 @@ export default function DefisPage() {
   const [actionId, setActionId]       = useState<string | null>(null);
   const [createOpen, setCreateOpen]   = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const { data } = await codexApi.pending();
       setSubmissions(data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => deferEffect(load), [load]);
 
   const handleApprove = async (id: string) => {
     setActionId(id + '-ok');

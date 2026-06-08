@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { usePastoralYear } from '@/store/pastoralYear';
 import { useAuthStore } from '@/store/auth';
+import { deferEffect } from '@/lib/effects';
 
 export default function AdminParametresPage() {
   const { annee, load, update } = usePastoralYear();
@@ -15,8 +16,8 @@ export default function AdminParametresPage() {
   const [confirm, setConfirm] = useState(false);
   const [membresCount, setMembresCount] = useState<number | null>(null);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { setInput(String(annee)); }, [annee]);
+  useEffect(() => deferEffect(load), [load]);
+  useEffect(() => deferEffect(() => setInput(String(annee))), [annee]);
 
   const newVal = parseInt(input, 10);
   const isDecreasing = !isNaN(newVal) && newVal < annee;

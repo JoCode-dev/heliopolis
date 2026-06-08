@@ -1,10 +1,12 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { messagingApi, contactsApi, usersApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { useAuthStore } from '@/store/auth';
-import type { Conversation, ContactItem, ContactUser, Contact, User } from '@/types';
+import type { Conversation, ContactItem, Contact, User } from '@/types';
 
 type RowUser = { id: string; nom: string; prenoms: string; avatarUrl?: string; role: string; parish?: { nom: string }; district?: { nom: string } };
 
@@ -19,11 +21,6 @@ const CONV_GRADIENT: Record<string, string> = {
   PRIVE:      'from-[#1F1B2E] to-[#3a1d4d]',
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
-const CANAL_LABEL: Record<string, string> = {
-  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'District',
-  PAROISSE: 'Paroisse', GROUPE: 'Groupe', PRIVE: 'Privé',
-};
-
 type Tab = 'messages' | 'contacts';
 type FilterType = 'tous' | 'contacts' | 'demandes';
 
@@ -66,10 +63,10 @@ export default function MessagesPage() {
     : '/dashboard/admin/messages';
   const [tab, setTab] = useState<Tab>('messages');
 
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     const saved = localStorage.getItem('messages-tab') as Tab;
     if (saved === 'messages' || saved === 'contacts') setTab(saved);
-  }, []);
+  }), []);
 
   const handleTabChange = (t: Tab) => {
     setTab(t);
@@ -83,8 +80,8 @@ export default function MessagesPage() {
       {/* ── Header ── */}
       <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
         <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
-          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
-            {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" /> : initials}
+          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden relative">
+            {user?.avatarUrl ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="36px" /> : initials}
           </div>
           <h1 className="flex-1 text-[18px] font-black text-white tracking-tight">Messagerie</h1>
           <button className="w-8 h-8 flex items-center justify-center text-white/70">
@@ -126,7 +123,7 @@ function MessagesTab({ msgBase }: { msgBase: string }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handlePin = async (conv: Conversation) => {
     await messagingApi.togglePin(conv.id).catch(() => {});
@@ -287,8 +284,10 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
 
   useEffect(() => {
     if (mode === 'pick' || mode === 'channels') return;
-    setLoadingUsers(true);
-    usersApi.list().then(r => setAnnuaire(r.data)).catch(() => {}).finally(() => setLoadingUsers(false));
+    return deferEffect(() => {
+      setLoadingUsers(true);
+      usersApi.list().then(r => setAnnuaire(r.data)).catch(() => {}).finally(() => setLoadingUsers(false));
+    });
   }, [mode]);
 
   const openChannels = () => {
@@ -438,7 +437,7 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
               <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
                 <div className="text-3xl mb-3">📡</div>
                 <p className="text-sm font-semibold text-[#1F1B2E]">Aucun canal disponible</p>
-                <p className="text-xs mt-1 text-center">Aucun canal d'équipe n'est disponible.</p>
+                <p className="text-xs mt-1 text-center">Aucun canal d&apos;équipe n&apos;est disponible.</p>
               </div>
             )}
             {!channelsLoading && channels.length > 0 && (
@@ -580,7 +579,7 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                   >
                     <div className="relative flex-shrink-0">
                       {u.avatarUrl
-                        ? <img src={u.avatarUrl} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
+                        ? <Image src={u.avatarUrl} width={50} height={50} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
                         : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${avatarCls} flex items-center justify-center text-sm font-bold text-white`}>{u.nom[0]}{u.prenoms[0]}</div>
                       }
                       {mode === 'group' && isSelected && (
@@ -654,7 +653,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [me?.id]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handleAccept = async (id: string) => {
     await contactsApi.accept(id).catch(() => {});
@@ -676,7 +675,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
       <div className="flex-1 flex items-center justify-center bg-[#f7f7fb]">
         <div className="text-center text-[#6b6b78] text-sm">
           <div className="text-3xl mb-3 animate-pulse">👥</div>
-          <p>Chargement de l'annuaire…</p>
+          <p>Chargement de l&apos;annuaire…</p>
         </div>
       </div>
     );
@@ -1025,7 +1024,7 @@ function ContactRow({
   return (
     <div className="flex items-center px-4 py-3 bg-white hover:bg-[#F5F5F5] transition-colors">
       {(user as { avatarUrl?: string }).avatarUrl ? (
-        <img src={(user as { avatarUrl?: string }).avatarUrl} alt={initials} className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" />
+        <Image src={(user as { avatarUrl?: string }).avatarUrl as string} width={50} height={50} alt={initials} className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" />
       ) : (
         <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${avatarCls} flex-shrink-0`}>
           {initials}

@@ -37,18 +37,43 @@ export class CodexService {
     return { items, total };
   }
 
-  async react(submissionId: string, userId: string, emoji = '❤️') {
-    return this.prisma.codexReaction.upsert({
-      where: { submissionId_userId_emoji: { submissionId, userId, emoji } },
-      create: { submissionId, userId, emoji },
+  async react(submissionId: string, userId: string, emoji?: string) {
+    const reactionEmoji = emoji || '❤️';
+
+    await this.prisma.codexReaction.upsert({
+      where: { submissionId_userId_emoji: { submissionId, userId, emoji: reactionEmoji } },
+      create: { submissionId, userId, emoji: reactionEmoji },
       update: {},
     });
+
+    return this.getReactionState(submissionId, userId, reactionEmoji);
   }
 
-  async unreact(submissionId: string, userId: string, emoji = '❤️') {
-    return this.prisma.codexReaction.deleteMany({
-      where: { submissionId, userId, emoji },
+  async unreact(submissionId: string, userId: string, emoji?: string) {
+    const reactionEmoji = emoji || '❤️';
+
+    await this.prisma.codexReaction.deleteMany({
+      where: { submissionId, userId, emoji: reactionEmoji },
     });
+
+    return this.getReactionState(submissionId, userId, reactionEmoji);
+  }
+
+  private async getReactionState(submissionId: string, userId: string, emoji: string) {
+    const [count, existing] = await Promise.all([
+      this.prisma.codexReaction.count({ where: { submissionId } }),
+      this.prisma.codexReaction.findUnique({
+        where: { submissionId_userId_emoji: { submissionId, userId, emoji } },
+        select: { id: true },
+      }),
+    ]);
+
+    return {
+      submissionId,
+      emoji,
+      count,
+      reacted: !!existing,
+    };
   }
 
   async getPendingModeration(actor?: { role: string; parishId?: string; districtId?: string; regionId?: string }) {

@@ -1,6 +1,8 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { challengesApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { Pill, Progress } from '@/components/ui';
 import type { Challenge, ChallengeCategory, Submission } from '@/types';
 
@@ -62,11 +64,11 @@ export default function MissionsPage() {
     .reduce((acc, s) => acc + (s.challenge?.points ?? 0), 0);
 
   // Persistance des onglets et des missions démarrées
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     const savedTab = localStorage.getItem(TAB_KEY) as Tab;
     if (['defis', 'en-cours', 'accomplies'].includes(savedTab)) setTab(savedTab);
     setStartedIds(loadStarted());
-  }, []);
+  }), []);
 
   const changeTab = (t: Tab) => { setTab(t); localStorage.setItem(TAB_KEY, t); };
 
@@ -76,7 +78,7 @@ export default function MissionsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -445,7 +447,7 @@ function ChallengeRow({ challenge: c, subs, validCount, todayDone, onClick }: {
           <Pill variant={style.pill}>{CAT_LABEL[cat]}</Pill>
           {isDuration
             ? todayDone
-              ? <span className="text-[12px] text-[#D9A441] font-semibold ml-auto">⏳ Soumis aujourd'hui</span>
+              ? <span className="text-[12px] text-[#D9A441] font-semibold ml-auto">⏳ Soumis aujourd&apos;hui</span>
               : subs.length > 0
                 ? <span className="text-[12px] text-[#C62828] font-semibold ml-auto">● Jour {subs.length + 1} à soumettre</span>
                 : <span className="text-[12px] text-[#9b9ba8] ml-auto">Pas encore soumis</span>
@@ -712,7 +714,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                   <div className="mt-2">
                     {photoPreview ? (
                       <div className="relative rounded-xl overflow-hidden border border-[#ececf0]">
-                        <img src={photoPreview} alt="Aperçu" className="w-full max-h-48 object-cover" />
+                        <Image src={photoPreview} width={800} height={400} unoptimized alt="Aperçu" className="w-full max-h-48 object-cover" style={{ height: 'auto', maxHeight: '12rem' }} />
                         <button
                           onClick={removePhoto}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-xs font-bold hover:bg-black/80 transition">

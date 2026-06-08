@@ -54,7 +54,7 @@ export default function RegionHomePage() {
       <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-5 pb-6 lg:px-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] opacity-60 uppercase tracking-widest mb-1">Conseil d'Héliopolis</p>
+            <p className="text-[11px] opacity-60 uppercase tracking-widest mb-1">Conseil d&apos;Héliopolis</p>
             <h1 className="text-xl font-black">
               Bonjour, {user?.prenoms} 👋
             </h1>

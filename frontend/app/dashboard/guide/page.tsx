@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
@@ -107,9 +108,9 @@ export default function DashboardGuidePage() {
       {/* ── Header ── */}
       <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-11 h-11 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden">
+          <div className="w-11 h-11 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden relative">
             {user?.avatarUrl
-              ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
+              ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="44px" />
               : user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : 'G'}
           </div>
           <div className="flex-1">

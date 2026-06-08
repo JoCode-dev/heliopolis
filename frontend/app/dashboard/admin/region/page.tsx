@@ -84,7 +84,6 @@ function RegionContent() {
 
   const nbActifs   = membres.filter(u => u.statutProfil === 'ACTIF').length;
   const nbAJour    = membres.filter(u => u.adhesions?.[0]?.statut === 'A_JOUR').length;
-  const nbNonAJour = membres.filter(u => u.adhesions?.[0]?.statut === 'NON_A_JOUR').length;
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">

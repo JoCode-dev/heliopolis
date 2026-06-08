@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
-import { Input, Select, Toggle, Button } from '@/components/ui';
+import { Input, Toggle, Button } from '@/components/ui';
 
 const TYPES: { value: string; label: string; icon: string; desc: string }[] = [
   { value: 'REGIONAL', label: 'Régional',  icon: '🗺️', desc: 'Camp organisé au niveau de la région' },

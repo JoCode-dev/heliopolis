@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { campsApi, usersApi } from '@/lib/api';
 import { getTerritoryLabel } from '@/lib/roles';
@@ -52,8 +53,8 @@ function Avatar({ user: u, idx, size = 'md', greyed = false }: {
 }) {
   const sz = size === 'sm' ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm';
   return (
-    <div className={`${sz} rounded-full bg-gradient-to-br ${GRAD[idx % GRAD.length]} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden ${greyed ? 'grayscale opacity-60' : ''}`}>
-      {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" alt="" /> : `${(u.nom ?? '?')[0]}${(u.prenoms ?? '?')[0]}`}
+    <div className={`${sz} rounded-full bg-gradient-to-br ${GRAD[idx % GRAD.length]} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative ${greyed ? 'grayscale opacity-60' : ''}`}>
+      {u.avatarUrl ? <Image src={u.avatarUrl} fill className="object-cover" alt="" sizes="44px" /> : `${(u.nom ?? '?')[0]}${(u.prenoms ?? '?')[0]}`}
     </div>
   );
 }
@@ -129,7 +130,12 @@ function GuideView({ campId, user, toast }: {
 
   const toggle = (id: string) => {
     if (blocked.has(id)) return;
-    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    setSelected(prev => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
   };
 
   const handleBlock = async (userId: string, name: string) => {

@@ -1,6 +1,8 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { challengesApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { useAuthStore } from '@/store/auth';
 import { Pill } from '@/components/ui';
 import type { Submission, ChallengeCategory } from '@/types';
@@ -38,10 +40,10 @@ export default function GuideMissionsPage() {
   const [selected, setSelected] = useState<Submission | null>(null);
   const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null);
 
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     const saved = localStorage.getItem(TAB_KEY) as Tab;
     if (['attente', 'validees', 'rejetees'].includes(saved)) setTab(saved);
-  }, []);
+  }), []);
 
   const changeTab = (t: Tab) => { setTab(t); localStorage.setItem(TAB_KEY, t); };
 
@@ -53,7 +55,7 @@ export default function GuideMissionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -335,10 +337,13 @@ function ValidationPanel({ sub, onClose, onValidated }: {
             <div>
               <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-wider mb-1.5">Photo jointe</p>
               <div className="rounded-xl overflow-hidden border border-[#ececf0]">
-                <img
+                <Image
                   src={preuveUrl.startsWith('http') ? preuveUrl : `${API_BASE}${preuveUrl}`}
+                  width={800}
+                  height={400}
                   alt="Preuve photo"
                   className="w-full max-h-64 object-cover"
+                  style={{ height: 'auto', maxHeight: '16rem' }}
                 />
               </div>
             </div>

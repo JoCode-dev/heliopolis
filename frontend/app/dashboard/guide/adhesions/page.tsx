@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi } from '@/lib/api';
@@ -115,7 +116,7 @@ export default function GuideAdhesionsPage() {
       } catch { /* ignore */ }
       finally { setLoadingGardiens(false); }
     })();
-  }, [user]);
+  }, [CURRENT_YEAR, isAdminOrRegion, isSentinelle, scope.role, user]);
 
   const myAdhesion = user?.adhesions?.find(a => a.annee === CURRENT_YEAR) ?? user?.adhesions?.[0];
 
@@ -337,10 +338,10 @@ export default function GuideAdhesionsPage() {
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg ? cfg.dot : 'bg-[#ddd]'}`} />
 
                       {/* Avatar */}
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden"
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden relative"
                         style={{ background: 'linear-gradient(135deg,#6A1B9A,#3d1163)' }}>
                         {g.avatarUrl
-                          ? <img src={g.avatarUrl} className="w-full h-full object-cover" alt="" />
+                          ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="36px" />
                           : `${g.nom[0]}${g.prenoms[0]}`}
                       </div>
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import { challengesApi, badgesApi, campsApi, messagingApi } from '@/lib/api';
-import { Avatar, Card, SectionTitle, Progress, Pill, Stat } from '@/components/ui';
+import { Avatar, Card, SectionTitle, Progress, Pill } from '@/components/ui';
 import { getRangGardien, getNextRang, getRangProgress } from '@/lib/ranks';
 import { CampCard } from '@/components/camps/CampCard';
 import type { Badge, Challenge, ChallengeCategory, Submission, UserBadge, Camp, Conversation } from '@/types';

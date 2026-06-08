@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { campsApi, exportApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { usePastoralYear } from '@/store/pastoralYear';
 import { Select } from '@/components/ui';
 import type { Camp, CampParticipant, AdhesionStatus, ParticipationStatus } from '@/types';
@@ -49,7 +50,7 @@ export default function ExportPage() {
   const [cotisationCampId, setCotisationCampId] = useState('');
   const [cotisationAnnee, setCotisationAnnee]   = useState<number>(new Date().getFullYear());
 
-  useEffect(() => { setCotisationAnnee(annee); }, [annee]);
+  useEffect(() => deferEffect(() => setCotisationAnnee(annee)), [annee]);
 
   useEffect(() => {
     campsApi.list().then(r => {
@@ -61,19 +62,22 @@ export default function ExportPage() {
   useEffect(() => {
     if (!campId) return;
     let cancelled = false;
-    setLoadingParts(true);
-    campsApi.participants(campId)
-      .then(r => {
-        if (cancelled) return;
-        setParticipants(r.data);
-        setParticipantsCampId(campId);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setParticipants([]);
-        setParticipantsCampId(campId);
-      })
-      .finally(() => { if (!cancelled) setLoadingParts(false); });
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoadingParts(true);
+      campsApi.participants(campId)
+        .then(r => {
+          if (cancelled) return;
+          setParticipants(r.data);
+          setParticipantsCampId(campId);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setParticipants([]);
+          setParticipantsCampId(campId);
+        })
+        .finally(() => { if (!cancelled) setLoadingParts(false); });
+    });
     return () => { cancelled = true; };
   }, [campId]);
 

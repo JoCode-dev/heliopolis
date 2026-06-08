@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { Submission } from '@/types';
 import { formatDateFr } from '@/lib/format';
 import { Avatar, Pill } from '@/components/ui';
+import { getCodexReactionCount } from '@/hooks/useCodexReactions';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
 
@@ -32,19 +33,21 @@ interface CodexItemProps {
   hasReacted?: boolean;
   priority?: boolean;
   canReact?: boolean;
+  isReacting?: boolean;
   onReact?: (id: string) => void;
   onUnreact?: (id: string) => void;
 }
 
 export function CodexItem({
   submission, reactCount, hasReacted, priority = false,
-  canReact = false, onReact, onUnreact,
+  canReact = false, isReacting = false, onReact, onUnreact,
 }: CodexItemProps) {
   const g   = submission.gardien;
   const cat = submission.challenge?.categorie ?? 'COMMUNAUTAIRE';
   const initials = g ? `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`.toUpperCase() : '?';
-  const count = reactCount ?? submission._count?.reactions ?? submission.reactions?.length ?? 0;
+  const count = reactCount ?? getCodexReactionCount(submission);
   const reacted = hasReacted ?? false;
+  const reactionDisabled = !canReact || isReacting;
 
   const imageUrl = submission.preuveUrl
     ? toRelativePath(
@@ -120,18 +123,20 @@ export function CodexItem({
       {/* ── Pied : réactions ── */}
       <div className="flex items-center gap-3 px-3.5 py-2.5 border-t border-[#f0e8d8]">
         <button
+          disabled={reactionDisabled}
           onClick={() => {
-            if (!canReact) return;
-            reacted ? onUnreact?.(submission.id) : onReact?.(submission.id);
+            if (reactionDisabled) return;
+            if (reacted) onUnreact?.(submission.id);
+            else onReact?.(submission.id);
           }}
-          title={!canReact ? 'Connecte-toi pour réagir' : undefined}
+          title={!canReact ? 'Connecte-toi pour réagir' : isReacting ? 'Synchronisation…' : undefined}
           className={`flex items-center gap-1.5 text-[12px] font-semibold rounded-full px-3 py-1.5 transition-all ${
             !canReact
               ? 'bg-[#f5eed8] text-[#c0b49a] cursor-not-allowed'
               : reacted
                 ? 'bg-[#ffe6e6] text-[#C62828] hover:bg-[#ffd0d0]'
                 : 'bg-[#f5eed8] text-[#8b7b5c] hover:bg-[#ffe6e6] hover:text-[#C62828]'
-          }`}
+          } ${isReacting ? 'opacity-70 cursor-wait' : ''}`}
         >
           {reacted ? '❤️' : '🤍'} {count > 0 ? count : ''}
           <span className="text-[11px] font-normal">{reacted ? 'Aimé' : "J'aime"}</span>

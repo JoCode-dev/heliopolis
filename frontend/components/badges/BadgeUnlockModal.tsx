@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { deferEffect } from '@/lib/effects';
 import type { Badge } from '@/types';
 
 const LEVEL_GRADIENT: Record<string, string> = {
@@ -54,9 +55,16 @@ export function BadgeUnlockModal({ badges, onClose }: Props) {
 
   // Séquence d'entrée automatique
   useEffect(() => {
-    setPhase('enter');
-    const t = setTimeout(() => setPhase('idle'), 50);
-    return () => clearTimeout(t);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const cleanup = deferEffect(() => {
+      setPhase('enter');
+      timer = setTimeout(() => setPhase('idle'), 50);
+    });
+
+    return () => {
+      cleanup();
+      if (timer) clearTimeout(timer);
+    };
   }, [index]);
 
   const advance = useCallback(() => {

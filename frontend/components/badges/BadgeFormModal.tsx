@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { badgesApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import type { Badge } from '@/types';
 
 type ConditionType =
@@ -29,6 +30,27 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   canDelete?: boolean;
+}
+
+type BadgeConditionMeta = {
+  type?: ConditionType;
+  count?: number;
+  points?: number;
+  categorie?: string;
+  minCategories?: number;
+};
+
+type BadgeWithMeta = Badge & {
+  conditionMeta?: BadgeConditionMeta;
+};
+
+function getBadgeMeta(badge?: Badge) {
+  return (badge as BadgeWithMeta | undefined)?.conditionMeta;
+}
+
+function getApiErrorMessage(err: unknown, fallback: string) {
+  const response = (err as { response?: { data?: { message?: unknown } } })?.response;
+  return typeof response?.data?.message === 'string' ? response.data.message : fallback;
 }
 
 function buildMeta(type: ConditionType, count: number, points: number, categorie: string, minCat: number) {
@@ -62,27 +84,24 @@ function guessTypeFromMeta(meta: unknown): ConditionType {
 
 export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: Props) {
   const isEdit = !!badge;
+  const conditionMeta = getBadgeMeta(badge);
 
   const [nom,         setNom]         = useState(badge?.nom ?? '');
   const [code,        setCode]        = useState(badge?.code ?? '');
   const [description, setDescription] = useState(badge?.description ?? '');
   const [niveau,      setNiveau]      = useState<'BRONZE' | 'ARGENT' | 'OR' | 'LEGENDE'>(badge?.niveau ?? 'BRONZE');
-  const [condType,    setCondType]    = useState<ConditionType>(guessTypeFromMeta((badge as any)?.conditionMeta));
+  const [condType,    setCondType]    = useState<ConditionType>(guessTypeFromMeta(conditionMeta));
   const [count,       setCount]       = useState(() => {
-    const m = (badge as any)?.conditionMeta as any;
-    return m?.count ?? 1;
+    return conditionMeta?.count ?? 1;
   });
   const [points,      setPoints]      = useState(() => {
-    const m = (badge as any)?.conditionMeta as any;
-    return m?.points ?? 100;
+    return conditionMeta?.points ?? 100;
   });
   const [categorie,   setCategorie]   = useState(() => {
-    const m = (badge as any)?.conditionMeta as any;
-    return m?.categorie ?? 'COMMUNAUTAIRE';
+    return conditionMeta?.categorie ?? 'COMMUNAUTAIRE';
   });
   const [minCat,      setMinCat]      = useState(() => {
-    const m = (badge as any)?.conditionMeta as any;
-    return m?.minCategories ?? 2;
+    return conditionMeta?.minCategories ?? 2;
   });
 
   const [saving,   setSaving]   = useState(false);
@@ -91,9 +110,8 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
 
   // Auto-génère le code depuis le nom si création
   useEffect(() => {
-    if (!isEdit) {
-      setCode(nom.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 30));
-    }
+    if (isEdit) return;
+    return deferEffect(() => setCode(nom.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 30)));
   }, [nom, isEdit]);
 
   const conditionText = buildConditionText(condType, count, points, categorie, minCat);
@@ -117,8 +135,8 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
         await badgesApi.create(body);
       }
       onSaved();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Une erreur est survenue.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
@@ -131,8 +149,8 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
     try {
       await badgesApi.remove(badge.id);
       onSaved();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur lors de la suppression.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Erreur lors de la suppression.'));
     } finally {
       setDeleting(false);
     }
@@ -153,7 +171,7 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
           <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold hover:bg-white/25 transition">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
+        <form id="badge-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
 
           {/* Nom + Niveau */}
           <div className="grid grid-cols-2 gap-3">
@@ -282,7 +300,6 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
             Annuler
           </button>
           <button type="submit" form="badge-form" disabled={saving}
-            onClick={handleSubmit as any}
             className="bg-[#1F1B2E] text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-60">
             {saving ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer l\'artefact'}
           </button>

@@ -1,7 +1,9 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi, authApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { usePastoralYear } from '@/store/pastoralYear';
 
 interface ProfileModalProps {
@@ -23,9 +25,12 @@ function AvatarDisplay({
   const dim = size === 'lg' ? 'w-16 h-16 text-lg' : 'w-9 h-9 text-xs';
   if (avatarUrl) {
     const src = avatarUrl.startsWith('http') ? avatarUrl : `${API_BASE}${avatarUrl}`;
+    const px = size === 'lg' ? 64 : 36;
     return (
-      <img
+      <Image
         src={src}
+        width={px}
+        height={px}
         alt="Avatar"
         className={`${dim} rounded-full object-cover flex-shrink-0`}
       />
@@ -75,7 +80,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     if (isOpen && user) {
       setNom(user.nom);
       setPrenoms(user.prenoms);
@@ -92,12 +97,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setPreuveFile(null);
       setTab('info');
     }
-  }, [isOpen, user]);
+  }), [isOpen, user]);
 
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     setError('');
     setSuccess('');
-  }, [tab]);
+  }), [tab]);
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -227,10 +232,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
               {displayAvatar ? (
-                <img
+                <Image
                   src={displayAvatar.startsWith('http') || displayAvatar.startsWith('blob:')
                     ? displayAvatar
                     : `${API_BASE}${displayAvatar}`}
+                  width={48}
+                  height={48}
                   alt="Avatar"
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -290,12 +297,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <div className="flex items-center gap-4">
                     <div className="relative flex-shrink-0">
                       {(avatarPreview ?? user?.avatarUrl) ? (
-                        <img
+                        <Image
                           src={avatarPreview
                             ? avatarPreview
                             : (user?.avatarUrl?.startsWith('http')
                               ? user.avatarUrl
-                              : `${API_BASE}${user?.avatarUrl}`)}
+                              : `${API_BASE}${user?.avatarUrl}`) as string}
+                          width={64}
+                          height={64}
+                          unoptimized
                           alt="Aperçu"
                           className="w-16 h-16 rounded-full object-cover"
                         />

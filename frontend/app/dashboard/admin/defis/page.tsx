@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { codexApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { Pill } from '@/components/ui';
 import { CreateChallengeModal } from '@/components/defis/CreateChallengeModal';
 import type { Submission, SubmissionStatus } from '@/types';
@@ -38,17 +39,15 @@ export default function AdminDefisPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const fetchPending = async () => {
+  const fetchPending = useCallback(async () => {
     try {
       const { data } = await codexApi.pending();
       setPending(data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  };
-
-  useEffect(() => {
-    fetchPending();
   }, []);
+
+  useEffect(() => deferEffect(fetchPending), [fetchPending]);
 
   const handleApprove = async (id: string) => {
     setActionLoading(id + '-approve');

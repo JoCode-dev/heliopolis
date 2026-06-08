@@ -1,8 +1,10 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { messagingApi, contactsApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { useAuthStore } from '@/store/auth';
 import type { Conversation, ContactItem, ContactUser, Contact } from '@/types';
 
@@ -20,11 +22,6 @@ const CONV_GRADIENT: Record<string, string> = {
   PRIVE:      'from-[#1F1B2E] to-[#3a1d4d]',
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
-const CANAL_LABEL: Record<string, string> = {
-  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'District',
-  PAROISSE: 'Paroisse', GROUPE: 'Groupe', PRIVE: 'Privé',
-};
-
 type Tab = 'messages' | 'contacts';
 const TAB_KEY = 'gardien-messages-tab';
 
@@ -57,10 +54,10 @@ export default function MessagesPage() {
   const [tab, setTab] = useState<Tab>('messages');
 
   /* ── Persistance de l'onglet via localStorage ── */
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     const saved = localStorage.getItem(TAB_KEY) as Tab;
     if (saved === 'messages' || saved === 'contacts') setTab(saved);
-  }, []);
+  }), []);
 
   const handleTabChange = (t: Tab) => {
     setTab(t);
@@ -75,8 +72,8 @@ export default function MessagesPage() {
       {/* ── Header ── */}
       <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
         <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
-          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
-            {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" /> : initials}
+          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden relative">
+            {user?.avatarUrl ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="36px" /> : initials}
           </div>
           <h1 className="flex-1 text-[18px] font-black text-white tracking-tight">Messagerie</h1>
         </div>
@@ -116,7 +113,7 @@ function MessagesTab({ myId, msgsBase }: { myId?: string; msgsBase: string }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handlePin = async (conv: Conversation) => {
     await messagingApi.togglePin(conv.id).catch(() => {});
@@ -274,10 +271,10 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   useEffect(() => {
-    if (!canSearch) { setSearchRes([]); return; }
+    if (!canSearch) return deferEffect(() => setSearchRes([]));
     const t = setTimeout(async () => {
       setSearching(true);
       try { const r = await contactsApi.search(searchQ); setSearchRes(r.data); }
@@ -591,7 +588,7 @@ function NewConvModal({ onClose, onCreated }: {
   const [joiningChannel, setJoiningChannel]   = useState<string | null>(null);
 
   /* Charge contacts + conversations existantes en parallèle */
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     setLoading(true);
     Promise.all([contactsApi.parish(), contactsApi.list(), messagingApi.conversations()])
       .then(([parish, accepted, convRes]) => {
@@ -618,7 +615,7 @@ function NewConvModal({ onClose, onCreated }: {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }), []);
 
   const visible = search.trim()
     ? contacts.filter(u => {
@@ -677,8 +674,6 @@ function NewConvModal({ onClose, onCreated }: {
     } catch { /* ignore */ }
     finally { setJoiningChannel(null); }
   };
-
-  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]']; // fallback unused
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-white">
@@ -756,7 +751,7 @@ function NewConvModal({ onClose, onCreated }: {
               <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
                 <div className="text-3xl mb-3">📡</div>
                 <p className="text-sm font-semibold text-[#1F1B2E]">Aucun canal disponible</p>
-                <p className="text-xs mt-1 text-center">Aucun canal d'équipe n'est disponible pour votre territoire.</p>
+                <p className="text-xs mt-1 text-center">Aucun canal d&apos;équipe n&apos;est disponible pour votre territoire.</p>
               </div>
             )}
 
@@ -874,7 +869,8 @@ function NewConvModal({ onClose, onCreated }: {
                   >
                     <div className="relative flex-shrink-0">
                       {(u as { avatarUrl?: string }).avatarUrl
-                        ? <img src={(u as { avatarUrl?: string }).avatarUrl}
+                        ? <Image src={(u as { avatarUrl?: string }).avatarUrl as string}
+                            width={50} height={50}
                             className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
                         : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${avatarCls} flex items-center justify-center text-sm font-bold text-white`}>
                             {u.nom[0]}{u.prenoms[0]}
@@ -939,7 +935,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
   }, []);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    if (query.length < 2) return deferEffect(() => setResults([]));
     const t = setTimeout(async () => {
       setSearching(true);
       try { const r = await contactsApi.search(query); setResults(r.data); }
@@ -1126,7 +1122,8 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
           className={`flex items-center px-3 py-2.5 hover:bg-[#F5F5F5] transition-colors pr-10 ${unread > 0 ? 'bg-[#fafafa]' : 'bg-white'}`}>
           {/* Avatar : photo réelle pour PRIVE, icône pour les canaux */}
           {otherAvatar?.avatarUrl ? (
-            <img src={otherAvatar.avatarUrl}
+            <Image src={otherAvatar.avatarUrl}
+              width={50} height={50}
               className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" alt="" />
           ) : otherAvatar ? (
             <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#1F1B2E] to-[#3a1d4d] flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -1221,7 +1218,7 @@ function ContactRow({ user, sub, action, onClick }: {
       onClick={onClick}
     >
       {(user as { avatarUrl?: string }).avatarUrl ? (
-        <img src={(user as { avatarUrl?: string }).avatarUrl} alt={initials}
+        <Image src={(user as { avatarUrl?: string }).avatarUrl as string} width={50} height={50} alt={initials}
           className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" />
       ) : (
         <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${avatarCls} flex-shrink-0`}>

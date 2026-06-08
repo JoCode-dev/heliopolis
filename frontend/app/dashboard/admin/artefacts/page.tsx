@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { badgesApi } from '@/lib/api';
 import { BadgeFormModal } from '@/components/badges/BadgeFormModal';
+import { deferEffect } from '@/lib/effects';
 import type { Badge } from '@/types';
 
 const LEVEL_EMOJI: Record<string, string> = {
@@ -19,15 +20,15 @@ export default function AdminArtefactsPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState<{ open: boolean; badge?: Badge }>({ open: false });
 
-  const reload = () => {
+  const reload = useCallback(() => {
     setLoading(true);
     badgesApi.list()
       .then(r => setBadges(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => deferEffect(reload), [reload]);
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6 bg-[#fafafa]">

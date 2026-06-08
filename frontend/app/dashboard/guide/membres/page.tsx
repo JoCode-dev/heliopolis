@@ -1,10 +1,11 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { Pill } from '@/components/ui';
 import { Pagination } from '@/components/ui/Pagination';
-import { UserAvatar } from '@/components/profile/UserAvatar';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import type { User } from '@/types';
 
@@ -72,7 +73,7 @@ export default function GuideMembresPage() {
     finally { setLoading(false); }
   }, [actor, isSentinelle]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handleCreated = (u: User) => setMembres(prev => [u, ...prev]);
 
@@ -97,14 +98,8 @@ export default function GuideMembresPage() {
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // Stats
-  const nbActifs  = activeList.filter(m => m.statutProfil === 'ACTIF').length;
   const nbAJour   = activeList.filter(m => m.adhesions?.[0]?.statut === 'A_JOUR').length;
   const nbNonAJour = activeList.filter(m => m.adhesions?.[0]?.statut !== 'A_JOUR').length;
-
-  // Sentinelle : gardiens d'un guide spécifique
-  const guideGardiens = expandedGuide
-    ? gardiens.filter(g => g.parish?.id === membres.find(m => m.id === expandedGuide)?.parish?.id)
-    : [];
 
   const changeTab = (t: SentinelleTab) => {
     setSentTab(t);
@@ -233,9 +228,9 @@ export default function GuideMembresPage() {
                     <div key={guide.id}>
                       <button onClick={() => setExpandedGuide(isExpanded ? null : guide.id)}
                         className="flex items-center w-full px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors text-left">
-                        <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
+                        <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative">
                           {guide.avatarUrl
-                            ? <img src={guide.avatarUrl} className="w-full h-full object-cover" alt="" />
+                            ? <Image src={guide.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
                             : `${guide.nom[0]}${guide.prenoms[0]}`}
                         </div>
                         <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
@@ -277,9 +272,9 @@ export default function GuideMembresPage() {
                               const color = GRAD[idx % GRAD.length];
                               return (
                                 <div key={g.id} className="flex items-center px-6 py-2.5 border-b border-[#ececf0] last:border-0">
-                                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden`}>
+                                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden relative`}>
                                     {g.avatarUrl
-                                      ? <img src={g.avatarUrl} className="w-full h-full object-cover" alt="" />
+                                      ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
                                       : `${g.nom[0]}${g.prenoms[0]}`}
                                   </div>
                                   <div className="flex-1 min-w-0 ml-2.5">
@@ -314,9 +309,9 @@ export default function GuideMembresPage() {
                   const color = GRAD[idx % GRAD.length];
                   return (
                     <div key={m.id} className="flex items-center px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors">
-                      <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden`}>
+                      <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative`}>
                         {m.avatarUrl
-                          ? <img src={m.avatarUrl} className="w-full h-full object-cover" alt="" />
+                          ? <Image src={m.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
                           : `${m.nom[0]}${m.prenoms[0]}`}
                       </div>
                       <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">

@@ -2,6 +2,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { territoriesApi, usersApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { Select } from '@/components/ui';
 import type { District, Parish, User } from '@/types';
 
@@ -24,8 +25,7 @@ function ParoissesContent() {
   const [saveError, setSaveError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
+  useEffect(() => deferEffect(async () => {
       try {
         const [d, g, gar] = await Promise.all([
           territoriesApi.districts(),
@@ -37,19 +37,28 @@ function ParoissesContent() {
         setGardiens(gar.data);
       } catch { /* ignore */ }
       finally { setLoading(false); }
-    })();
-  }, []);
+  }), []);
 
   useEffect(() => {
-    if (!selectedDistrictId) { setParishes([]); return; }
-    setLoadingParishes(true);
-    (async () => {
+    if (!selectedDistrictId) return deferEffect(() => setParishes([]));
+
+    let cancelled = false;
+    void Promise.resolve().then(async () => {
+      if (cancelled) return;
+      setLoadingParishes(true);
       try {
         const { data } = await territoriesApi.parishes(selectedDistrictId);
-        setParishes(data);
-      } catch { setParishes([]); }
-      finally { setLoadingParishes(false); }
-    })();
+        if (!cancelled) setParishes(data);
+      } catch {
+        if (!cancelled) setParishes([]);
+      } finally {
+        if (!cancelled) setLoadingParishes(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDistrictId]);
 
   const guideByParish = new Map<string, User>();

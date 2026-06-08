@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { use, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { messagingApi, usersApi } from '@/lib/api';
@@ -296,9 +297,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       <div className={`bg-gradient-to-r ${header.gradient} text-white px-4 py-2.5 flex items-center gap-3 flex-shrink-0`}>
         <button onClick={() => router.back()} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg leading-none">‹</button>
         {convType === 'PRIVE' && privatePartner && (
-          <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden relative">
             {privatePartner.avatarUrl
-              ? <img src={privatePartner.avatarUrl} className="w-full h-full object-cover" alt="" />
+              ? <Image src={privatePartner.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
               : `${privatePartner.nom[0]}${privatePartner.prenoms[0]}`}
           </div>
         )}
@@ -595,7 +596,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                     return (
                       <button key={u.id} onClick={() => toggleAdd(u.id)} className="flex items-center w-full px-4 py-3 hover:bg-[#F5F5F5] transition-colors">
                         {u.avatarUrl
-                          ? <img src={u.avatarUrl} className="w-11 h-11 rounded-full object-cover flex-shrink-0" alt="" />
+                          ? <Image src={u.avatarUrl} width={44} height={44} className="w-11 h-11 rounded-full object-cover flex-shrink-0" alt="" />
                           : <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{u.nom[0]}{u.prenoms[0]}</div>
                         }
                         <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1 text-left">
@@ -659,7 +660,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                     >
                       <div className="relative flex-shrink-0">
                         {u.avatarUrl
-                          ? <img src={u.avatarUrl} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
+                          ? <Image src={u.avatarUrl} width={50} height={50} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
                           : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom[0]}{u.prenoms[0]}</div>
                         }
                         {m.role === 'OWNER' && (
@@ -764,8 +765,10 @@ function MsgAvatar({ author }: { author: Partial<User> }) {
 
   if (author.avatarUrl) {
     return (
-      <img
+      <Image
         src={author.avatarUrl}
+        width={32}
+        height={32}
         alt={initials}
         className="w-8 h-8 rounded-full object-cover flex-shrink-0 shadow-sm"
       />

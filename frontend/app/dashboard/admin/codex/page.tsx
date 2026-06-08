@@ -1,19 +1,29 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { codexApi } from '@/lib/api';
-import { SectionTitle, Card, Pill } from '@/components/ui';
+import { Card, Pill } from '@/components/ui';
 import { CodexItem } from '@/components/codex/CodexItem';
+import { useCodexReactions } from '@/hooks/useCodexReactions';
+import { useAuthStore } from '@/store/auth';
 import type { Submission } from '@/types';
 
 type Tab = 'attente' | 'publies';
 
 export default function AdminCodexPage() {
+  const { user } = useAuthStore();
+  const currentUserId = user?.id;
   const [tab, setTab] = useState<Tab>('publies');
   const [pending, setPending] = useState<Submission[]>([]);
   const [wall, setWall] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reactions, setReactions] = useState<Record<string, number>>({});
-  const [reacted, setReacted] = useState<Set<string>>(new Set());
+  const {
+    reactions,
+    reacted,
+    reactionPending,
+    syncSubmissions,
+    handleReact,
+    handleUnreact,
+  } = useCodexReactions(currentUserId);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -24,35 +34,23 @@ export default function AdminCodexPage() {
           const d = w.value.data as { items: Submission[]; total: number };
           const items: Submission[] = d.items ?? w.value.data ?? [];
           setWall(items);
-          setReactions(prev => {
-            const m = { ...prev };
-            for (const s of items) m[s.id] = s._count?.reactions ?? s.reactions?.length ?? 0;
-            return m;
-          });
+          syncSubmissions(items, { replace: true });
         }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [syncSubmissions]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) reload();
+    };
 
-  const handleReact = useCallback(async (id: string) => {
-    setReacted(prev => new Set(prev).add(id));
-    setReactions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-    try { await codexApi.react(id); } catch {
-      setReacted(prev => { const s = new Set(prev); s.delete(id); return s; });
-      setReactions(prev => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 1) - 1) }));
-    }
-  }, []);
-
-  const handleUnreact = useCallback(async (id: string) => {
-    setReacted(prev => { const s = new Set(prev); s.delete(id); return s; });
-    setReactions(prev => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 1) - 1) }));
-    try { await codexApi.unreact(id); } catch {
-      setReacted(prev => new Set(prev).add(id));
-      setReactions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-    }
-  }, []);
+    void Promise.resolve().then(run);
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
 
   const handleApprove = async (id: string) => {
     await codexApi.approve(id).catch(() => {});
@@ -148,9 +146,10 @@ export default function AdminCodexPage() {
                 key={sub.id}
                 submission={sub}
                 priority={i === 0}
-                canReact
+                canReact={!!currentUserId}
                 reactCount={reactions[sub.id] ?? 0}
                 hasReacted={reacted.has(sub.id)}
+                isReacting={reactionPending.has(sub.id)}
                 onReact={handleReact}
                 onUnreact={handleUnreact}
               />

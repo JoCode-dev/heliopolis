@@ -3,7 +3,8 @@ import { use, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
-import { Card, SectionTitle, Pill, Progress } from '@/components/ui';
+import { deferEffect } from '@/lib/effects';
+import { Card, SectionTitle, Pill } from '@/components/ui';
 import type { Camp, CampParticipant, CampStatus } from '@/types';
 
 const STATUTS: { value: CampStatus; label: string; color: string }[] = [
@@ -33,7 +34,7 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
     } catch { router.push('/dashboard/admin/camps'); }
   }, [id, router]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handleStatus = async (statut: CampStatus) => {
     if (!camp || updating) return;
@@ -193,4 +194,3 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
     </div>
   );
 }
-
