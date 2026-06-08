@@ -2,7 +2,7 @@ node_modules
 dist
 generated
 uploads
-logs
+/logs
 coverage
 .git
 .gitignore

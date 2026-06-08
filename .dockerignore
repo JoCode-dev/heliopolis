@@ -8,7 +8,9 @@
 **/.git
 **/*.md
 **/uploads
-**/logs
+# Runtime log output only (not backend/src/logs NestJS module)
+logs/
+backend/logs/
 **/.DS_Store
 **/.vercel
 **/*.tsbuildinfo
