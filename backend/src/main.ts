@@ -34,7 +34,12 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(process.env.PORT || 4000);
-  console.log(`Codex des Gardiens API — port ${process.env.PORT || 4000}`);
+  const port = Number(process.env.PORT) || 4000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Codex des Gardiens API — port ${port}`);
 }
-void bootstrap();
+
+bootstrap().catch((err: unknown) => {
+  console.error('Échec du démarrage :', err);
+  process.exit(1);
+});

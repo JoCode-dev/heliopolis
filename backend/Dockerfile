@@ -11,6 +11,7 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY backend/prisma ./prisma
+COPY backend/prisma.config.ts ./
 COPY backend/scripts ./scripts
 COPY backend/nest-cli.json backend/tsconfig.json backend/tsconfig.build.json ./
 
@@ -23,7 +24,8 @@ RUN npm run build
 # Stage de production
 FROM node:22-alpine AS production
 
-RUN addgroup -g 1001 -S nodejs && \
+RUN apk add --no-cache openssl ca-certificates wget && \
+    addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 -G nodejs
 
 WORKDIR /app
@@ -35,6 +37,12 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 RUN mkdir -p uploads/avatars uploads/adhesions uploads/preuves logs/actions && \
     chown -R nodejs:nodejs /app
@@ -46,4 +54,7 @@ EXPOSE 4000
 ENV NODE_ENV=production
 ENV PORT=4000
 
-CMD ["node", "dist/src/main.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:4000/api || exit 1
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
