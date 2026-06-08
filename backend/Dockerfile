@@ -1,7 +1,7 @@
 # Build context : racine du monorepo (Dokploy)
 # docker build -f backend/Dockerfile -t heliopolis-backend .
 
-# Stage de build
+# ─── Stage de build ───────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -21,7 +21,7 @@ COPY backend/src ./src
 
 RUN npm run build
 
-# Stage de production
+# ─── Stage de production ──────────────────────────────────────────────────────
 FROM node:22-alpine AS production
 
 RUN apk add --no-cache openssl ca-certificates wget && \
@@ -32,18 +32,24 @@ WORKDIR /app
 
 COPY backend/package.json backend/package-lock.json ./
 
+# --ignore-scripts ici aussi pour éviter que postinstall re-génère Prisma
+# sans les sources disponibles
 RUN npm ci --omit=dev --ignore-scripts
 
+# App compilée
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/generated ./generated
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# Prisma : schéma + client généré (binaires déjà compilés pour linux-musl)
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# Entrypoint
 COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
+# Répertoires runtime + permissions
 RUN mkdir -p uploads/avatars uploads/adhesions uploads/preuves logs/actions && \
     chown -R nodejs:nodejs /app
 
