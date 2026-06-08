@@ -73,12 +73,11 @@ export default function RejoindreePage() {
         body: JSON.stringify({ prenom, contact, role, message: msg }),
       });
       if (!res.ok) throw new Error('api_error');
+      setSent(true);
     } catch {
-      /* Endpoint absent — on marque quand même comme envoyé
-         et on propose WhatsApp en fallback dans l'état success */
+      setError('Une erreur est survenue. Tu peux nous contacter directement sur WhatsApp.');
     } finally {
       setSending(false);
-      setSent(true);
     }
   };
 

@@ -5,12 +5,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
 import { DbRetryInterceptor } from './common/interceptors/db-retry.interceptor.js';
+import { RedisIoAdapter } from './redis/redis-io.adapter.js';
 import cookieParser from 'cookie-parser';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const avatarsDir = join(process.cwd(), 'uploads', 'avatars');
   if (!existsSync(avatarsDir)) mkdirSync(avatarsDir, { recursive: true });

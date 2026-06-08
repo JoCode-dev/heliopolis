@@ -132,4 +132,12 @@ export class MessagingController {
   ) {
     return this.messagingService.createPrivateConversation(user.id, targetId);
   }
+
+  @Get('search')
+  searchMessages(
+    @Query('q') query: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.messagingService.searchMessages(query ?? '', user.id);
+  }
 }

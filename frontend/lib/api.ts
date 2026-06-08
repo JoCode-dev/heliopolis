@@ -140,6 +140,7 @@ export const messagingApi = {
   suggestedChannels:     () => api.get('/messaging/conversations/channels/suggestions'),
   createOrJoinChannel:   (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES') =>
     api.post('/messaging/conversations/channel', { channelKey }),
+  search: (q: string) => api.get('/messaging/search', { params: { q } }),
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────

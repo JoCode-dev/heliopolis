@@ -42,7 +42,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
     : '📖 Accueil';
 
   return (
-    <AuthGuard roles={['GUIDE', 'SENTINELLE', 'REGION', 'ADMIN']}>
+    <AuthGuard roles={['GUIDE', 'SENTINELLE']}>
       <div className="flex h-screen overflow-hidden bg-[#fafafa]">
 
         {/* ── Sidebar desktop ── */}

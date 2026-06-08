@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
 import { Input, Toggle, Button } from '@/components/ui';
+import { useAuthStore } from '@/store/auth';
+import { getHomeForRole } from '@/lib/roles';
 
 const TYPES: { value: string; label: string; icon: string; desc: string }[] = [
   { value: 'REGIONAL', label: 'Régional',  icon: '🗺️', desc: 'Camp organisé au niveau de la région' },
@@ -40,6 +42,7 @@ function getErrorMessage(error: unknown) {
 
 export default function NouveauCampPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<CreateCampForm>({
     nom: '', theme: '', type: 'REGIONAL', description: '',
@@ -55,7 +58,7 @@ export default function NouveauCampPage() {
     setSaving(true); setError('');
     try {
       await campsApi.create(form);
-      router.push('/dashboard/admin');
+      router.push(getHomeForRole(user?.role));
     } catch (e: unknown) {
       setError(getErrorMessage(e));
     } finally { setSaving(false); }

@@ -7,10 +7,12 @@ generator client {
   provider            = "prisma-client"
   output              = "../generated/prisma"
   importFileExtension = "js"
+  previewFeatures     = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector")]
 }
 
 enum UserRole {
@@ -611,6 +613,9 @@ model Challenge {
   createdBy   User   @relation("ChallengeCreator", fields: [createdById], references: [id])
   createdById String
 
+  /// Embedding vectoriel pour la recherche de défis similaires (pgvector)
+  embedding Unsupported("vector(1024)")?
+
   submissions Submission[]
 
   createdAt  DateTime  @default(now())
@@ -780,6 +785,9 @@ model Message {
   editedAt   DateTime?
   deletedAt  DateTime?
 
+  /// Embedding vectoriel pour la recherche sémantique (pgvector)
+  embedding Unsupported("vector(1024)")?
+
   attachments  MessageAttachment[]
   readReceipts MessageReadReceipt[]
 
@@ -940,4 +948,18 @@ model SystemConfig {
   updatedAt DateTime @updatedAt
 
   @@map("system_configs")
+}
+
+/// Demandes publiques de contact / adhésion depuis la page /rejoindre
+model ContactRequest {
+  id        String   @id @default(cuid())
+  prenom    String
+  contact   String
+  role      String?
+  message   String?
+  lu        Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("contact_requests")
 }

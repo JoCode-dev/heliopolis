@@ -120,11 +120,11 @@ export default function AdminCodexPage() {
                 )}
                 <div className="flex gap-2">
                   <button onClick={() => handleApprove(sub.id)}
-                    className="flex-1 bg-[#2E7D32] text-white text-sm font-bold py-2 rounded-xl">
+                    className="flex-1 bg-[#2E7D32] text-white text-sm font-bold py-2 rounded-xl cursor-pointer hover:bg-[#246127] active:scale-95 transition-all">
                     ✓ Valider
                   </button>
                   <button onClick={() => handleReject(sub.id)}
-                    className="flex-1 bg-[#C62828] text-white text-sm font-bold py-2 rounded-xl">
+                    className="flex-1 bg-[#C62828] text-white text-sm font-bold py-2 rounded-xl cursor-pointer hover:bg-[#a82020] active:scale-95 transition-all">
                     ✕ Rejeter
                   </button>
                 </div>
@@ -141,19 +141,22 @@ export default function AdminCodexPage() {
               <p>Aucune publication pour le moment.</p>
             </div>
           ) : (
-            wall.map((sub, i) => (
-              <CodexItem
-                key={sub.id}
-                submission={sub}
-                priority={i === 0}
-                canReact={!!currentUserId}
-                reactCount={reactions[sub.id] ?? 0}
-                hasReacted={reacted.has(sub.id)}
-                isReacting={reactionPending.has(sub.id)}
-                onReact={handleReact}
-                onUnreact={handleUnreact}
-              />
-            ))
+            <div className="lg:columns-2 lg:gap-4">
+              {wall.map((sub, i) => (
+                <div key={sub.id} className="break-inside-avoid mb-3.5">
+                  <CodexItem
+                    submission={sub}
+                    priority={i === 0}
+                    canReact={!!currentUserId}
+                    reactCount={reactions[sub.id] ?? 0}
+                    hasReacted={reacted.has(sub.id)}
+                    isReacting={reactionPending.has(sub.id)}
+                    onReact={handleReact}
+                    onUnreact={handleUnreact}
+                  />
+                </div>
+              ))}
+            </div>
           )
         )}
       </div>

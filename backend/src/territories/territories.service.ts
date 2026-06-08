@@ -112,13 +112,26 @@ export class TerritoriesService {
   }
 
   async getStats() {
-    const [totalGardiens, campsOuverts, defisValides, districts] =
-      await Promise.all([
-        this.prisma.user.count({ where: { deletedAt: null, role: 'GARDIEN' } }),
-        this.prisma.camp.count({ where: { statut: 'OUVERT' } }),
-        this.prisma.submission.count({ where: { statut: 'VALIDE' } }),
-        this.prisma.district.count({ where: { deletedAt: null } }),
-      ]);
-    return { totalGardiens, campsOuverts, defisValides, districts };
+    // count() peut retourner null avec @prisma/adapter-pg — on utilise une seule
+    // requête SQL pour éviter le bug de batching du driver adapter
+    type Row = {
+      total_gardiens: bigint;
+      camps_ouverts:  bigint;
+      defis_valides:  bigint;
+      districts:      bigint;
+    };
+    const [row] = await this.prisma.$queryRawUnsafe<Row[]>(`
+      SELECT
+        (SELECT COUNT(*) FROM users       WHERE "deletedAt" IS NULL AND role = 'GARDIEN') AS total_gardiens,
+        (SELECT COUNT(*) FROM camps       WHERE statut = 'OUVERT')                        AS camps_ouverts,
+        (SELECT COUNT(*) FROM submissions WHERE statut = 'VALIDE')                        AS defis_valides,
+        (SELECT COUNT(*) FROM districts   WHERE "deletedAt" IS NULL)                      AS districts
+    `);
+    return {
+      totalGardiens: Number(row?.total_gardiens ?? 0),
+      campsOuverts:  Number(row?.camps_ouverts  ?? 0),
+      defisValides:  Number(row?.defis_valides  ?? 0),
+      districts:     Number(row?.districts      ?? 0),
+    };
   }
 }

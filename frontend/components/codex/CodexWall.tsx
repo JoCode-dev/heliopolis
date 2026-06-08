@@ -90,7 +90,7 @@ export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
       ) : (
         <div className="lg:columns-2 lg:gap-4">
           {filtered.map((sub, i) => (
-            <div key={sub.id} className="lg:break-inside-avoid">
+            <div key={sub.id} className="break-inside-avoid mb-3.5">
               <CodexItem
                 submission={sub}
                 reactCount={reactions[sub.id] ?? 0}

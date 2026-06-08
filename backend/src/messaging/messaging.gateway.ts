@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { MessagingService } from './messaging.service.js';
 import { JwtService } from '@nestjs/jwt';
+import { RedisService } from '../redis/redis.service.js';
 import { MessageType } from '../../generated/prisma/enums.js';
 
 interface JwtPayload {
@@ -25,10 +26,7 @@ interface SendMessagePayload {
   conversationId: string;
   contenu: string;
   type?: MessageType;
-}
-
-function getSocketData(client: Socket): SocketData {
-  return client.data as SocketData;
+  replyToId?: string;
 }
 
 @WebSocketGateway({
@@ -44,14 +42,22 @@ export class MessagingGateway
   @WebSocketServer()
   declare server: Server;
 
-  private userSockets = new Map<string, Set<string>>();
-
   constructor(
     private messagingService: MessagingService,
     private jwtService: JwtService,
+    private redis: RedisService,
   ) {}
 
-  handleConnection(client: Socket) {
+  // Récupère l'userId depuis Redis si disponible, sinon depuis socket.data
+  private async getUserId(client: Socket): Promise<string | null> {
+    if (this.redis.isAvailable) {
+      const fromRedis = await this.redis.get(`socket:${client.id}`);
+      if (fromRedis) return fromRedis;
+    }
+    return (client.data as SocketData).userId ?? null;
+  }
+
+  async handleConnection(client: Socket) {
     try {
       const auth = client.handshake.auth as { token?: unknown } | undefined;
       const header = client.handshake.headers?.authorization;
@@ -65,30 +71,69 @@ export class MessagingGateway
       const payload = this.jwtService.verify<JwtPayload>(token, {
         secret: process.env.JWT_SECRET || 'codex-gardiens-secret',
       });
-      getSocketData(client).userId = payload.sub;
+      const userId = payload.sub;
 
-      if (!this.userSockets.has(payload.sub)) {
-        this.userSockets.set(payload.sub, new Set());
+      // Toujours stocker dans socket.data (fallback si Redis hors-ligne)
+      (client.data as SocketData).userId = userId;
+
+      // Stocker dans Redis si disponible (pour le multi-instance et la présence)
+      await this.redis.trackSocket(userId, client.id);
+      await this.redis.setPresence(userId);
+
+      // Rejoindre automatiquement les rooms des conversations
+      const convIds = await this.messagingService.getUserConversationIds(userId);
+      for (const convId of convIds) {
+        await client.join(`conv:${convId}`);
       }
-      this.userSockets.get(payload.sub)!.add(client.id);
+
+      // Notifier que l'utilisateur est en ligne
+      for (const convId of convIds) {
+        client.to(`conv:${convId}`).emit('user:online', { userId });
+      }
     } catch {
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: Socket) {
-    const userId = getSocketData(client).userId;
-    if (userId) {
-      this.userSockets.get(userId)?.delete(client.id);
+  async handleDisconnect(client: Socket) {
+    const userId =
+      (await this.redis.untrackSocket(client.id)) ??
+      (client.data as SocketData).userId;
+
+    if (!userId) return;
+
+    const remaining = await this.redis.socketCount(userId);
+    if (remaining === 0) {
+      await this.redis.delPresence(userId);
+
+      const convIds =
+        await this.messagingService.getUserConversationIds(userId);
+      for (const convId of convIds) {
+        this.server.to(`conv:${convId}`).emit('user:offline', { userId });
+      }
     }
   }
+
+  // ── Heartbeat — maintient la présence active ───────────────────────────────
+
+  @SubscribeMessage('heartbeat')
+  async handleHeartbeat(@ConnectedSocket() client: Socket) {
+    const userId = await this.getUserId(client);
+    if (userId) {
+      await this.redis.setPresence(userId);
+      return { ok: true };
+    }
+    return { ok: false };
+  }
+
+  // ── Rejoindre / quitter une conversation ──────────────────────────────────
 
   @SubscribeMessage('join:conversation')
   async joinConversation(
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: string,
   ) {
-    const userId = getSocketData(client).userId;
+    const userId = await this.getUserId(client);
     if (!userId) {
       client.disconnect();
       return { joined: false };
@@ -106,12 +151,14 @@ export class MessagingGateway
     await client.leave(`conv:${conversationId}`);
   }
 
+  // ── Envoi de message ──────────────────────────────────────────────────────
+
   @SubscribeMessage('send:message')
   async handleMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: SendMessagePayload,
   ) {
-    const userId = getSocketData(client).userId;
+    const userId = await this.getUserId(client);
     if (!userId) {
       client.disconnect();
       return null;
@@ -125,14 +172,39 @@ export class MessagingGateway
     return message;
   }
 
+  // ── Indicateur de frappe ──────────────────────────────────────────────────
+
   @SubscribeMessage('typing')
-  handleTyping(
+  async handleTyping(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: string; typing: boolean },
   ) {
+    const userId = await this.getUserId(client);
     client.to(`conv:${data.conversationId}`).emit('typing', {
-      userId: getSocketData(client).userId,
+      userId,
       typing: data.typing,
     });
+  }
+
+  // ── Présence en ligne dans une conversation ────────────────────────────────
+
+  @SubscribeMessage('get:online')
+  async getOnlineMembers(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() conversationId: string,
+  ) {
+    const userId = await this.getUserId(client);
+    if (!userId) return {};
+
+    const conv = await this.messagingService.getConversationDetails(
+      conversationId,
+      userId,
+    );
+    if (!conv) return {};
+
+    const memberIds = (conv.members ?? []).map(
+      (m: { userId: string }) => m.userId,
+    );
+    return this.redis.getManyPresence(memberIds);
   }
 }

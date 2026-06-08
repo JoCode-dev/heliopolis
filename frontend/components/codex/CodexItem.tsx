@@ -58,7 +58,7 @@ export function CodexItem({
     : null;
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-[#e8dfc8] mb-3.5 shadow-sm">
+    <div className="bg-white rounded-2xl overflow-hidden border border-[#e8dfc8] shadow-sm">
 
       {/* ── En-tête auteur ── */}
       <div className="flex items-center gap-2.5 px-3.5 py-3">
@@ -97,8 +97,9 @@ export function CodexItem({
               alt={submission.challenge?.titre ?? 'Preuve'}
               fill
               className="object-cover"
-              sizes="(max-width: 448px) 100vw, 448px"
+              sizes="(max-width: 768px) 100vw, 480px"
               priority={priority}
+              loading={priority ? 'eager' : 'lazy'}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </>

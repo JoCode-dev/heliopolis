@@ -140,6 +140,7 @@ export class AuthService {
         prenoms: true,
         matricule: true,
         email: true,
+        telephone: true,
         role: true,
         statutProfil: true,
         avatarUrl: true,

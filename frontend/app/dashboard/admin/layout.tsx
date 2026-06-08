@@ -30,11 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const loadYear = usePastoralYear(s => s.load);
   useEffect(() => { loadYear(); }, [loadYear]);
 
-  const currentSection = MOBILE_NAV.find(item =>
-    item.href === '/dashboard/region'
-      ? pathname === item.href
-      : pathname.startsWith(item.href),
-  );
+  const currentSection = MOBILE_NAV.find(item => pathname.startsWith(item.href));
 
   return (
     <AuthGuard roles={['ADMIN']}>
