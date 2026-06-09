@@ -6,19 +6,38 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { campsChartConfig, CHART_ANIMATION } from '@/lib/chart-colors';
+import {
+  BRAND_CHART_COLORS,
+  CHART_ANIMATION,
+  CHART_AXIS_TICK,
+  CHART_BAR_PROPS,
+  CHART_HEIGHT,
+  campsChartConfig,
+} from '@/lib/chart-colors';
 import type { DashboardStats } from '@/types/dashboard-stats';
-import { ChartCard, ChartEmpty } from './ChartCard';
+import { ChartCard, ChartEmpty, ChartStatChip } from './ChartCard';
+import { ChartGradient } from './ChartGradients';
 
 interface CampParticipantsChartProps {
   camps: DashboardStats['camps'];
 }
 
+const STATUT_LABELS: Record<string, string> = {
+  OUVERT: 'Ouvert',
+  EN_COURS: 'En cours',
+  TERMINE: 'Terminé',
+  BROUILLON: 'Brouillon',
+};
+
 export function CampParticipantsChart({ camps }: CampParticipantsChartProps) {
   if (camps.length === 0) {
     return (
-      <ChartCard title="Participants par camp">
-        <ChartEmpty message="Aucun camp ouvert" />
+      <ChartCard
+        title="Participants par camp"
+        icon="⛺"
+        accentColor={BRAND_CHART_COLORS.or}
+      >
+        <ChartEmpty message="Aucun camp ouvert" icon="⛺" />
       </ChartCard>
     );
   }
@@ -30,14 +49,39 @@ export function CampParticipantsChart({ camps }: CampParticipantsChartProps) {
     statut: c.statut,
   }));
 
+  const totalParticipants = camps.reduce((s, c) => s + c.participants, 0);
+  const activeCamps = camps.filter((c) =>
+    ['OUVERT', 'EN_COURS'].includes(c.statut),
+  ).length;
+
   return (
-    <ChartCard title="Participants par camp" description="Camps ouverts et en cours">
+    <ChartCard
+      title="Participants par camp"
+      icon="⛺"
+      accentColor={BRAND_CHART_COLORS.or}
+      description="Camps ouverts et en cours"
+      footer={
+        <>
+          <ChartStatChip
+            label="Participants"
+            value={totalParticipants}
+            color={BRAND_CHART_COLORS.or}
+          />
+          <ChartStatChip label="Camps actifs" value={activeCamps} />
+        </>
+      }
+    >
       <ChartContainer
         config={campsChartConfig}
-        className="h-[220px] w-full lg:h-[280px] aspect-auto"
+        className={`${CHART_HEIGHT} aspect-auto`}
       >
-        <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+          <ChartGradient
+            id="fillParticipants"
+            from={BRAND_CHART_COLORS.or}
+            to="#9c7218"
+          />
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#ececf0" />
           <XAxis
             dataKey="camp"
             tickLine={false}
@@ -47,21 +91,39 @@ export function CampParticipantsChart({ camps }: CampParticipantsChartProps) {
             angle={-20}
             textAnchor="end"
             height={44}
+            tick={CHART_AXIS_TICK}
           />
-          <YAxis tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+            width={32}
+            tick={CHART_AXIS_TICK}
+          />
           <ChartTooltip
+            cursor={{ fill: '#f6f6fa', radius: 6 }}
             content={
               <ChartTooltipContent
-                labelFormatter={(_, payload) =>
-                  (payload?.[0]?.payload as { fullName?: string })?.fullName ?? ''
-                }
+                labelFormatter={(_, payload) => {
+                  const item = payload?.[0]?.payload as {
+                    fullName?: string;
+                    statut?: string;
+                  };
+                  const statut = item?.statut
+                    ? STATUT_LABELS[item.statut] ?? item.statut
+                    : '';
+                  return statut
+                    ? `${item?.fullName ?? ''} · ${statut}`
+                    : (item?.fullName ?? '');
+                }}
               />
             }
           />
           <Bar
             dataKey="participants"
-            fill="var(--color-participants)"
-            radius={[4, 4, 0, 0]}
+            fill="url(#fillParticipants)"
+            radius={[6, 6, 0, 0]}
+            {...CHART_BAR_PROPS}
             {...CHART_ANIMATION}
           />
         </BarChart>

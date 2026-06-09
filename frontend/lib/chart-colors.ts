@@ -8,6 +8,13 @@ export const BRAND_CHART_COLORS = {
   nuit: '#1F1B2E',
 } as const;
 
+export const CHART_HEIGHT = 'h-[240px] w-full lg:h-[300px]';
+
+export const CHART_AXIS_TICK = {
+  fontSize: 11,
+  fill: '#6b6b78',
+};
+
 export const districtChartConfig = {
   routiers: { label: 'Routiers', color: BRAND_CHART_COLORS.rouge },
   selectionnes: { label: 'Sélectionnés', color: BRAND_CHART_COLORS.vert },
@@ -31,4 +38,10 @@ export const CHART_ANIMATION = {
   isAnimationActive: true,
   animationDuration: 800,
   animationEasing: 'ease-out' as const,
+};
+
+export const CHART_BAR_PROPS = {
+  maxBarSize: 36,
+  activeBar: { opacity: 0.85 },
+  cursor: 'pointer' as const,
 };
