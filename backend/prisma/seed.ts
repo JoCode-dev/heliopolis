@@ -6267,8 +6267,13 @@ async function main() {
     | 'MYTHOLOGIQUE'
     | 'CLASSIQUE';
 
-  if (structureKey !== 'MYTHOLOGIQUE' && structureKey !== 'CLASSIQUE') {
+  if (
+    structureKey !== undefined &&
+    structureKey !== 'MYTHOLOGIQUE' &&
+    structureKey !== 'CLASSIQUE'
+  ) {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `SEED_STRUCTURE invalide : "${structureKey}". Valeurs acceptées : MYTHOLOGIQUE, CLASSIQUE`,
     );
   }
@@ -6516,11 +6521,6 @@ async function main() {
         guideAllIds.push(guideUser.id);
         if (guideRole === 'PLEIN') {
           guidePleinIds.push(guideUser.id);
-          // Un guide ne peut diriger qu'une seule paroisse (guideId @unique)
-          await prisma.parish.updateMany({
-            where: { guideId: guideUser.id, NOT: { id: parish.id } },
-            data: { guideId: null },
-          });
           await prisma.parish.update({
             where: { id: parish.id },
             data: { guideId: guideUser.id },
