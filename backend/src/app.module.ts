@@ -10,6 +10,7 @@ import { ChallengesModule } from './challenges/challenges.module.js';
 import { CodexModule } from './codex/codex.module.js';
 import { ContactsModule } from './contacts/contacts.module.js';
 import { CouncilsModule } from './councils/councils.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { ExportModule } from './export/export.module.js';
 import { LogsModule } from './logs/logs.module.js';
 import { RequestContextMiddleware } from './logs/request-context.middleware.js';
@@ -41,6 +42,7 @@ import { UsersModule } from './users/users.module.js';
     ExportModule,
     ContactsModule,
     CouncilsModule,
+    NotificationsModule,
     SettingsModule,
     SchedulerModule,
   ],

@@ -13,6 +13,15 @@ import {
   UserRole,
 } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+
+const ROLE_MESSAGES_BASE: Record<UserRole, string> = {
+  ADMIN: '/dashboard/admin/messages',
+  REGION: '/dashboard/region/messages',
+  SENTINELLE: '/dashboard/guide/messages',
+  GUIDE: '/dashboard/guide/messages',
+  GARDIEN: '/dashboard/gardien/messages',
+};
 
 @Injectable()
 export class MessagingService {
@@ -20,6 +29,7 @@ export class MessagingService {
     private prisma: PrismaService,
     private redis: RedisService,
     private vector: VectorService,
+    private notifications: NotificationsService,
   ) {}
 
   async assertMember(conversationId: string, userId: string) {
@@ -189,7 +199,52 @@ export class MessagingService {
       void this.vector.indexMessage(message.id, data.contenu);
     }
 
+    void this.notifyNewMessage(conversationId, authorId, {
+      contenu: message.contenu,
+      author: message.author ?? { nom: 'Utilisateur', prenoms: '' },
+    });
+
     return message;
+  }
+
+  private async notifyNewMessage(
+    conversationId: string,
+    authorId: string,
+    message: {
+      contenu?: string | null;
+      author: { nom: string; prenoms: string };
+    },
+  ) {
+    const members = await this.prisma.conversationMember.findMany({
+      where: {
+        conversationId,
+        leftAt: null,
+        userId: { not: authorId },
+      },
+      select: {
+        userId: true,
+        user: { select: { role: true } },
+      },
+    });
+
+    if (!members.length) return;
+
+    const authorName = `${message.author.prenoms} ${message.author.nom}`;
+    const excerpt = (message.contenu?.trim() || 'Nouveau message').slice(0, 80);
+    const tag = `conv-${conversationId}`;
+
+    for (const member of members) {
+      const online = await this.redis.isOnline(member.userId);
+      if (online) continue;
+
+      const base = ROLE_MESSAGES_BASE[member.user.role];
+      void this.notifications.sendToUser(member.userId, {
+        title: authorName,
+        body: excerpt,
+        url: `${base}/${conversationId}`,
+        tag,
+      });
+    }
   }
 
   async getConversationDetails(conversationId: string, userId: string) {

@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { usersApi, authApi } from '@/lib/api';
+import { usersApi, authApi, notificationsApi } from '@/lib/api';
 import { deferEffect } from '@/lib/effects';
 import { usePastoralYear } from '@/store/pastoralYear';
 
@@ -79,6 +79,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [notifPush, setNotifPush] = useState(true);
+  const [notifLoading, setNotifLoading] = useState(false);
 
   useEffect(() => deferEffect(() => {
     if (isOpen && user) {
@@ -86,6 +88,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setPrenoms(user.prenoms);
       setEmail(user.email ?? '');
       setTelephone(user.telephone ?? '');
+      setNotifPush(user.notifPush !== false);
       setError('');
       setSuccess('');
       setAvatarFile(null);
@@ -103,6 +106,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setError('');
     setSuccess('');
   }), [tab]);
+
+  const handleNotifPushToggle = async () => {
+    if (!user) return;
+    const next = !notifPush;
+    setNotifLoading(true);
+    try {
+      const { data } = await notificationsApi.updatePreferences({ notifPush: next });
+      setNotifPush(data.notifPush);
+      setUser({ ...user, notifPush: data.notifPush });
+    } catch {
+      setError('Impossible de mettre à jour les notifications push.');
+    } finally {
+      setNotifLoading(false);
+    }
+  };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -388,6 +406,34 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       <span className="text-gray-700 truncate max-w-[55%] text-right">{user.parish.nom}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Notifications push */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Notifications push</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Recevoir une alerte pour les nouveaux messages quand l&apos;app est fermée.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={notifPush}
+                      disabled={notifLoading}
+                      onClick={handleNotifPushToggle}
+                      className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
+                        notifPush ? 'bg-[#C62828]' : 'bg-gray-300'
+                      } disabled:opacity-60`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                          notifPush ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Section adhésion */}

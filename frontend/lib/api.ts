@@ -263,6 +263,21 @@ export const settingsApi = {
   setAnneePastorale: (annee: number) => api.patch('/settings/annee-pastorale', { annee }),
 };
 
+// ─── Notifications (PWA push) ────────────────────────────────────────────────
+export const notificationsApi = {
+  getVapidPublicKey: () => api.get<{ publicKey: string }>('/notifications/vapid-public-key'),
+  subscribe: (data: {
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    userAgent?: string;
+  }) => api.post('/notifications/subscribe', data),
+  unsubscribe: (endpoint: string) =>
+    api.delete('/notifications/subscribe', { data: { endpoint } }),
+  updatePreferences: (data: { notifPush?: boolean; notifEmail?: boolean }) =>
+    api.patch('/notifications/preferences', data),
+};
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 export const exportApi = {
   campParticipants: (campId: string) =>

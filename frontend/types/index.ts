@@ -23,6 +23,7 @@ export interface User {
   id: string; nom: string; prenoms: string; matricule?: string;
   email?: string; telephone?: string; avatarUrl?: string;
   role: UserRole; statutProfil: ProfileStatus;
+  notifPush?: boolean; notifEmail?: boolean;
   region?: Region; district?: District; parish?: Parish;
   adhesions?: Adhesion[];
   _count?: { badges: number; submissions: number };

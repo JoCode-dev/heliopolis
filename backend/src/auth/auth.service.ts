@@ -199,6 +199,8 @@ export class AuthService {
         district: { select: { id: true, nom: true } },
         parish: { select: { id: true, nom: true } },
         adhesions: { orderBy: { annee: 'desc' }, take: 1 },
+        notifPush: true,
+        notifEmail: true,
         _count: { select: { badges: true, submissions: true } },
       },
     });

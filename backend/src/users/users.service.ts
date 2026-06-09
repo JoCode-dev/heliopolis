@@ -144,6 +144,9 @@ export class UsersService {
     avatarUrl: true,
     dateNaissance: true,
     sexe: true,
+    langue: true,
+    notifPush: true,
+    notifEmail: true,
     lastLoginAt: true,
     createdAt: true,
     regionId: true,
@@ -282,6 +285,24 @@ export class UsersService {
       target: { entityType: 'User', entityId: userId },
     });
     return updated;
+  }
+
+  async updateNotificationPreferences(
+    userId: string,
+    dto: { notifPush?: boolean; notifEmail?: boolean },
+  ) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.notifPush !== undefined && { notifPush: dto.notifPush }),
+        ...(dto.notifEmail !== undefined && { notifEmail: dto.notifEmail }),
+      },
+      select: {
+        id: true,
+        notifPush: true,
+        notifEmail: true,
+      },
+    });
   }
 
   async updateAvatar(userId: string, avatarUrl: string) {

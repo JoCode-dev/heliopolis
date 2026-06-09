@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSerwist } from "@serwist/turbopack";
 
 const BACKEND = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace('/api', '');
 
@@ -19,6 +20,7 @@ if (r2PublicUrl) {
 }
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['esbuild-wasm', 'esbuild'],
   output: 'standalone',
   allowedDevOrigins: ['host.docker.internal'],
   images: {
@@ -40,4 +42,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
