@@ -6263,19 +6263,18 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const rawStructureKey = process.env.SEED_STRUCTURE;
-  const structureKey =
-    rawStructureKey === 'CLASSIQUE' || rawStructureKey === 'MYTHOLOGIQUE'
-      ? rawStructureKey
-      : 'MYTHOLOGIQUE';
+  const structureKey = (process.env.SEED_STRUCTURE ?? 'MYTHOLOGIQUE') as
+    | 'MYTHOLOGIQUE'
+    | 'CLASSIQUE';
 
   if (
-    rawStructureKey !== undefined &&
-    rawStructureKey !== 'MYTHOLOGIQUE' &&
-    rawStructureKey !== 'CLASSIQUE'
+    structureKey !== undefined &&
+    structureKey !== 'MYTHOLOGIQUE' &&
+    structureKey !== 'CLASSIQUE'
   ) {
     throw new Error(
-      `SEED_STRUCTURE invalide : "${rawStructureKey}". Valeurs acceptées : MYTHOLOGIQUE, CLASSIQUE`,
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      `SEED_STRUCTURE invalide : "${structureKey}". Valeurs acceptées : MYTHOLOGIQUE, CLASSIQUE`,
     );
   }
 
@@ -6522,10 +6521,7 @@ async function main() {
         guideAllIds.push(guideUser.id);
         if (guideRole === 'PLEIN') {
           guidePleinIds.push(guideUser.id);
-          await prisma.parish.update({
-            where: { id: parish.id },
-            data: { guideId: guideUser.id },
-          });
+          await prisma.parish.update({ where: { id: parish.id }, data: { guideId: guideUser.id } });
         }
       }
     }
