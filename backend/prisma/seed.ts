@@ -6521,7 +6521,10 @@ async function main() {
         guideAllIds.push(guideUser.id);
         if (guideRole === 'PLEIN') {
           guidePleinIds.push(guideUser.id);
-          await prisma.parish.update({ where: { id: parish.id }, data: { guideId: guideUser.id } });
+          await prisma.parish.update({
+            where: { id: parish.id },
+            data: { guideId: guideUser.id },
+          });
         }
       }
     }
