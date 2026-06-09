@@ -39,7 +39,7 @@ export interface RecordActionLogInput {
   action: AuditAction;
   category: ActionLogCategory;
   summary: string;
-  actor?: { id: string; role: string; nom: string; prenoms: string } | null;
+  actor?: { id: string; role: string; nom?: string | null; prenoms?: string | null } | null;
   target: ActionLogTarget;
   metadata?: Record<string, unknown>;
 }

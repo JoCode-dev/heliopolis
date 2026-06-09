@@ -70,7 +70,7 @@ export function CampsClient({ initialCamps }: { initialCamps: Camp[] }) {
           <div>
             <h1 className="text-xl font-black">⛺ Les Camps</h1>
             <p className="text-[11px] opacity-60 mt-0.5 uppercase tracking-widest">
-              Route en Joie {new Date().getFullYear()}
+              Héliopolis · Communauté Mahatma Gandhi
             </p>
           </div>
           {enCours.length > 0 && (
@@ -210,10 +210,10 @@ function AuthBanner() {
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#F58A4B] to-[#C62828] rounded-l-2xl" />
       <span className="text-xl ml-1 flex-shrink-0">⛺</span>
       <div className="flex-1 text-xs text-[#1F1B2E] leading-relaxed">
-        Pour <strong>t&apos;inscrire à un camp</strong>, rejoins la Route et contacte ton Guide.
+        Pour <strong>t&apos;inscrire à un camp</strong>, active ton profil de gardien.
       </div>
-      <Link href="/rejoindre" className="flex-shrink-0 bg-[#C62828] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">
-        Rejoindre →
+      <Link href="/activation" className="flex-shrink-0 bg-[#C62828] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg">
+        Activer →
       </Link>
     </div>
   );

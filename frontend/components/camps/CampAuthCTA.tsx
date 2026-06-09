@@ -62,10 +62,10 @@ export function CampAuthCTA({ campId, campNom = 'Camp' }: { campId: string; camp
         </div>
       </div>
       <Link
-        href="/rejoindre"
+        href="/activation"
         className="block w-full text-center bg-[#C62828] text-white font-bold text-sm py-3.5 rounded-xl mb-2"
       >
-        ✨ Je veux rejoindre
+        🛡️ Activer mon profil
       </Link>
       <ShareButton campNom={campNom} />
     </>

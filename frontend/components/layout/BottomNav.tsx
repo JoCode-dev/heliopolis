@@ -10,10 +10,9 @@ interface NavItem { href: string; icon: string; label: string; }
 // ─── Configurations ───────────────────────────────────────────────────────────
 
 const GUEST_ITEMS: NavItem[] = [
-  { href: '/', icon: '🏠', label: 'Accueil' },
-  { href: '/camps', icon: '⛺', label: 'Camps' },
-  { href: '/codex', icon: '🪶', label: 'Codex' },
-  { href: '/rejoindre', icon: '✨', label: 'Rejoindre' },
+  { href: '/',          icon: '🏠', label: 'Accueil'  },
+  { href: '/codex',     icon: '🪶', label: 'Codex'    },
+  { href: '/activation',icon: '🛡️', label: 'S\'inscrire' },
 ];
 
 const GARDIEN_ITEMS: NavItem[] = [

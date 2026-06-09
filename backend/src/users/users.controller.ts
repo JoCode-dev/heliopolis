@@ -17,6 +17,7 @@ import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto.js';
+import { PreEnregistrerDto } from './dto/pre-enregistrer.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -35,6 +36,7 @@ interface FindUsersQuery {
   parishId?: string;
   districtId?: string;
   search?: string;
+  statutProfil?: ProfileStatus;
 }
 
 interface UpdateAdhesionBody {
@@ -75,6 +77,49 @@ export class UsersController {
     return this.usersService.updateAvatar(user.id, avatarUrl);
   }
 
+  /** Pré-enregistrement d'un seul matricule (ADMIN) */
+  @Roles(UserRole.ADMIN)
+  @Post('pre-enregistrer')
+  preEnregistrer(
+    @Body() dto: PreEnregistrerDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.preEnregistrer(dto, user);
+  }
+
+  /** Import en masse depuis un fichier CSV ou Excel (ADMIN) */
+  @Roles(UserRole.ADMIN)
+  @Post('importer')
+  @UseInterceptors(
+    FileInterceptor(
+      'fichier',
+      memoryFileOptions(
+        ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'],
+        5 * 1024 * 1024,
+      ),
+    ),
+  )
+  async importerMatricules(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: AuthUser,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Fichier CSV ou Excel manquant');
+    }
+    return this.usersService.importerMatricules(file.buffer, user);
+  }
+
+  /** Promotion d'un membre : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION (ADMIN) */
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/promouvoir')
+  promouvoir(
+    @Param('id') id: string,
+    @Body() body: { role: UserRole },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.promouvoir(id, body.role, user);
+  }
+
   @Get()
   findAll(@Query() query: FindUsersQuery, @CurrentUser() user: AuthUser) {
     return this.usersService.findAll(query, user);
@@ -85,7 +130,8 @@ export class UsersController {
     return this.usersService.findOne(id, user);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
+  /** Création manuelle réservée à l'ADMIN (cas exceptionnels) */
+  @Roles(UserRole.ADMIN)
   @Post()
   create(@Body() dto: CreateUserDto, @CurrentUser() user: AuthUser) {
     return this.usersService.create(dto, user);

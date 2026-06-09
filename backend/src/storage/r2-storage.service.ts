@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { extname } from 'path';
@@ -19,15 +19,23 @@ export class R2StorageService implements OnModuleInit {
   private client!: S3Client;
   private bucket!: string;
   private publicUrl!: string;
+  private enabled = false;
 
   constructor(private config: ConfigService) {}
 
   onModuleInit() {
     const missing = REQUIRED_ENV.filter((key) => !this.config.get(key));
     if (missing.length > 0) {
-      throw new Error(
-        `Missing R2 environment variables: ${missing.join(', ')}`,
+      const isProd = this.config.get('NODE_ENV') === 'production';
+      if (isProd) {
+        throw new Error(
+          `Missing R2 environment variables: ${missing.join(', ')}`,
+        );
+      }
+      console.warn(
+        `[R2StorageService] Variables manquantes (${missing.join(', ')}) — stockage désactivé en développement`,
       );
+      return;
     }
 
     const accountId = this.config.getOrThrow<string>('R2_ACCOUNT_ID');
@@ -46,12 +54,19 @@ export class R2StorageService implements OnModuleInit {
         ),
       },
     });
+    this.enabled = true;
   }
 
   async upload(
     prefix: StoragePrefix,
     file: Express.Multer.File,
   ): Promise<string> {
+    if (!this.enabled) {
+      throw new ServiceUnavailableException(
+        'Stockage R2 non configuré dans cet environnement',
+      );
+    }
+
     const ext = extname(file.originalname).toLowerCase() || '.bin';
     const key = `${prefix}/${randomUUID()}${ext}`;
 

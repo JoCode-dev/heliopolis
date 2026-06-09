@@ -45,7 +45,7 @@ export class ActionLogService implements OnModuleInit {
         actor: {
           id: input.actor.id,
           role: input.actor.role,
-          label: `${input.actor.prenoms} ${input.actor.nom}`.trim(),
+          label: `${input.actor.prenoms ?? ''} ${input.actor.nom ?? ''}`.trim(),
         },
       }),
       ...(ctx?.ip && { ip: ctx.ip }),

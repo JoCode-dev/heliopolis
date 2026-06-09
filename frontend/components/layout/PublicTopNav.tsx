@@ -6,10 +6,8 @@ import { GardiensBlazon } from '@/components/layout/GardiensBlazon';
 import { getHomeForRole } from '@/lib/roles';
 
 const NAV = [
-  { href: '/',         label: 'Accueil' },
-  { href: '/camps',    label: 'Camps'   },
-  { href: '/codex',    label: 'Codex'   },
-  { href: '/rejoindre',label: 'Rejoindre' },
+  { href: '/',      label: 'Accueil' },
+  { href: '/codex', label: 'Codex'   },
 ];
 
 export function PublicTopNav() {
@@ -24,8 +22,8 @@ export function PublicTopNav() {
       <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
         <GardiensBlazon size={34} />
         <div>
-          <div className="text-[8px] tracking-[3px] opacity-55 uppercase">Route en Joie 2026</div>
-          <div className="text-[13px] font-bold leading-tight">Codex des Gardiens</div>
+          <div className="text-[8px] tracking-[3px] opacity-55 uppercase">Héliopolis</div>
+          <div className="text-[13px] font-bold leading-tight">Gardiens de la Création</div>
         </div>
       </Link>
 
@@ -55,7 +53,7 @@ export function PublicTopNav() {
       ) : (
         <Link href="/activation"
           className="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
-          Se connecter
+          Activer mon profil
         </Link>
       )}
     </header>

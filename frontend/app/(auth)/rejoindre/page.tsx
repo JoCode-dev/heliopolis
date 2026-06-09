@@ -1,8 +1,8 @@
-'use client';
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { GardiensBlazon } from '@/components/layout/GardiensBlazon';
+import { redirect } from 'next/navigation';
+
+export default function RejoindrePage() {
+  redirect('/activation');
+}
 import { PublicTopNav } from '@/components/layout/PublicTopNav';
 import { useAuthStore } from '@/store/auth';
 import { getHomeForRole } from '@/lib/roles';

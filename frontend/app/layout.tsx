@@ -7,20 +7,20 @@ const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   metadataBase: new URL('http://localhost:3000'),
-  title: "Le Codex des Gardiens — Route en Joie 2026",
-  description: "Plateforme de la Communauté Mahatma Gandhi · Région d'Abidjan",
+  title: "Gardiens de la Création — Héliopolis",
+  description: "Plateforme des Gardiens de la Création · Communauté Mahatma Gandhi · Région d'Abidjan",
   openGraph: {
-    title: "Le Codex des Gardiens — Route en Joie 2026",
-    description: "Plateforme de la Communauté Mahatma Gandhi · Région d'Abidjan",
-    siteName: "Codex des Gardiens",
+    title: "Gardiens de la Création — Héliopolis",
+    description: "Plateforme des Gardiens de la Création · Communauté Mahatma Gandhi · Région d'Abidjan",
+    siteName: "Héliopolis",
     locale: 'fr_FR',
     type: 'website',
     images: [{ url: '/logo.jpeg' }],
   },
   twitter: {
     card: 'summary',
-    title: "Le Codex des Gardiens — Route en Joie 2026",
-    description: "Plateforme de la Communauté Mahatma Gandhi · Région d'Abidjan",
+    title: "Gardiens de la Création — Héliopolis",
+    description: "Plateforme des Gardiens de la Création · Communauté Mahatma Gandhi · Région d'Abidjan",
     images: ['/logo.jpeg'],
   },
 };

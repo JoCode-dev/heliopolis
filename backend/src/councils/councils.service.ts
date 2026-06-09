@@ -181,8 +181,8 @@ export class CouncilsService {
     if (!fullUser) return dto;
 
     return {
-      nom: dto.nom || fullUser.nom,
-      prenoms: dto.prenoms || fullUser.prenoms,
+      nom: dto.nom || fullUser.nom || '',
+      prenoms: dto.prenoms || fullUser.prenoms || '',
       contact: dto.contact ?? fullUser.telephone ?? fullUser.email ?? undefined,
       districtId: dto.districtId ?? fullUser.districtId ?? undefined,
       parishId: dto.parishId ?? fullUser.parishId ?? undefined,

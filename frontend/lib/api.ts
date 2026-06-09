@@ -43,6 +43,18 @@ api.interceptors.response.use(
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
+  /** Vérifie qu'un matricule est pré-enregistré et disponible pour l'inscription */
+  verifierMatricule: (matricule: string) =>
+    api.post<{ userId: string; role: string; hasProfile: boolean }>('/auth/verifier-matricule', { matricule }),
+  /** Auto-inscription : complète le profil et reçoit des tokens (connexion immédiate) */
+  inscrire: (data: {
+    matricule: string;
+    nom: string;
+    prenoms: string;
+    email?: string;
+    telephone?: string;
+    password: string;
+  }) => api.post<{ accessToken: string; refreshToken: string }>('/auth/inscrire', data),
   activate: (matricule: string) => api.post('/auth/activate', { matricule }),
   login: (identifier: string, password: string) => api.post('/auth/login', { identifier, password }),
   logout: () => api.post('/auth/logout'),
@@ -211,6 +223,27 @@ export const usersApi = {
   list: (params?: object) => api.get('/users', { params }),
   get: (id: string) => api.get(`/users/${id}`),
   create: (data: object) => api.post('/users', data),
+  /** Pré-enregistre un matricule (ADMIN) — détermine le rôle via l'âge */
+  preEnregistrer: (data: {
+    matricule: string;
+    dateNaissance: string;
+    nom?: string;
+    prenoms?: string;
+    regionId?: string;
+    districtId?: string;
+    parishId?: string;
+  }) => api.post('/users/pre-enregistrer', data),
+  /** Import en masse CSV/Excel de matricules (ADMIN) */
+  importerMatricules: (file: File) => {
+    const form = new FormData();
+    form.append('fichier', file);
+    return api.post('/users/importer', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  /** Promouvoir un membre : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION (ADMIN) */
+  promouvoir: (id: string, role: 'SENTINELLE' | 'REGION') =>
+    api.patch(`/users/${id}/promouvoir`, { role }),
   update: (id: string, data: object) => api.patch(`/users/${id}`, data),
   updateMe: (data: { nom?: string; prenoms?: string; email?: string; telephone?: string }) =>
     api.patch('/users/me', data),

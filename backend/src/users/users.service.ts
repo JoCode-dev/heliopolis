@@ -3,10 +3,12 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
+import { PreEnregistrerDto } from './dto/pre-enregistrer.dto.js';
 import {
   AdhesionStatus,
   AuditAction,
@@ -17,6 +19,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { ActionLogService } from '../logs/action-log.service.js';
 import * as bcrypt from 'bcryptjs';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +27,17 @@ export class UsersService {
     private prisma: PrismaService,
     private actionLog: ActionLogService,
   ) {}
+
+  /** Détermine le rôle d'un membre selon son âge (18-20 = GARDIEN, 21+ = GUIDE) */
+  static determineRoleFromAge(dateNaissance: Date): UserRole {
+    const today = new Date();
+    let age = today.getFullYear() - dateNaissance.getFullYear();
+    const m = today.getMonth() - dateNaissance.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dateNaissance.getDate())) age--;
+    if (age < 18) throw new BadRequestException('Âge minimum requis : 18 ans révolus');
+    if (age < 21) return UserRole.GARDIEN;
+    return UserRole.GUIDE;
+  }
 
   private noScope(): Prisma.UserWhereInput {
     return { id: '__no_scope__' };
@@ -65,73 +79,6 @@ export class UsersService {
     return actor.id === target.id;
   }
 
-  private async assertCreateScope(
-    dto: Pick<CreateUserDto, 'role' | 'regionId' | 'districtId' | 'parishId'>,
-    actor: AuthUser,
-  ) {
-    if (actor.role === UserRole.ADMIN) return;
-    if (dto.role === UserRole.ADMIN) {
-      throw new ForbiddenException('Création administrateur réservée');
-    }
-
-    // SENTINELLE ne peut créer que des guides dans son district
-    if (actor.role === UserRole.SENTINELLE) {
-      if (dto.role && dto.role !== UserRole.GUIDE) {
-        throw new ForbiddenException('Une sentinelle ne peut créer que des guides');
-      }
-      if (!actor.districtId) {
-        throw new ForbiddenException('Aucun district rattaché à ce compte');
-      }
-      if (dto.parishId) {
-        const parish = await this.prisma.parish.findUnique({
-          where: { id: dto.parishId },
-          select: { districtId: true },
-        });
-        if (!parish || parish.districtId !== actor.districtId) {
-          throw new ForbiddenException('Paroisse hors périmètre du district');
-        }
-      }
-      return;
-    }
-
-    // GUIDE ne peut créer que des gardiens dans sa paroisse
-    if (actor.role === UserRole.GUIDE) {
-      if (dto.role && dto.role !== UserRole.GARDIEN) {
-        throw new ForbiddenException('Un guide ne peut créer que des gardiens');
-      }
-      if (!actor.parishId) {
-        throw new ForbiddenException('Aucune paroisse rattachée à ce compte');
-      }
-      return;
-    }
-
-    // REGION : vérification du périmètre régional
-    if (!actor.regionId) {
-      throw new ForbiddenException('Aucune région rattachée à ce compte');
-    }
-    if (dto.regionId && dto.regionId !== actor.regionId) {
-      throw new ForbiddenException('Utilisateur hors périmètre régional');
-    }
-    if ('districtId' in dto && dto.districtId) {
-      const district = await this.prisma.district.findUnique({
-        where: { id: dto.districtId },
-        select: { regionId: true },
-      });
-      if (!district || district.regionId !== actor.regionId) {
-        throw new ForbiddenException('District hors périmètre régional');
-      }
-    }
-    if ('parishId' in dto && dto.parishId) {
-      const parish = await this.prisma.parish.findUnique({
-        where: { id: dto.parishId },
-        select: { district: { select: { regionId: true } } },
-      });
-      if (!parish || parish.district.regionId !== actor.regionId) {
-        throw new ForbiddenException('Paroisse hors périmètre régional');
-      }
-    }
-  }
-
   private userSelect = {
     id: true,
     nom: true,
@@ -160,6 +107,7 @@ export class UsersService {
     parishId?: string;
     districtId?: string;
     search?: string;
+    statutProfil?: ProfileStatus;
   }, actor?: AuthUser) {
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
@@ -169,6 +117,7 @@ export class UsersService {
     if (filters?.role) where.role = filters.role;
     if (filters?.parishId) where.parishId = filters.parishId;
     if (filters?.districtId) where.districtId = filters.districtId;
+    if (filters?.statutProfil) where.statutProfil = filters.statutProfil;
     if (filters?.search) {
       where.OR = [
         { nom: { contains: filters.search, mode: 'insensitive' } },
@@ -195,8 +144,11 @@ export class UsersService {
     return user;
   }
 
+  /** Création manuelle réservée à l'ADMIN (cas exceptionnels) */
   async create(dto: CreateUserDto, actor: AuthUser) {
-    await this.assertCreateScope(dto, actor);
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('La création directe de membres est réservée à l\'administrateur. Utilisez le pré-enregistrement de matricule.');
+    }
     if (dto.matricule) {
       const existing = await this.prisma.user.findUnique({
         where: { matricule: dto.matricule },
@@ -208,13 +160,6 @@ export class UsersService {
       ? await bcrypt.hash(dto.password, 12)
       : undefined;
 
-    // Rôle par défaut selon le créateur si non spécifié
-    const resolvedRole = dto.role ?? (
-      actor.role === UserRole.GUIDE ? UserRole.GARDIEN :
-      actor.role === UserRole.SENTINELLE ? UserRole.GUIDE :
-      UserRole.GARDIEN
-    );
-
     const created = await this.prisma.user.create({
       data: {
         nom: dto.nom,
@@ -223,13 +168,13 @@ export class UsersService {
         email: dto.email,
         telephone: dto.telephone,
         passwordHash,
-        role: resolvedRole,
+        role: dto.role ?? UserRole.GARDIEN,
         dateNaissance: dto.dateNaissance
           ? new Date(dto.dateNaissance)
           : undefined,
-        regionId: dto.regionId ?? actor.regionId,
-        districtId: dto.districtId ?? actor.districtId,
-        parishId: dto.parishId ?? actor.parishId,
+        regionId: dto.regionId,
+        districtId: dto.districtId,
+        parishId: dto.parishId,
         statutProfil: ProfileStatus.ACTIF,
       },
       select: this.userSelect,
@@ -237,12 +182,176 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.CREATE,
       category: 'user',
-      summary: `Création du membre ${created.prenoms} ${created.nom} (${created.role})`,
+      summary: `Création du membre ${created.prenoms ?? ''} ${created.nom ?? ''} (${created.role})`,
       actor: actor,
       target: { entityType: 'User', entityId: created.id },
       metadata: { role: created.role, matricule: created.matricule },
     });
     return created;
+  }
+
+  /** Pré-enregistre un matricule — seul l'ADMIN peut le faire */
+  async preEnregistrer(dto: PreEnregistrerDto, actor: AuthUser) {
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Seul l\'administrateur peut pré-enregistrer des matricules');
+    }
+    const existing = await this.prisma.user.findUnique({
+      where: { matricule: dto.matricule },
+    });
+    if (existing) throw new ConflictException('Ce matricule est déjà enregistré');
+
+    const dateNaissance = new Date(dto.dateNaissance);
+    const role = UsersService.determineRoleFromAge(dateNaissance);
+
+    const created = await this.prisma.user.create({
+      data: {
+        matricule: dto.matricule,
+        dateNaissance,
+        role,
+        nom: dto.nom ?? null,
+        prenoms: dto.prenoms ?? null,
+        regionId: dto.regionId ?? null,
+        districtId: dto.districtId ?? null,
+        parishId: dto.parishId ?? null,
+        statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION,
+      },
+      select: this.userSelect,
+    });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'user',
+      summary: `Pré-enregistrement du matricule ${dto.matricule} → rôle : ${role}`,
+      actor,
+      target: { entityType: 'User', entityId: created.id },
+      metadata: { matricule: dto.matricule, role, dateNaissance: dto.dateNaissance },
+    });
+    return created;
+  }
+
+  /** Import en masse depuis un fichier CSV ou Excel */
+  async importerMatricules(
+    buffer: Buffer,
+    actor: AuthUser,
+  ): Promise<{ importes: number; ignores: number; erreurs: { matricule: string; raison: string }[] }> {
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Seul l\'administrateur peut importer des matricules');
+    }
+
+    const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+
+    let importes = 0;
+    let ignores = 0;
+    const erreurs: { matricule: string; raison: string }[] = [];
+
+    for (const row of rows) {
+      const matricule = String(row['matricule'] ?? row['Matricule'] ?? '').trim().toUpperCase();
+      const rawDate = row['dateNaissance'] ?? row['date_naissance'] ?? row['DateNaissance'] ?? row['Date Naissance'] ?? '';
+      const nomVal = String(row['nom'] ?? row['Nom'] ?? '').trim() || null;
+      const prenomsVal = String(row['prenoms'] ?? row['Prenoms'] ?? row['prénoms'] ?? '').trim() || null;
+      const regionId = String(row['regionId'] ?? row['region_id'] ?? '').trim() || null;
+      const districtId = String(row['districtId'] ?? row['district_id'] ?? '').trim() || null;
+      const parishId = String(row['parishId'] ?? row['parish_id'] ?? '').trim() || null;
+
+      if (!matricule || !/^\d{7}[A-Z]$/.test(matricule)) {
+        erreurs.push({ matricule: matricule || '(vide)', raison: 'Format de matricule invalide' });
+        continue;
+      }
+
+      let dateNaissance: Date;
+      try {
+        dateNaissance = rawDate instanceof Date ? rawDate : new Date(String(rawDate));
+        if (isNaN(dateNaissance.getTime())) throw new Error();
+      } catch {
+        erreurs.push({ matricule, raison: 'Date de naissance invalide' });
+        continue;
+      }
+
+      let role: UserRole;
+      try {
+        role = UsersService.determineRoleFromAge(dateNaissance);
+      } catch {
+        erreurs.push({ matricule, raison: 'Âge non éligible (minimum 18 ans)' });
+        continue;
+      }
+
+      const existing = await this.prisma.user.findUnique({ where: { matricule } });
+      if (existing) {
+        ignores++;
+        continue;
+      }
+
+      await this.prisma.user.create({
+        data: {
+          matricule,
+          dateNaissance,
+          role,
+          nom: nomVal,
+          prenoms: prenomsVal,
+          regionId,
+          districtId,
+          parishId,
+          statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION,
+        },
+      });
+      importes++;
+    }
+
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'user',
+      summary: `Import de matricules : ${importes} importés, ${ignores} ignorés, ${erreurs.length} erreurs`,
+      actor,
+      target: { entityType: 'User', entityId: 'bulk' },
+      metadata: { importes, ignores, erreurs: erreurs.length },
+    });
+
+    return { importes, ignores, erreurs };
+  }
+
+  /** Promotion : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION */
+  async promouvoir(id: string, targetRole: UserRole, actor: AuthUser) {
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Seul l\'administrateur peut promouvoir un membre');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, nom: true, prenoms: true, role: true, statutProfil: true },
+    });
+    if (!user) throw new NotFoundException('Membre introuvable');
+    if (user.statutProfil !== ProfileStatus.ACTIF) {
+      throw new BadRequestException('Seul un membre actif peut être promu');
+    }
+
+    if (targetRole === UserRole.SENTINELLE) {
+      if (user.role !== UserRole.GUIDE) {
+        throw new BadRequestException('Seul un guide peut être promu sentinelle');
+      }
+    } else if (targetRole === UserRole.REGION) {
+      if (user.role !== UserRole.GUIDE && user.role !== UserRole.SENTINELLE) {
+        throw new BadRequestException('Seul un guide ou une sentinelle peut être promu régional');
+      }
+    } else {
+      throw new BadRequestException('Promotion non autorisée vers ce rôle');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { role: targetRole },
+      select: this.userSelect,
+    });
+
+    const displayName = [user.prenoms, user.nom].filter(Boolean).join(' ') || id;
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'user',
+      summary: `Promotion de ${displayName} : ${user.role} → ${targetRole}`,
+      actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { avant: user.role, apres: targetRole },
+    });
+    return updated;
   }
 
   async updateStatut(id: string, statut: ProfileStatus, actor: AuthUser) {
@@ -255,7 +364,7 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.STATUS_CHANGE,
       category: 'user',
-      summary: `Statut de ${updated.prenoms} ${updated.nom} → ${statut}`,
+      summary: `Statut de ${updated.prenoms ?? ''} ${updated.nom ?? ''} → ${statut}`,
       actor: actor,
       target: { entityType: 'User', entityId: id },
       metadata: { before: before.statutProfil, after: statut },
@@ -277,7 +386,7 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.UPDATE,
       category: 'user',
-      summary: `Mise à jour du profil de ${updated.prenoms} ${updated.nom}`,
+      summary: `Mise à jour du profil de ${updated.prenoms ?? ''} ${updated.nom ?? ''}`,
       actor: updated,
       target: { entityType: 'User', entityId: userId },
     });
@@ -294,7 +403,9 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto, actor: AuthUser) {
     await this.findOne(id, actor);
-    await this.assertCreateScope(dto, actor);
+    if (actor.role !== UserRole.ADMIN && actor.role !== UserRole.REGION) {
+      throw new ForbiddenException('Modification réservée à l\'administrateur ou au régional');
+    }
     const { password, ...rest } = dto;
     const passwordHash = password ? await bcrypt.hash(password, 12) : undefined;
     const updated = await this.prisma.user.update({
@@ -305,7 +416,7 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.UPDATE,
       category: 'user',
-      summary: `Modification du membre ${updated.prenoms} ${updated.nom}`,
+      summary: `Modification du membre ${updated.prenoms ?? ''} ${updated.nom ?? ''}`,
       actor: actor,
       target: { entityType: 'User', entityId: id },
       metadata: { role: updated.role },
@@ -322,7 +433,7 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.DELETE,
       category: 'user',
-      summary: `Archivage du membre ${target.prenoms} ${target.nom}`,
+      summary: `Archivage du membre ${target.prenoms ?? ''} ${target.nom ?? ''}`,
       actor: actor,
       target: { entityType: 'User', entityId: id },
     });
@@ -361,7 +472,7 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.UPDATE,
       category: 'user',
-      summary: `Adhésion ${annee} de ${target.prenoms} ${target.nom} → ${statut}`,
+      summary: `Adhésion ${annee} de ${target.prenoms ?? ''} ${target.nom ?? ''} → ${statut}`,
       actor: validateur,
       target: { entityType: 'Adhesion', entityId: adhesion.id },
       metadata: { annee, statut, userId },

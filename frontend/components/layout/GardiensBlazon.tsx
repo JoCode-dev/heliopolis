@@ -4,7 +4,7 @@ export function GardiensBlazon({ size = 140, className = '' }: { size?: number; 
   return (
     <Image
       src="/logo.jpeg"
-      alt="Blason des Gardiens de la Création — Route en Joie 2026"
+      alt="Blason des Gardiens de la Création — Héliopolis"
       width={size}
       height={size}
       className={`object-cover flex-shrink-0 p-2 ${className}`}

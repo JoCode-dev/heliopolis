@@ -321,8 +321,8 @@ model Community {
 
 model User {
   id            String        @id @default(cuid())
-  nom           String
-  prenoms       String
+  nom           String?
+  prenoms       String?
   /// Matricule national, format 7 chiffres + 1 lettre (ex: 0525247O)
   /// Géré par la Nation, jamais généré par la plateforme (§5.1)
   matricule     String?       @unique
