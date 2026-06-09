@@ -1,15 +1,16 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-export default function RejoindrePage() {
-  redirect('/activation');
-}
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { GardiensBlazon } from '@/components/layout/GardiensBlazon';
 import { PublicTopNav } from '@/components/layout/PublicTopNav';
 import { useAuthStore } from '@/store/auth';
 import { getHomeForRole } from '@/lib/roles';
 import { territoriesApi } from '@/lib/api';
 import type { Parish } from '@/types';
 
-export default function RejoindreePage() {
+export default function RejoindrePage() {
   const router = useRouter();
   const { user } = useAuthStore();
 

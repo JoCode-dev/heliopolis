@@ -5,11 +5,19 @@ import { authApi } from "@/lib/api";
 import { getHomeForRole } from "@/lib/roles";
 import { useAuthStore } from "@/store/auth";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 type Mode = "inscription" | "connexion";
 
 export default function ActivationPage() {
+  return (
+    <Suspense fallback={null}>
+      <ActivationContent />
+    </Suspense>
+  );
+}
+
+function ActivationContent() {
   const router = useRouter();
   const params = useSearchParams();
   const { user, setTokens, setUser } = useAuthStore();
