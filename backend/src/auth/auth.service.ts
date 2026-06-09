@@ -59,7 +59,7 @@ export class AuthService {
     };
   }
 
-  /** Auto-inscription : le gardien/guide complète son profil et choisit un mot de passe */
+  /** Inscription : vérifie matricule + date de naissance, crée le compte avec nom/prénoms fournis */
   async inscrire(dto: InscrireDto) {
     const user = await this.prisma.user.findUnique({
       where: { matricule: dto.matricule },
@@ -70,24 +70,42 @@ export class AuthService {
     if (user.statutProfil === ProfileStatus.ACTIF) {
       throw new BadRequestException('Ce profil est déjà activé. Utilisez la connexion.');
     }
+    if (!user.dateNaissance) {
+      throw new BadRequestException(
+        'Date de naissance non enregistrée pour ce matricule. Contactez votre responsable.',
+      );
+    }
+
+    // Comparaison stricte en UTC (le champ @db.Date est stocké minuit UTC)
+    const provided = new Date(dto.dateNaissance);
+    if (
+      user.dateNaissance.getUTCFullYear() !== provided.getUTCFullYear() ||
+      user.dateNaissance.getUTCMonth()    !== provided.getUTCMonth()    ||
+      user.dateNaissance.getUTCDate()     !== provided.getUTCDate()
+    ) {
+      throw new BadRequestException('Date de naissance incorrecte. Vérifiez vos informations.');
+    }
+
+    // Rôle calculé depuis l'âge réel
+    const role = AuthService.determineRoleFromAge(provided);
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         nom: dto.nom,
         prenoms: dto.prenoms,
-        ...(dto.email && { email: dto.email }),
-        ...(dto.telephone && { telephone: dto.telephone }),
         passwordHash,
+        role,
         statutProfil: ProfileStatus.ACTIF,
       },
     });
     this.actionLog.record({
       action: AuditAction.CREATE,
       category: 'auth',
-      summary: `Auto-inscription de ${dto.prenoms} ${dto.nom} (${updated.role})`,
+      summary: `Inscription de ${dto.prenoms} ${dto.nom} (${role})`,
       target: { entityType: 'User', entityId: updated.id },
-      metadata: { matricule: dto.matricule, role: updated.role },
+      metadata: { matricule: dto.matricule, role },
     });
     return this.generateTokens(updated.id, updated.role);
   }

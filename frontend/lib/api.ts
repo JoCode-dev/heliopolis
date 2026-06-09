@@ -46,13 +46,12 @@ export const authApi = {
   /** Vérifie qu'un matricule est pré-enregistré et disponible pour l'inscription */
   verifierMatricule: (matricule: string) =>
     api.post<{ userId: string; role: string; hasProfile: boolean }>('/auth/verifier-matricule', { matricule }),
-  /** Auto-inscription : complète le profil et reçoit des tokens (connexion immédiate) */
+  /** Inscription : vérifie matricule + date de naissance et crée le compte */
   inscrire: (data: {
-    matricule: string;
     nom: string;
     prenoms: string;
-    email?: string;
-    telephone?: string;
+    matricule: string;
+    dateNaissance: string; // YYYY-MM-DD
     password: string;
   }) => api.post<{ accessToken: string; refreshToken: string }>('/auth/inscrire', data),
   activate: (matricule: string) => api.post('/auth/activate', { matricule }),
