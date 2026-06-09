@@ -8,7 +8,9 @@ WORKDIR /app
 
 COPY frontend/package.json frontend/package-lock.json ./
 
-RUN npm ci --ignore-scripts
+# Dokploy builds from a fresh clone with npm from the Node image.
+# npm install keeps the lockfile compatible with that npm resolver before build.
+RUN npm install --ignore-scripts
 
 COPY frontend/ .
 
