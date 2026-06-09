@@ -201,7 +201,10 @@ export class MessagingService {
 
     void this.notifyNewMessage(conversationId, authorId, {
       contenu: message.contenu,
-      author: message.author ?? { nom: 'Utilisateur', prenoms: '' },
+      author: {
+          nom:     message.author?.nom     ?? 'Utilisateur',
+          prenoms: message.author?.prenoms ?? '',
+        },
     });
 
     return message;
