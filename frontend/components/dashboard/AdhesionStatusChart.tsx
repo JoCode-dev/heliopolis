@@ -1,19 +1,11 @@
 'use client';
 
-import { Cell, Label, Pie, PieChart } from 'recharts';
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
-import {
-  adhesionChartConfig,
   BRAND_CHART_COLORS,
-  CHART_ANIMATION,
-  CHART_HEIGHT,
 } from '@/lib/chart-colors';
 import type { DashboardStats } from '@/types/dashboard-stats';
 import { ChartCard, ChartEmpty, ChartStatChip } from './ChartCard';
+import { SegmentBar, SegmentLegend } from './chart-lists';
 
 interface AdhesionStatusChartProps {
   adhesions: DashboardStats['adhesions'];
@@ -32,13 +24,13 @@ const SLICE_LABELS = {
 } as const;
 
 export function AdhesionStatusChart({ adhesions }: AdhesionStatusChartProps) {
-  const data = [
-    { key: 'aJour', value: adhesions.aJour, fill: SLICE_COLORS.aJour },
-    { key: 'nonAJour', value: adhesions.nonAJour, fill: SLICE_COLORS.nonAJour },
-    { key: 'enAttente', value: adhesions.enAttente, fill: SLICE_COLORS.enAttente },
-  ].filter((d) => d.value > 0);
+  const segments = [
+    { key: 'aJour', value: adhesions.aJour, color: SLICE_COLORS.aJour, label: SLICE_LABELS.aJour },
+    { key: 'nonAJour', value: adhesions.nonAJour, color: SLICE_COLORS.nonAJour, label: SLICE_LABELS.nonAJour },
+    { key: 'enAttente', value: adhesions.enAttente, color: SLICE_COLORS.enAttente, label: SLICE_LABELS.enAttente },
+  ].filter((s) => s.value > 0);
 
-  if (data.length === 0) {
+  if (segments.length === 0) {
     return (
       <ChartCard
         title="Adhésions gardiens"
@@ -61,68 +53,26 @@ export function AdhesionStatusChart({ adhesions }: AdhesionStatusChartProps) {
       title="Adhésions gardiens"
       icon="🤝"
       accentColor={BRAND_CHART_COLORS.vert}
-      description={`Année ${adhesions.annee} · ${pct}% à jour`}
+      description={`Année ${adhesions.annee}`}
       footer={
         <>
-          {data.map((d) => (
-            <ChartStatChip
-              key={d.key}
-              label={SLICE_LABELS[d.key as keyof typeof SLICE_LABELS]}
-              value={d.value}
-              color={d.fill}
-            />
+          {segments.map((s) => (
+            <ChartStatChip key={s.key} label={s.label} value={s.value} color={s.color} />
           ))}
         </>
       }
     >
-      <div className="flex flex-col sm:flex-row items-center gap-2">
-        <ChartContainer
-          config={adhesionChartConfig}
-          className={`${CHART_HEIGHT} sm:flex-1 aspect-auto`}
-        >
-          <PieChart>
-            <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="key" />} />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="key"
-              innerRadius="58%"
-              outerRadius="82%"
-              paddingAngle={3}
-              strokeWidth={0}
-              {...CHART_ANIMATION}
-            >
-              {data.map((entry) => (
-                <Cell key={entry.key} fill={entry.fill} />
-              ))}
-              <Label
-                content={({ viewBox }) => {
-                  if (!viewBox || !('cx' in viewBox)) return null;
-                  const { cx, cy } = viewBox;
-                  return (
-                    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-                      <tspan
-                        x={cx}
-                        y={(cy ?? 0) - 6}
-                        className="fill-[#1F1B2E] text-2xl font-black"
-                      >
-                        {pct}%
-                      </tspan>
-                      <tspan
-                        x={cx}
-                        y={(cy ?? 0) + 14}
-                        className="fill-[#6b6b78] text-[10px]"
-                      >
-                        {adhesions.total} total
-                      </tspan>
-                    </text>
-                  );
-                }}
-              />
-            </Pie>
-          </PieChart>
-        </ChartContainer>
+      <div className="flex items-baseline gap-2 mb-4">
+        <span className="text-4xl lg:text-5xl font-black text-[#1F1B2E] tabular-nums leading-none">
+          {pct}%
+        </span>
+        <div>
+          <p className="text-[13px] font-semibold text-[#2E7D32]">à jour</p>
+          <p className="text-[11px] text-[#6b6b78]">{adhesions.total} gardiens</p>
+        </div>
       </div>
+      <SegmentBar segments={segments} total={adhesions.total} />
+      <SegmentLegend segments={segments} total={adhesions.total} />
     </ChartCard>
   );
 }
