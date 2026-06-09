@@ -6263,13 +6263,19 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const structureKey = (process.env.SEED_STRUCTURE ?? 'MYTHOLOGIQUE') as
-    | 'MYTHOLOGIQUE'
-    | 'CLASSIQUE';
+  const rawStructureKey = process.env.SEED_STRUCTURE;
+  const structureKey =
+    rawStructureKey === 'CLASSIQUE' || rawStructureKey === 'MYTHOLOGIQUE'
+      ? rawStructureKey
+      : 'MYTHOLOGIQUE';
 
-  if (structureKey !== 'MYTHOLOGIQUE' && structureKey !== 'CLASSIQUE') {
+  if (
+    rawStructureKey !== undefined &&
+    rawStructureKey !== 'MYTHOLOGIQUE' &&
+    rawStructureKey !== 'CLASSIQUE'
+  ) {
     throw new Error(
-      `SEED_STRUCTURE invalide : "${structureKey}". Valeurs acceptées : MYTHOLOGIQUE, CLASSIQUE`,
+      `SEED_STRUCTURE invalide : "${rawStructureKey}". Valeurs acceptées : MYTHOLOGIQUE, CLASSIQUE`,
     );
   }
 
@@ -6516,11 +6522,6 @@ async function main() {
         guideAllIds.push(guideUser.id);
         if (guideRole === 'PLEIN') {
           guidePleinIds.push(guideUser.id);
-          // Un guide ne peut diriger qu'une seule paroisse (guideId @unique)
-          await prisma.parish.updateMany({
-            where: { guideId: guideUser.id, NOT: { id: parish.id } },
-            data: { guideId: null },
-          });
           await prisma.parish.update({
             where: { id: parish.id },
             data: { guideId: guideUser.id },
