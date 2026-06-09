@@ -1,17 +1,17 @@
+import { JwtService } from '@nestjs/jwt';
 import {
-  WebSocketGateway,
-  WebSocketServer,
-  SubscribeMessage,
-  MessageBody,
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { MessagingService } from './messaging.service.js';
-import { JwtService } from '@nestjs/jwt';
-import { RedisService } from '../redis/redis.service.js';
 import { MessageType } from '../../generated/prisma/enums.js';
+import { RedisService } from '../redis/redis.service.js';
+import { MessagingService } from './messaging.service.js';
 
 interface JwtPayload {
   sub: string;
@@ -31,7 +31,10 @@ interface SendMessagePayload {
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (process.env.FRONTEND_URLS ?? 'http://localhost:3000')
+      .split(',')
+      .map((url) => url.trim())
+      .filter(Boolean),
     credentials: true,
   },
   namespace: '/chat',
@@ -81,7 +84,8 @@ export class MessagingGateway
       await this.redis.setPresence(userId);
 
       // Rejoindre automatiquement les rooms des conversations
-      const convIds = await this.messagingService.getUserConversationIds(userId);
+      const convIds =
+        await this.messagingService.getUserConversationIds(userId);
       for (const convId of convIds) {
         await client.join(`conv:${convId}`);
       }
