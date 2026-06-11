@@ -3,6 +3,7 @@ import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { campsApi, contactsApi, messagingApi } from '@/lib/api';
 import { Pill, Card, SectionTitle, InfoBanner } from '@/components/ui';
+import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
 import type { Camp } from '@/types';
 import type { ContactUser } from '@/types';
 
@@ -197,6 +198,8 @@ export default function GardienCampDetailPage({ params }: { params: Promise<{ id
             {contacting ? 'Ouverture…' : '💬 Contacter mon Guide'}
           </button>
         </div>
+
+        <CampPhotosSection campId={id} />
       </div>
     </div>
   );

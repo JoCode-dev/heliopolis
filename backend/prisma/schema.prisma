@@ -139,6 +139,7 @@ enum AnnouncementScope {
 enum AnnouncementStatus {
   BROUILLON
   PUBLIE
+  PLANIFIE
   ARCHIVE
 }
 
@@ -370,11 +371,13 @@ model User {
   messageReceipts         MessageReadReceipt[]
 
   // Médias
-  mediaUploaded       Media[]      @relation("MediaUploader")
-  campPhotosUploaded  CampPhoto[]  @relation("CampPhotoUploader")
+  mediaUploaded                Media[]           @relation("MediaUploader")
+  campPublicationsUploaded     CampPublication[] @relation("CampPublicationUploader")
+  campPhotosUploaded           CampPhoto[]       @relation("CampPhotoUploader")
 
   // Annonces & modération
-  announcements     Announcement[]  @relation("AnnouncementAuthor")
+  announcements          Announcement[]      @relation("AnnouncementAuthor")
+  announcementPhotos     AnnouncementPhoto[] @relation("AnnouncementPhotoUploader")
   moderationActions ModerationLog[] @relation("Moderator")
 
   // Contacts
@@ -472,7 +475,7 @@ model Camp {
   challenges    Challenge[]       @relation("CampChallenges")
   media         Media[]
   conversations Conversation[]
-  photos        CampPhoto[]
+  publications  CampPublication[]
 
   createdBy   User   @relation("CampCreator", fields: [createdById], references: [id])
   createdById String
@@ -884,13 +887,28 @@ model Announcement {
   author   User               @relation("AnnouncementAuthor", fields: [authorId], references: [id])
   authorId String
 
+  photos      AnnouncementPhoto[]
   publishedAt DateTime?
+  expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   archivedAt  DateTime?
 
   @@index([portee, statut, publishedAt])
   @@map("announcements")
+}
+
+model AnnouncementPhoto {
+  id           String       @id @default(cuid())
+  url          String
+  annonce      Announcement @relation(fields: [annonceId], references: [id], onDelete: Cascade)
+  annonceId    String
+  uploadedBy   User         @relation("AnnouncementPhotoUploader", fields: [uploadedById], references: [id])
+  uploadedById String
+  createdAt    DateTime     @default(now())
+
+  @@index([annonceId])
+  @@map("announcement_photos")
 }
 
 model Media {
@@ -1018,24 +1036,43 @@ model PushSubscription {
 }
 
 // =============================================================
-//  PHOTOTHÈQUE (photos officielles des camps)
+//  PHOTOTHÈQUE (publications officielles des camps)
 // =============================================================
 
-model CampPhoto {
-  id        String   @id @default(cuid())
-  url       String
-  caption   String?
+model CampPublication {
+  id         String      @id @default(cuid())
+  caption    String?
 
-  camp      Camp?    @relation(fields: [campId], references: [id], onDelete: SetNull)
-  campId    String?
+  camp       Camp?       @relation(fields: [campId], references: [id], onDelete: SetNull)
+  campId     String?
 
-  uploader    User   @relation("CampPhotoUploader", fields: [uploaderId], references: [id])
-  uploaderId  String
+  uploader   User        @relation("CampPublicationUploader", fields: [uploaderId], references: [id])
+  uploaderId String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  photos     CampPhoto[]
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   @@index([campId])
+  @@index([uploaderId])
+  @@map("camp_publications")
+}
+
+model CampPhoto {
+  id            String          @id @default(cuid())
+  url           String
+
+  publication   CampPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  publicationId String
+
+  uploader   User   @relation("CampPhotoUploader", fields: [uploaderId], references: [id])
+  uploaderId String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([publicationId])
   @@index([uploaderId])
   @@map("camp_photos")
 }

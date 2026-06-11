@@ -24,11 +24,12 @@ const FONCTION_OPTIONS = [
 ];
 
 const ROLE_FONCTION: Record<UserRole, string> = {
-  GARDIEN: 'Gardien',
-  GUIDE: 'Guide',
-  SENTINELLE: 'Sentinelle',
-  REGION: 'Région',
-  ADMIN: 'Admin',
+  GARDIEN:     'Gardien',
+  GUIDE:       'Guide',
+  SENTINELLE:  'Sentinelle',
+  REGION:      'Région',
+  ADMIN:       'Admin',
+  PHOTOGRAPHE: 'Photographe',
 };
 
 function fmtDate(d: string) {

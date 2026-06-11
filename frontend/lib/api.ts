@@ -110,17 +110,44 @@ export const challengesApi = {
 
 // ─── Photothèque ──────────────────────────────────────────────────────────────
 export const photothequeApi = {
-  list: (campId?: string) =>
-    api.get('/phototheque', { params: campId ? { campId } : {} }),
+  publications: (campId?: string) =>
+    api.get('/phototheque/publications', { params: campId ? { campId } : {} }),
   camps: () => api.get('/phototheque/camps'),
-  upload: (file: File, campId?: string, caption?: string) => {
+  createPublication: (files: File[], campId?: string, caption?: string) => {
     const fd = new FormData();
-    fd.append('file', file);
+    files.forEach(f => fd.append('files', f));
     if (campId)  fd.append('campId', campId);
     if (caption) fd.append('caption', caption);
-    return api.post('/phototheque', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return api.post('/phototheque/publications', fd);
   },
-  delete: (id: string) => api.delete(`/phototheque/${id}`),
+  deletePublication: (id: string) => api.delete(`/phototheque/publications/${id}`),
+};
+
+// ─── Annonces ────────────────────────────────────────────────────────────────
+export const annoncesApi = {
+  list: () => api.get('/annonces'),
+  listAll: () => api.get('/annonces/all'),
+  create: (
+    body: { titre: string; contenu?: string; portee?: string; statut?: string; publishedAt?: string; expiresAt?: string },
+    photos?: File[],
+  ) => {
+    const fd = new FormData();
+    Object.entries(body).forEach(([k, v]) => { if (v !== undefined) fd.append(k, v); });
+    photos?.forEach(f => fd.append('photos', f));
+    return api.post('/annonces', fd);
+  },
+  update: (
+    id: string,
+    body: { titre?: string; contenu?: string; portee?: string; statut?: string; publishedAt?: string; expiresAt?: string },
+    photos?: File[],
+  ) => {
+    const fd = new FormData();
+    Object.entries(body).forEach(([k, v]) => { if (v !== undefined) fd.append(k, v as string); });
+    photos?.forEach(f => fd.append('photos', f));
+    return api.patch(`/annonces/${id}`, fd);
+  },
+  deletePhoto: (photoId: string) => api.delete(`/annonces/photos/${photoId}`),
+  remove: (id: string) => api.delete(`/annonces/${id}`),
 };
 
 // ─── Conseils ─────────────────────────────────────────────────────────────────

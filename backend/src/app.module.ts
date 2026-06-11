@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AnnoncesModule } from './annonces/annonces.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { BadgesModule } from './badges/badges.module.js';
 import { CampsModule } from './camps/camps.module.js';
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module.js';
     LogsModule,
     PrismaModule,
     RedisModule,
+    AnnoncesModule,
     AuthModule,
     UsersModule,
     TerritoriesModule,

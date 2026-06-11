@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { campsApi } from '@/lib/api';
 import { Pill, Card, SectionTitle, InfoBanner } from '@/components/ui';
+import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
 import type { Camp, CampParticipant } from '@/types';
 
 export default function GuideCampDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -146,6 +147,8 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
         >
           📋 Sélectionner les participants
         </Link>
+
+        <CampPhotosSection campId={id} />
 
         <div className="h-4" />
         </div>

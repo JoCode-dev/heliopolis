@@ -201,5 +201,43 @@ export interface Message {
   createdAt: string; editedAt?: string; deletedAt?: string;
 }
 
+// ─── Photothèque ─────────────────────────────────────────────────────────────
+export interface CampPhoto {
+  id: string;
+  url: string;
+}
+
+export interface CampPublication {
+  id: string;
+  caption?: string;
+  campId?: string;
+  camp?: { id: string; nom: string };
+  uploader: { id: string; nom: string; prenoms: string; avatarUrl?: string };
+  photos: CampPhoto[];
+  createdAt: string;
+}
+
+// ─── Annonces ────────────────────────────────────────────────────────────────
+export type AnnouncementStatus = 'BROUILLON' | 'PUBLIE' | 'PLANIFIE' | 'ARCHIVE';
+export type AnnouncementScope  = 'COMMUNAUTE' | 'REGION' | 'DOYENNE' | 'PAROISSE';
+
+export interface AnnouncementPhoto {
+  id: string;
+  url: string;
+}
+
+export interface Annonce {
+  id: string;
+  titre: string;
+  contenu?: string;
+  portee: AnnouncementScope;
+  statut: AnnouncementStatus;
+  publishedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+  author: { id: string; nom: string; prenoms: string; avatarUrl?: string };
+  photos: AnnouncementPhoto[];
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface AuthTokens { accessToken: string; refreshToken: string; }

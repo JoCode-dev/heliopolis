@@ -12,6 +12,7 @@ const ADMIN_NAV_GROUPS = [
     items: [
       { href: '/dashboard/admin',              icon: '🏠', label: 'Accueil' },
       { href: '/dashboard/admin/camps',        icon: '⛺', label: 'Gérer les camps' },
+      { href: '/dashboard/admin/annonces',    icon: '📣', label: 'Annonces' },
       { href: '/dashboard/admin/conseils',    icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/admin/codex',        icon: '🪶', label: 'Modération' },
       { href: '/dashboard/admin/messages',     icon: '💬', label: 'Messagerie' },

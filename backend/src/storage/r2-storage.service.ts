@@ -1,10 +1,11 @@
 import { Injectable, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { extname } from 'path';
+import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { writeFileSync, mkdirSync } from 'fs';
 
-export type StoragePrefix = 'avatars' | 'adhesions' | 'preuves' | 'photos';
+export type StoragePrefix = 'avatars' | 'adhesions' | 'preuves' | 'photos' | 'annonces';
 
 const REQUIRED_ENV = [
   'R2_ACCOUNT_ID',
@@ -61,14 +62,19 @@ export class R2StorageService implements OnModuleInit {
     prefix: StoragePrefix,
     file: Express.Multer.File,
   ): Promise<string> {
+    const ext = extname(file.originalname).toLowerCase() || '.bin';
+    const filename = `${randomUUID()}${ext}`;
+
     if (!this.enabled) {
-      throw new ServiceUnavailableException(
-        'Stockage R2 non configuré dans cet environnement',
-      );
+      // Fallback local pour le développement
+      const uploadsDir = join(process.cwd(), 'uploads', prefix);
+      mkdirSync(uploadsDir, { recursive: true });
+      writeFileSync(join(uploadsDir, filename), file.buffer);
+      const port = this.config.get('PORT') ?? 4000;
+      return `http://localhost:${port}/uploads/${prefix}/${filename}`;
     }
 
-    const ext = extname(file.originalname).toLowerCase() || '.bin';
-    const key = `${prefix}/${randomUUID()}${ext}`;
+    const key = `${prefix}/${filename}`;
 
     await this.client.send(
       new PutObjectCommand({

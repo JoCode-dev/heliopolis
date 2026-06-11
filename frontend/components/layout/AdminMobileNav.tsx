@@ -35,6 +35,7 @@ const DRAWER_SECTIONS = [
   {
     group: 'Administration',
     items: [
+      { href: '/dashboard/admin/annonces',       icon: '📣', label: 'Annonces' },
       { href: '/dashboard/admin/export',        icon: '📤', label: 'Exports' },
       { href: '/dashboard/admin/import',        icon: '📥', label: 'Import' },
       { href: '/dashboard/admin/camps/nouveau', icon: '➕', label: 'Nouveau camp' },

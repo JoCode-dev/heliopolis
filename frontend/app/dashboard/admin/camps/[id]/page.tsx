@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
 import { deferEffect } from '@/lib/effects';
 import { Card, SectionTitle, Pill } from '@/components/ui';
+import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
 import type { Camp, CampParticipant, CampStatus } from '@/types';
 
 const STATUTS: { value: CampStatus; label: string; color: string }[] = [
@@ -25,6 +26,7 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
   const [camp, setCamp] = useState<Camp | null>(null);
   const [participants, setParticipants] = useState<CampParticipant[]>([]);
   const [updating, setUpdating] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const reload = useCallback(async () => {
     try {
@@ -56,23 +58,52 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
-      <div className="flex justify-between items-start mb-5 border-b border-[#ececf0] pb-4">
-        <div>
-          <Link href="/dashboard/admin/camps" className="text-xs text-[#6b6b78] hover:text-[#1F1B2E] mb-1 inline-block">‹ Camps</Link>
-          <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">{camp.nom}</h1>
-          <p className="text-xs text-[#6b6b78] mt-0.5">{camp.lieu} · {camp.type}</p>
-        </div>
-        <span className={`text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0 ${
-          STATUTS.find(s => s.value === camp.statut)?.color ?? ''
-        }`}>{STATUTS.find(s => s.value === camp.statut)?.label ?? camp.statut}</span>
-      </div>
+      <div className="max-w-5xl mx-auto">
 
-      <div>
-        <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:max-w-5xl">
+        {/* ── En-tête ─────────────────────────────────────────────────── */}
+        <div className="flex justify-between items-start mb-4 border-b border-[#ececf0] pb-4">
+          <div>
+            <Link href="/dashboard/admin/camps" className="text-xs text-[#6b6b78] hover:text-[#1F1B2E] mb-1 inline-block">‹ Camps</Link>
+            <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">{camp.nom}</h1>
+            <p className="text-xs text-[#6b6b78] mt-0.5">{camp.lieu} · {camp.type}</p>
+          </div>
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0 ${
+            STATUTS.find(s => s.value === camp.statut)?.color ?? ''
+          }`}>{STATUTS.find(s => s.value === camp.statut)?.label ?? camp.statut}</span>
+        </div>
+
+        {/* ── Barre d'actions : statuts + Publier ─────────────────────── */}
+        <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-white border border-[#ececf0] rounded-2xl shadow-sm">
+          {STATUTS.map(s => (
+            <button
+              key={s.value}
+              onClick={() => handleStatus(s.value)}
+              disabled={camp.statut === s.value || updating}
+              className={`text-[11px] font-bold px-3 py-2 rounded-xl border transition-colors ${
+                camp.statut === s.value
+                  ? 'bg-[#1F1B2E] text-white border-[#1F1B2E] cursor-default'
+                  : 'bg-white border-[#e6e6ea] text-[#1F1B2E] hover:border-[#6A1B9A] hover:text-[#6A1B9A] disabled:opacity-60'
+              }`}
+            >
+              {updating && camp.statut !== s.value ? '…' : s.label}
+            </button>
+          ))}
+          <div className="flex-1" />
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-sm active:scale-95 transition-transform"
+            style={{ background: 'linear-gradient(135deg,#F58A4B,#E55A35)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Publier des photos
+          </button>
+        </div>
+
+        {/* ── Grille info + participants ───────────────────────────────── */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
 
           {/* Colonne gauche */}
           <div>
-            {/* Infos */}
             <Card className="mb-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -103,26 +134,6 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
               )}
             </Card>
 
-            {/* Changer le statut */}
-            <SectionTitle>Changer le statut</SectionTitle>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {STATUTS.map(s => (
-                <button
-                  key={s.value}
-                  onClick={() => handleStatus(s.value)}
-                  disabled={camp.statut === s.value || updating}
-                  className={`py-2.5 rounded-xl text-xs font-bold border transition-colors ${
-                    camp.statut === s.value
-                      ? 'bg-[#1F1B2E] text-white border-[#1F1B2E] cursor-default'
-                      : 'bg-white border-[#e6e6ea] text-[#1F1B2E] hover:border-[#6A1B9A] hover:text-[#6A1B9A] disabled:opacity-60'
-                  }`}
-                >
-                  {updating && camp.statut !== s.value ? '…' : s.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Sélection ouverte */}
             <Card className="mb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -142,7 +153,6 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
 
           {/* Colonne droite */}
           <div>
-            {/* Stats participants */}
             <div className="grid grid-cols-3 gap-2.5 mb-4">
               {[
                 { label: 'Sélectionnés', value: participants.length, color: 'text-[#6A1B9A]' },
@@ -156,7 +166,6 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
               ))}
             </div>
 
-            {/* Liste participants */}
             <SectionTitle>Participants ({participants.length})</SectionTitle>
             {participants.length === 0 ? (
               <Card className="text-center py-6 text-sm text-[#6b6b78]">
@@ -190,6 +199,14 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
             </Link>
           </div>
         </div>
+
+        {/* ── Photos du camp ───────────────────────────────────────────── */}
+        <CampPhotosSection
+          campId={id}
+          externalUploadOpen={showUploadModal}
+          onExternalUploadClose={() => setShowUploadModal(false)}
+        />
+
       </div>
     </div>
   );

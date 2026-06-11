@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config'; // doit être le 1er import — charge le .env avant tout module
 import 'reflect-metadata';
+import { join } from 'path';
 import { AppModule } from './app.module.js';
 import { DbRetryInterceptor } from './common/interceptors/db-retry.interceptor.js';
 import { RedisIoAdapter } from './redis/redis-io.adapter.js';
@@ -16,6 +17,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(redisIoAdapter);
 
   app.setGlobalPrefix('api');
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalInterceptors(new DbRetryInterceptor());
   app.use(cookieParser());

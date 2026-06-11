@@ -8,9 +8,9 @@ import {
   Body,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
+  UploadedFiles,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { PhotothequeService } from './phototheque.service.js';
 import { OptionalJwtGuard } from '../common/guards/optional-jwt.guard.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -26,9 +26,9 @@ export class PhotothequeController {
   constructor(private service: PhotothequeService) {}
 
   @UseGuards(OptionalJwtGuard)
-  @Get()
-  list(@Query('campId') campId?: string) {
-    return this.service.list(campId);
+  @Get('publications')
+  listPublications(@Query('campId') campId?: string) {
+    return this.service.listPublications(campId);
   }
 
   @UseGuards(OptionalJwtGuard)
@@ -39,23 +39,23 @@ export class PhotothequeController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.PHOTOGRAPHE)
-  @Post()
+  @Post('publications')
   @UseInterceptors(
-    FileInterceptor('file', memoryFileOptions(PREUVE_MIME_TYPES, 15 * 1024 * 1024)),
+    FilesInterceptor('files', 20, memoryFileOptions(PREUVE_MIME_TYPES, 15 * 1024 * 1024)),
   )
-  upload(
-    @UploadedFile() file: Express.Multer.File,
+  createPublication(
+    @UploadedFiles() files: Express.Multer.File[],
     @Body('campId') campId: string | undefined,
     @Body('caption') caption: string | undefined,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.service.upload(file, user.id, campId, caption);
+    return this.service.createPublication(files, user.id, campId, caption);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.PHOTOGRAPHE)
-  @Delete(':id')
-  delete(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.service.delete(id, user.id, user.role);
+  @Delete('publications/:id')
+  deletePublication(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.deletePublication(id, user.id, user.role);
   }
 }

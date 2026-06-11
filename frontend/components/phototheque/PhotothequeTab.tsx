@@ -3,14 +3,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { photothequeApi } from '@/lib/api';
 
-interface CampMeta { id: string; nom: string; dateDebut?: string; _count?: { photos: number } }
-interface CampPhoto {
+interface CampMeta { id: string; nom: string; dateDebut?: string; _count?: { publications: number } }
+interface CampPhoto { id: string; url: string }
+interface CampPublication {
   id: string;
-  url: string;
   caption?: string;
   campId?: string;
   camp?: { id: string; nom: string };
   uploader: { id: string; nom: string; prenoms: string; avatarUrl?: string };
+  photos: CampPhoto[];
   createdAt: string;
 }
 
@@ -19,20 +20,20 @@ interface Props {
 }
 
 export function PhotothequeTab({ canUpload }: Props) {
-  const [photos,       setPhotos]       = useState<CampPhoto[]>([]);
-  const [camps,        setCamps]        = useState<CampMeta[]>([]);
-  const [selectedCamp, setSelectedCamp] = useState<string | undefined>();
-  const [loading,      setLoading]      = useState(true);
-  const [uploading,    setUploading]    = useState(false);
-  const [lightbox,     setLightbox]     = useState<CampPhoto | null>(null);
-  const [deleting,     setDeleting]     = useState<string | null>(null);
+  const [publications,  setPublications]  = useState<CampPublication[]>([]);
+  const [camps,         setCamps]         = useState<CampMeta[]>([]);
+  const [selectedCamp,  setSelectedCamp]  = useState<string | undefined>();
+  const [loading,       setLoading]       = useState(true);
+  const [uploading,     setUploading]     = useState(false);
+  const [lightbox,      setLightbox]      = useState<{ photos: CampPhoto[]; index: number } | null>(null);
+  const [deleting,      setDeleting]      = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const fetchPhotos = useCallback(async (campId?: string) => {
+  const fetchPublications = useCallback(async (campId?: string) => {
     setLoading(true);
     try {
-      const r = await photothequeApi.list(campId);
-      setPhotos(r.data as CampPhoto[]);
+      const r = await photothequeApi.publications(campId);
+      setPublications(r.data as CampPublication[]);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);
@@ -40,22 +41,20 @@ export function PhotothequeTab({ canUpload }: Props) {
   useEffect(() => {
     Promise.all([
       photothequeApi.camps().then(r => setCamps(r.data as CampMeta[])),
-      fetchPhotos(),
+      fetchPublications(),
     ]).catch(() => {});
-  }, [fetchPhotos]);
+  }, [fetchPublications]);
 
   const handleCampFilter = (campId?: string) => {
     setSelectedCamp(campId);
-    void fetchPhotos(campId);
+    void fetchPublications(campId);
   };
 
   const handleFiles = async (files: FileList) => {
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        await photothequeApi.upload(file, selectedCamp);
-      }
-      await fetchPhotos(selectedCamp);
+      await photothequeApi.createPublication(Array.from(files), selectedCamp);
+      await fetchPublications(selectedCamp);
     } catch { /* ignore */ }
     finally {
       setUploading(false);
@@ -66,11 +65,16 @@ export function PhotothequeTab({ canUpload }: Props) {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      await photothequeApi.delete(id);
-      setPhotos(prev => prev.filter(p => p.id !== id));
-      if (lightbox?.id === id) setLightbox(null);
+      await photothequeApi.deletePublication(id);
+      setPublications(prev => prev.filter(p => p.id !== id));
+      if (lightbox) setLightbox(null);
     } catch { /* ignore */ }
     finally { setDeleting(null); }
+  };
+
+  const openLightbox = (photos: CampPhoto[], clicked: CampPhoto) => {
+    const index = photos.findIndex(p => p.id === clicked.id);
+    setLightbox({ photos, index: Math.max(0, index) });
   };
 
   return (
@@ -101,7 +105,7 @@ export function PhotothequeTab({ canUpload }: Props) {
             >
               ⛺ {c.nom}
               {c._count && (
-                <span className="opacity-70">({c._count.photos})</span>
+                <span className="opacity-70">({c._count.publications})</span>
               )}
             </button>
           ))}
@@ -142,7 +146,7 @@ export function PhotothequeTab({ canUpload }: Props) {
               <div key={i} className="aspect-square rounded-xl bg-white/60 animate-pulse" />
             ))}
           </div>
-        ) : photos.length === 0 ? (
+        ) : publications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-20 h-20 rounded-full bg-white border border-[#e8ddd5] flex items-center justify-center text-4xl mb-4">
               📷
@@ -155,37 +159,66 @@ export function PhotothequeTab({ canUpload }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-            {photos.map(photo => (
-              <div
-                key={photo.id}
-                className="group relative aspect-square rounded-xl overflow-hidden bg-white border border-[#e8ddd5] cursor-pointer"
-                onClick={() => setLightbox(photo)}
-              >
-                <Image
-                  src={photo.url}
-                  alt={photo.caption ?? photo.camp?.nom ?? 'Photo de camp'}
-                  fill
-                  className="object-cover transition-transform group-hover:scale-105"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                />
-                {/* Overlay au survol */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all" />
-                {photo.camp && (
-                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-[10px] font-semibold truncate">⛺ {photo.camp.nom}</p>
+          <div className="space-y-4">
+            {publications.map(pub => (
+              <div key={pub.id} className="bg-white rounded-2xl border border-[#e8ddd5] overflow-hidden">
+                {/* En-tête */}
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#E55A35] to-[#6A1B9A] flex items-center justify-center text-white text-xs font-black overflow-hidden flex-shrink-0">
+                      {pub.uploader.avatarUrl
+                        ? <Image src={pub.uploader.avatarUrl} alt="" width={32} height={32} className="object-cover" />
+                        : `${pub.uploader.prenoms[0]}${pub.uploader.nom[0]}`}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#1F1B2E] leading-none">{pub.uploader.prenoms} {pub.uploader.nom}</p>
+                      {pub.camp && <p className="text-[10px] text-[#8b7b5c] mt-0.5">⛺ {pub.camp.nom}</p>}
+                    </div>
                   </div>
+                  {canUpload && (
+                    <button
+                      onClick={() => handleDelete(pub.id)}
+                      disabled={deleting === pub.id}
+                      className="w-6 h-6 rounded-full text-[#6b6b78] hover:bg-[#fee2e2] hover:text-red-500 flex items-center justify-center text-[10px] transition-colors disabled:opacity-40"
+                      title="Supprimer"
+                    >
+                      {deleting === pub.id ? '…' : '✕'}
+                    </button>
+                  )}
+                </div>
+
+                {pub.caption && (
+                  <p className="px-4 pb-2 text-xs text-[#1F1B2E]">{pub.caption}</p>
                 )}
-                {/* Bouton suppression */}
-                {canUpload && (
-                  <button
-                    onClick={e => { e.stopPropagation(); void handleDelete(photo.id); }}
-                    disabled={deleting === photo.id}
-                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 disabled:opacity-50"
-                  >
-                    {deleting === photo.id ? '…' : '✕'}
-                  </button>
-                )}
+
+                {/* Grille photos */}
+                <div className="grid grid-cols-3 gap-0.5">
+                  {pub.photos.slice(0, 6).map((photo, i) => (
+                    <div
+                      key={photo.id}
+                      className="group relative aspect-square cursor-pointer bg-[#ececf0]"
+                      onClick={() => openLightbox(pub.photos, photo)}
+                    >
+                      <Image
+                        src={photo.url}
+                        alt="Photo de camp"
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105"
+                        sizes="(max-width: 640px) 33vw, 20vw"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+                      {i === 5 && pub.photos.length > 6 && (
+                        <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+                          <span className="text-white text-lg font-black">+{pub.photos.length - 6}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="px-4 py-2 text-[10px] text-[#8b7b5c]">
+                  {pub.photos.length} photo{pub.photos.length > 1 ? 's' : ''}
+                </div>
               </div>
             ))}
           </div>
@@ -195,40 +228,36 @@ export function PhotothequeTab({ canUpload }: Props) {
       {/* ── Lightbox ── */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col"
           onClick={() => setLightbox(null)}
         >
-          <div
-            className="relative max-w-3xl w-full max-h-[90vh] flex flex-col"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="relative flex-1 min-h-0 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between p-4">
+            <span className="text-white/60 text-sm">{lightbox.index + 1} / {lightbox.photos.length}</span>
+            <button onClick={() => setLightbox(null)} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition">✕</button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
+            <div className="relative max-w-3xl w-full max-h-[80vh]">
               <Image
-                src={lightbox.url}
-                alt={lightbox.caption ?? 'Photo'}
-                width={900}
-                height={600}
-                className="object-contain w-full h-full max-h-[70vh]"
+                src={lightbox.photos[lightbox.index].url}
+                alt="Photo"
+                width={900} height={700}
+                className="object-contain w-full max-h-[80vh] rounded-xl"
               />
             </div>
-            <div className="mt-3 flex items-start justify-between gap-3">
-              <div>
-                {lightbox.caption && (
-                  <p className="text-white text-sm font-medium">{lightbox.caption}</p>
-                )}
-                <p className="text-white/60 text-xs mt-0.5">
-                  {lightbox.camp ? `⛺ ${lightbox.camp.nom} · ` : ''}
-                  📷 {lightbox.uploader.prenoms} {lightbox.uploader.nom}
-                </p>
-              </div>
-              <button
-                onClick={() => setLightbox(null)}
-                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white flex-shrink-0 hover:bg-white/25 transition"
-              >
-                ✕
-              </button>
-            </div>
           </div>
+          {lightbox.photos.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto p-4 justify-center" onClick={e => e.stopPropagation()}>
+              {lightbox.photos.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => setLightbox(prev => prev ? { ...prev, index: i } : null)}
+                  className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${i === lightbox.index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-80'}`}
+                >
+                  <Image src={p.url} alt="" width={48} height={48} className="object-cover w-full h-full" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

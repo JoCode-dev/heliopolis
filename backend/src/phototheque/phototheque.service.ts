@@ -15,57 +15,67 @@ export class PhotothequeService {
     private storage: R2StorageService,
   ) {}
 
-  async list(campId?: string) {
-    return this.prisma.campPhoto.findMany({
+  async listPublications(campId?: string) {
+    return this.prisma.campPublication.findMany({
       where: campId ? { campId } : {},
       include: {
         camp: { select: { id: true, nom: true } },
         uploader: { select: { id: true, nom: true, prenoms: true, avatarUrl: true } },
+        photos: { select: { id: true, url: true }, orderBy: { createdAt: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async getCampsWithPhotos() {
-    const camps = await this.prisma.camp.findMany({
-      where: { photos: { some: {} } },
-      select: { id: true, nom: true, dateDebut: true, _count: { select: { photos: true } } },
+    return this.prisma.camp.findMany({
+      where: { publications: { some: {} } },
+      select: { id: true, nom: true, dateDebut: true, _count: { select: { publications: true } } },
       orderBy: { dateDebut: 'desc' },
     });
-    return camps;
   }
 
-  async upload(
-    file: Express.Multer.File,
+  async createPublication(
+    files: Express.Multer.File[],
     uploaderId: string,
     campId?: string,
     caption?: string,
   ) {
-    if (!file) throw new BadRequestException('Fichier manquant');
-    const url = await this.storage.upload('photos', file);
-    return this.prisma.campPhoto.create({
+    if (!files || files.length === 0) throw new BadRequestException('Aucun fichier fourni');
+
+    const urls = await Promise.all(
+      files.map(f => this.storage.upload('photos', f)),
+    );
+
+    return this.prisma.campPublication.create({
       data: {
-        url,
         caption: caption ?? null,
         campId: campId ?? null,
         uploaderId,
+        photos: {
+          create: urls.map(url => ({ url, uploaderId })),
+        },
       },
       include: {
         camp: { select: { id: true, nom: true } },
         uploader: { select: { id: true, nom: true, prenoms: true, avatarUrl: true } },
+        photos: { select: { id: true, url: true }, orderBy: { createdAt: 'asc' } },
       },
     });
   }
 
-  async delete(id: string, userId: string, userRole: string) {
-    const photo = await this.prisma.campPhoto.findUnique({ where: { id } });
-    if (!photo) throw new NotFoundException('Photo introuvable');
+  async deletePublication(id: string, userId: string, userRole: string) {
+    const pub = await this.prisma.campPublication.findUnique({
+      where: { id },
+      select: { uploaderId: true },
+    });
+    if (!pub) throw new NotFoundException('Publication introuvable');
     const canDelete =
-      photo.uploaderId === userId ||
+      pub.uploaderId === userId ||
       userRole === UserRole.ADMIN ||
       userRole === UserRole.REGION;
     if (!canDelete) throw new ForbiddenException('Non autorisé');
-    await this.prisma.campPhoto.delete({ where: { id } });
+    await this.prisma.campPublication.delete({ where: { id } });
     return { success: true };
   }
 }
