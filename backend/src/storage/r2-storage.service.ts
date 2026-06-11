@@ -4,7 +4,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
 
-export type StoragePrefix = 'avatars' | 'adhesions' | 'preuves';
+export type StoragePrefix = 'avatars' | 'adhesions' | 'preuves' | 'photos';
 
 const REQUIRED_ENV = [
   'R2_ACCOUNT_ID',

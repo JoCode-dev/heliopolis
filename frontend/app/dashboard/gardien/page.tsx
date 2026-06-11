@@ -27,10 +27,10 @@ const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
 };
 const CONV_GRADIENT: Record<string, string> = {
-  COMMUNAUTE: 'from-[#F58A4B] to-[#C62828]',
-  REGION:     'from-[#F58A4B] to-[#C62828]',
+  COMMUNAUTE: 'from-[#FFB36B] to-[#7A2820]',
+  REGION:     'from-[#FFB36B] to-[#7A2820]',
   DOYENNE:    'from-[#6A1B9A] to-[#3d1163]',
-  PAROISSE:   'from-[#C62828] to-[#7a1717]',
+  PAROISSE:   'from-[#F58A4B] to-[#7A2820]',
   PRIVE:      'from-[#1F1B2E] to-[#3a1d4d]',
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
@@ -109,7 +109,7 @@ export default function DashboardGardienPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <Avatar initials={initials} size={46} className="border-2 border-white/40 bg-white/20" />
           <div className="flex-1">
@@ -168,7 +168,7 @@ export default function DashboardGardienPage() {
         {/* Stats rapides */}
         <div className="px-4 pt-4 grid grid-cols-4 gap-2">
           <div className="bg-white rounded-xl p-2.5 border border-[#ececf0] text-center shadow-sm">
-            <div className="text-xl font-black text-[#C62828]">{validated}</div>
+            <div className="text-xl font-black text-[#E55A35]">{validated}</div>
             <div className="text-[9px] text-[#6b6b78] uppercase tracking-wide leading-tight mt-0.5">Validés</div>
           </div>
           <div className="bg-white rounded-xl p-2.5 border border-[#ececf0] text-center shadow-sm">
@@ -208,7 +208,7 @@ export default function DashboardGardienPage() {
             <div>
               {/* Progression */}
               <SectionTitle action={
-                <Link href="/dashboard/gardien/artefacts" className="text-xs text-[#C62828] font-semibold">Artefacts →</Link>
+                <Link href="/dashboard/gardien/artefacts" className="text-xs text-[#E55A35] font-semibold">Artefacts →</Link>
               }>
                 Ma progression
               </SectionTitle>
@@ -250,17 +250,17 @@ export default function DashboardGardienPage() {
                 <>
                   <SectionTitle>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#C62828] animate-pulse inline-block" />
+                      <span className="w-2 h-2 rounded-full bg-[#E55A35] animate-pulse inline-block" />
                       À corriger
                     </span>
                   </SectionTitle>
                   {rejectedSubmissions.slice(0, 2).map(sub => (
-                    <Card key={sub.id} className="mb-2.5 border-l-4 border-l-[#C62828] bg-[#fff5f5]">
+                    <Card key={sub.id} className="mb-2.5 border-l-4 border-l-[#E55A35] bg-[#fff5f5]">
                       <div className="flex justify-between items-start">
                         <h4 className="font-bold text-sm text-[#1F1B2E] flex-1 pr-2">{sub.challenge.titre}</h4>
                         <Pill variant="rouge">{sub.statut === 'REJETE' ? 'Rejeté' : 'Correction'}</Pill>
                       </div>
-                      <p className="text-xs text-[#C62828] mt-1">Une action est requise de ta part</p>
+                      <p className="text-xs text-[#E55A35] mt-1">Une action est requise de ta part</p>
                     </Card>
                   ))}
                 </>
@@ -268,7 +268,7 @@ export default function DashboardGardienPage() {
 
               {/* Missions en cours */}
               <SectionTitle action={
-                <Link href="/dashboard/gardien/missions" className="text-xs text-[#C62828] font-semibold">Tout voir →</Link>
+                <Link href="/dashboard/gardien/missions" className="text-xs text-[#E55A35] font-semibold">Tout voir →</Link>
               }>
                 Missions en cours
               </SectionTitle>
@@ -303,7 +303,7 @@ export default function DashboardGardienPage() {
                 </Card>
               )}
 
-              <Link href="/dashboard/gardien/missions" className="block w-full text-center bg-[#C62828] text-white font-bold text-sm py-3.5 rounded-xl mb-4 active:scale-95 transition">
+              <Link href="/dashboard/gardien/missions" className="block w-full text-center bg-[#E55A35] text-white font-bold text-sm py-3.5 rounded-xl mb-4 active:scale-95 transition">
                 Voir toutes mes missions →
               </Link>
             </div>
@@ -312,7 +312,7 @@ export default function DashboardGardienPage() {
             <div>
               {/* Messages récents */}
               <SectionTitle action={
-                <Link href="/dashboard/gardien/messages" className="text-xs text-[#C62828] font-semibold">Tout voir →</Link>
+                <Link href="/dashboard/gardien/messages" className="text-xs text-[#E55A35] font-semibold">Tout voir →</Link>
               }>
                 Messages récents
               </SectionTitle>
@@ -329,7 +329,7 @@ export default function DashboardGardienPage() {
                   const preview = lastMsg?.contenu ?? '';
                   return (
                     <Link key={conv.id} href={`/dashboard/gardien/messages/${conv.id}`}>
-                      <Card className="mb-2.5 flex items-center gap-3 hover:border-[#C62828]/30 transition">
+                      <Card className="mb-2.5 flex items-center gap-3 hover:border-[#E55A35]/30 transition">
                         {otherUser ? (
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1F1B2E] to-[#3a1d4d] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                             {otherUser.nom[0]}{otherUser.prenoms[0]}
@@ -358,7 +358,7 @@ export default function DashboardGardienPage() {
                 </Card>
               )}
 
-              <Link href="/dashboard/gardien/messages" className="block w-full text-center border border-[#C62828] text-[#C62828] font-bold text-sm py-3 rounded-xl mb-4 active:scale-95 transition">
+              <Link href="/dashboard/gardien/messages" className="block w-full text-center border border-[#E55A35] text-[#E55A35] font-bold text-sm py-3 rounded-xl mb-4 active:scale-95 transition">
                 Ouvrir la messagerie →
               </Link>
 
@@ -366,7 +366,7 @@ export default function DashboardGardienPage() {
               {camp && (
                 <>
                   <SectionTitle action={
-                    <Link href="/dashboard/gardien/camps" className="text-xs text-[#C62828] font-semibold">Tous les camps →</Link>
+                    <Link href="/dashboard/gardien/camps" className="text-xs text-[#E55A35] font-semibold">Tous les camps →</Link>
                   }>
                     Mon prochain camp
                   </SectionTitle>
@@ -381,7 +381,7 @@ export default function DashboardGardienPage() {
                     <div className="text-3xl mb-2">⛺</div>
                     <p className="font-semibold text-sm text-[#1F1B2E]">Aucun camp ouvert</p>
                     <p className="text-xs text-[#6b6b78] mt-1">Les prochains camps apparaîtront ici</p>
-                    <Link href="/dashboard/gardien/camps" className="inline-block mt-3 text-xs text-[#C62828] font-semibold">
+                    <Link href="/dashboard/gardien/camps" className="inline-block mt-3 text-xs text-[#E55A35] font-semibold">
                       Voir tous les camps →
                     </Link>
                   </Card>

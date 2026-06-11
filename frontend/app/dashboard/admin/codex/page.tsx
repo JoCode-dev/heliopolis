@@ -3,16 +3,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { codexApi } from '@/lib/api';
 import { Card, Pill } from '@/components/ui';
 import { CodexItem } from '@/components/codex/CodexItem';
+import { PhotothequeTab } from '@/components/phototheque/PhotothequeTab';
 import { useCodexReactions } from '@/hooks/useCodexReactions';
 import { useAuthStore } from '@/store/auth';
 import type { Submission } from '@/types';
 
-type Tab = 'attente' | 'publies';
+type Tab = 'phototheque' | 'publies' | 'attente';
 
 export default function AdminCodexPage() {
   const { user } = useAuthStore();
   const currentUserId = user?.id;
-  const [tab, setTab] = useState<Tab>('publies');
+  const [tab, setTab] = useState<Tab>('phototheque');
   const [pending, setPending] = useState<Submission[]>([]);
   const [wall, setWall] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,26 +69,31 @@ export default function AdminCodexPage() {
         <div className="flex items-center gap-2 mb-3">
           <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E] flex-1">🪶 Mur du Codex</h1>
           {pending.length > 0 && (
-            <span className="bg-[#C62828] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-[#E55A35] text-white text-xs font-bold px-2 py-0.5 rounded-full">
               {pending.length} à modérer
             </span>
           )}
         </div>
         <div className="flex">
           {([
-            { value: 'publies', label: '✓ Publiés' },
-            { value: 'attente', label: `⏳ À modérer (${pending.length})` },
+            { value: 'phototheque', label: '📷 Photothèque' },
+            { value: 'publies',     label: '✓ Publiés' },
+            { value: 'attente',     label: `⏳ À modérer (${pending.length})` },
           ] as { value: Tab; label: string }[]).map(t => (
             <button key={t.value} onClick={() => setTab(t.value)}
               className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider relative ${tab === t.value ? 'text-[#1F1B2E]' : 'text-[#6b6b78]'}`}>
               {t.label}
-              {tab === t.value && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#C62828] rounded-t-full" />}
+              {tab === t.value && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#E55A35] rounded-t-full" />}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-[#f5eed8] p-4 lg:p-8">
+      {tab === 'phototheque' && (
+        <PhotothequeTab canUpload={user?.role === 'ADMIN' || user?.role === 'REGION' || user?.role === 'PHOTOGRAPHE'} />
+      )}
+
+      <div className={`flex-1 overflow-y-auto bg-[#f5eed8] p-4 lg:p-8 ${tab === 'phototheque' ? 'hidden' : ''}`}>
         {loading && (
           <div className="text-center py-10 text-sm text-[#6b6b78]">
             <div className="text-3xl mb-2 animate-pulse">🪶</div>
@@ -106,7 +112,7 @@ export default function AdminCodexPage() {
             {pending.map(sub => (
               <Card key={sub.id} className="mb-3">
                 <div className="flex items-start gap-2.5 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                     {sub.gardien?.nom?.[0] ?? '?'}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -124,7 +130,7 @@ export default function AdminCodexPage() {
                     ✓ Valider
                   </button>
                   <button onClick={() => handleReject(sub.id)}
-                    className="flex-1 bg-[#C62828] text-white text-sm font-bold py-2 rounded-xl cursor-pointer hover:bg-[#a82020] active:scale-95 transition-all">
+                    className="flex-1 bg-[#E55A35] text-white text-sm font-bold py-2 rounded-xl cursor-pointer hover:bg-[#a82020] active:scale-95 transition-all">
                     ✕ Rejeter
                   </button>
                 </div>

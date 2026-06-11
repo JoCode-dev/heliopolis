@@ -25,16 +25,17 @@ export function StatusBar() {
 interface HeaderProps {
   title: string;
   sub?: string;
-  variant?: 'violet' | 'rouge' | 'nuit';
+  variant?: 'violet' | 'rouge' | 'nuit' | 'sunset';
   onBack?: () => void;
   right?: React.ReactNode;
   children?: React.ReactNode;
 }
 
 const gradients = {
-  violet: 'from-[#6A1B9A] to-[#4a1370]',
-  rouge:  'from-[#C62828] to-[#8e1a1a]',
-  nuit:   'from-[#1F1B2E] to-[#2c1f4a]',
+  violet:  'from-[#6A1B9A] to-[#4a1370]',
+  rouge:   'from-[#E55A35] to-[#7A2820]',
+  nuit:    'from-[#1F1B2E] to-[#2c1f4a]',
+  sunset:  'from-[#FFB36B] to-[#7A2820]',
 };
 
 export function PageHeader({ title, sub, variant = 'violet', onBack, right, children }: HeaderProps) {

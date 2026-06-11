@@ -101,7 +101,7 @@ export default function AdminDefisPage() {
             }`}>
             {tab.label}
             {tab.value === 'EN_ATTENTE' && pending.filter(s => s.statut === 'EN_ATTENTE').length > 0 && (
-              <span className="ml-1.5 bg-[#C62828] text-white text-[10px] px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 bg-[#E55A35] text-white text-[10px] px-1.5 py-0.5 rounded-full">
                 {pending.filter(s => s.statut === 'EN_ATTENTE').length}
               </span>
             )}
@@ -165,7 +165,7 @@ export default function AdminDefisPage() {
                       <button
                         onClick={() => handleReject(sub.id)}
                         disabled={!!actionLoading}
-                        className="text-xs bg-[#ffe6e6] text-[#C62828] border border-[#C62828]/30 rounded-lg px-3 py-1.5 font-semibold hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-60">
+                        className="text-xs bg-[#ffe6e6] text-[#E55A35] border border-[#E55A35]/30 rounded-lg px-3 py-1.5 font-semibold hover:bg-[#E55A35] hover:text-white transition-colors disabled:opacity-60">
                         {isRejecting ? '…' : '✕ Rejeter'}
                       </button>
                     </>

@@ -10,7 +10,7 @@ type Cat = 'TOUS' | 'PERSONNEL' | 'COMMUNAUTAIRE' | 'SPIRITUEL' | 'LONG';
 
 const FILTERS: { key: Cat; label: string; icon: string; color: string }[] = [
   { key: 'TOUS',          label: 'Tous',          icon: '📜', color: 'bg-[#1F1B2E] text-white' },
-  { key: 'PERSONNEL',     label: 'Personnel',     icon: '🔥', color: 'bg-[#C62828] text-white' },
+  { key: 'PERSONNEL',     label: 'Personnel',     icon: '🔥', color: 'bg-[#E55A35] text-white' },
   { key: 'COMMUNAUTAIRE', label: 'Communauté',   icon: '🌿', color: 'bg-[#2E7D32] text-white' },
   { key: 'SPIRITUEL',     label: 'Spirituel',     icon: '✨', color: 'bg-[#6A1B9A] text-white' },
   { key: 'LONG',          label: 'Défi long',     icon: '🏔️', color: 'bg-[#D9A441] text-white' },

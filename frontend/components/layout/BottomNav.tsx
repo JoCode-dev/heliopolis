@@ -93,7 +93,7 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
           return (
             <Link key={item.href} href={item.href}
               className={`flex flex-col items-center gap-0.5 py-2 flex-1 text-[10px] font-medium transition-colors ${
-                active ? 'text-[#C62828]' : 'text-[#6b6b78]'
+                active ? 'text-[#E55A35]' : 'text-[#6b6b78]'
               }`}>
               <span className="text-[20px] leading-none">{item.icon}</span>
               {item.label}
@@ -106,7 +106,7 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
           <button
             onClick={() => setMoreOpen(v => !v)}
             className={`flex flex-col items-center gap-0.5 py-2 flex-1 text-[10px] font-medium transition-colors ${
-              overflowActive ? 'text-[#C62828]' : moreOpen ? 'text-[#6A1B9A]' : 'text-[#6b6b78]'
+              overflowActive ? 'text-[#E55A35]' : moreOpen ? 'text-[#6A1B9A]' : 'text-[#6b6b78]'
             }`}>
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
               moreOpen ? 'bg-[#6A1B9A] text-white rotate-45' : 'bg-[#f3f3f5] text-[#6b6b78]'
@@ -142,12 +142,12 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
                   <Link key={item.href} href={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={`flex flex-col items-center gap-1 py-3.5 px-2 text-[11px] font-medium transition-colors ${
-                      active ? 'text-[#C62828] bg-[#fff5f5]' : 'text-[#6b6b78] hover:bg-[#f7f7fa]'
+                      active ? 'text-[#E55A35] bg-[#fff8f3]' : 'text-[#6b6b78] hover:bg-[#f7f7fa]'
                     }`}>
                     <span className="text-[22px] leading-none">{item.icon}</span>
                     {item.label}
                     {active && (
-                      <span className="w-1 h-1 rounded-full bg-[#C62828]" />
+                      <span className="w-1 h-1 rounded-full bg-[#E55A35]" />
                     )}
                   </Link>
                 );

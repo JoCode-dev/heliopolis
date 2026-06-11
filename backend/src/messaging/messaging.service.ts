@@ -16,11 +16,12 @@ import type { AuthUser } from '../common/types/auth-user.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 
 const ROLE_MESSAGES_BASE: Record<UserRole, string> = {
-  ADMIN: '/dashboard/admin/messages',
-  REGION: '/dashboard/region/messages',
-  SENTINELLE: '/dashboard/guide/messages',
-  GUIDE: '/dashboard/guide/messages',
-  GARDIEN: '/dashboard/gardien/messages',
+  ADMIN:       '/dashboard/admin/messages',
+  REGION:      '/dashboard/region/messages',
+  SENTINELLE:  '/dashboard/guide/messages',
+  GUIDE:       '/dashboard/guide/messages',
+  GARDIEN:     '/dashboard/gardien/messages',
+  PHOTOGRAPHE: '/dashboard/region/messages',
 };
 
 @Injectable()

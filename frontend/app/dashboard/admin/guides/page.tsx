@@ -188,9 +188,9 @@ function GuidesContent() {
           { label: 'Guides', value: nbGuides, color: '#6A1B9A' },
           { label: 'Sentinelles', value: nbSentinelles, color: '#D9A441' },
           { label: 'Actifs', value: nbActifs, color: '#2E7D32' },
-          { label: 'Suspendus', value: nbSuspendus, color: '#C62828' },
+          { label: 'Suspendus', value: nbSuspendus, color: '#E55A35' },
           { label: 'Adhés. à jour', value: nbAdhAJour, color: '#2E7D32' },
-          { label: 'Non à jour', value: nbAdhNonAJour, color: '#C62828' },
+          { label: 'Non à jour', value: nbAdhNonAJour, color: '#E55A35' },
         ].map(kpi => (
           <div key={kpi.label} className="bg-white border border-[#ececf0] rounded-xl p-3">
             <div className="text-xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
@@ -281,7 +281,7 @@ function GuidesContent() {
                             Annuler
                           </button>
                           <button type="button" onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50">
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#E55A35] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </div>

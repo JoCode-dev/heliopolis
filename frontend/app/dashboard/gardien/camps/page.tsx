@@ -35,7 +35,7 @@ export default function GardienCampsPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-xl font-bold">⛺ Camps</h1>
         <p className="text-xs opacity-85 mt-0.5">Camps des Gardiens de la Création</p>
       </div>
@@ -49,7 +49,7 @@ export default function GardienCampsPage() {
               onClick={() => setFilter(f.value)}
               className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                 filter === f.value
-                  ? 'bg-[#C62828] text-white'
+                  ? 'bg-[#E55A35] text-white'
                   : 'bg-[#f3f3f5] text-[#6b6b78]'
               }`}
             >

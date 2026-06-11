@@ -14,10 +14,10 @@ const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
 };
 const CONV_GRADIENT: Record<string, string> = {
-  COMMUNAUTE: 'from-[#F58A4B] to-[#C62828]',
-  REGION:     'from-[#F58A4B] to-[#C62828]',
+  COMMUNAUTE: 'from-[#FFB36B] to-[#7A2820]',
+  REGION:     'from-[#FFB36B] to-[#7A2820]',
   DOYENNE:    'from-[#6A1B9A] to-[#3d1163]',
-  PAROISSE:   'from-[#C62828] to-[#7a1717]',
+  PAROISSE:   'from-[#F58A4B] to-[#7A2820]',
   PRIVE:      'from-[#1F1B2E] to-[#3a1d4d]',
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
@@ -78,7 +78,7 @@ export default function MessagesPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-white">
       {/* ── Header ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
         <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
           <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden relative">
             {user?.avatarUrl ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="36px" /> : initials}
@@ -245,7 +245,7 @@ function MessagesTab({ msgBase }: { msgBase: string }) {
             <p className="text-sm text-[#9b9ba8] mb-5">Elle disparaîtra de votre liste.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 rounded-xl border border-[#e6e6ea] text-sm font-bold text-[#6b6b78]">Annuler</button>
-              <button onClick={() => handleDelete(deleteConfirmId)} className="flex-1 py-3 rounded-xl bg-[#C62828] text-white text-sm font-bold">Supprimer</button>
+              <button onClick={() => handleDelete(deleteConfirmId)} className="flex-1 py-3 rounded-xl bg-[#E55A35] text-white text-sm font-bold">Supprimer</button>
             </div>
           </div>
         </div>
@@ -366,7 +366,7 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-white">
       {/* Drag handle */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0 pt-safe">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0 pt-safe">
         <div className="flex items-center gap-2 px-4 py-3">
           <button
             onClick={mode === 'pick' ? onClose : () => { setMode('pick'); setSelected([]); setSearch(''); resetFilters(); }}
@@ -441,8 +441,8 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                 </p>
                 {channels.map(ch => {
                   const typeGradient: Record<string, string> = {
-                    PAROISSE:    'from-[#C62828] to-[#7a1717]',
-                    GARDIENS:    'from-[#C62828] to-[#7a1717]',
+                    PAROISSE:    'from-[#F58A4B] to-[#7A2820]',
+                    GARDIENS:    'from-[#F58A4B] to-[#7A2820]',
                     DOYENNE:     'from-[#6A1B9A] to-[#4a1370]',
                     GUIDES:      'from-[#6A1B9A] to-[#4a1370]',
                     REGION:      'from-[#1F1B2E] to-[#3a1d4d]',
@@ -534,7 +534,7 @@ function NewConvModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                   <button
                     key={p.id}
                     onClick={() => setFilterParish(filterParish === p.id ? null : p.id)}
-                    className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold border transition-colors ${filterParish === p.id ? 'bg-[#C62828] text-white border-[#C62828]' : 'bg-white text-[#6b6b78] border-[#e6e6ea]'}`}
+                    className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold border transition-colors ${filterParish === p.id ? 'bg-[#E55A35] text-white border-[#E55A35]' : 'bg-white text-[#6b6b78] border-[#e6e6ea]'}`}
                   >{p.nom}</button>
                 ))}
               </div>
@@ -718,7 +718,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
             >
               {f.label}
               {badge !== null && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white text-[#C62828]' : 'bg-[#C62828] text-white'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white text-[#E55A35]' : 'bg-[#E55A35] text-white'}`}>
                   {badge}
                 </span>
               )}
@@ -732,7 +732,7 @@ function ContactsTab({ msgBase }: { msgBase: string }) {
         <div className="px-4 mb-1">
           <SectionLabel>
             <span>🔔 Demandes reçues</span>
-            <span className="ml-1.5 bg-[#C62828] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{received.length}</span>
+            <span className="ml-1.5 bg-[#E55A35] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{received.length}</span>
           </SectionLabel>
           {received.map(c => (
             <ContactRow key={c.id} user={c.requester} action={
@@ -910,7 +910,7 @@ function ConvRow({ conv, onPin, onDelete, msgBase }: {
           <span className="text-xl">{conv.isPinned ? '📍' : '📌'}</span>
           <span className="text-[10px] leading-tight">{conv.isPinned ? 'Retirer' : 'Épingler'}</span>
         </button>
-        <button onClick={onDelete} className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#C62828] text-white font-bold">
+        <button onClick={onDelete} className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#E55A35] text-white font-bold">
           <span className="text-xl">🗑️</span>
           <span className="text-[10px] leading-tight">Supprimer</span>
         </button>
@@ -973,7 +973,7 @@ function ConvRow({ conv, onPin, onDelete, msgBase }: {
             <button onClick={onPin} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-[#1F1B2E] hover:bg-[#F5F5F5] font-medium rounded-t-xl">
               {conv.isPinned ? '📍 Désépingler' : '📌 Épingler'}
             </button>
-            <button onClick={onDelete} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-[#C62828] hover:bg-[#fff0f0] font-medium rounded-b-xl">
+            <button onClick={onDelete} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-[#E55A35] hover:bg-[#fff8f3] font-medium rounded-b-xl">
               🗑️ Supprimer
             </button>
           </div>
@@ -988,14 +988,14 @@ const ROLE_AVATAR: Record<string, string> = {
   REGION:     'from-[#6A1B9A] to-[#3d1163]',
   SENTINELLE: 'from-[#1D4ED8] to-[#1e3a8a]',
   GUIDE:      'from-[#16A34A] to-[#14532D]',
-  GARDIEN:    'from-[#C62828] to-[#8e1a1a]',
+  GARDIEN:    'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
 };
 const ROLE_PILL: Record<string, string> = {
   ADMIN:      'bg-[#FEF3C7] text-[#D97706]',
   REGION:     'bg-[#EDE7F6] text-[#6A1B9A]',
   SENTINELLE: 'bg-[#DBEAFE] text-[#1D4ED8]',
   GUIDE:      'bg-[#DCFCE7] text-[#16A34A]',
-  GARDIEN:    'bg-[#FEE2E2] text-[#C62828]',
+  GARDIEN:    'bg-[#FEE2E2] text-[#E55A35]',
 };
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: 'Admin', REGION: 'Région', SENTINELLE: 'Sentinelle', GUIDE: 'Guide', GARDIEN: 'Gardien',

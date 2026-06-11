@@ -11,13 +11,13 @@ const TABS: { label: string; value: TabFilter; dot?: string }[] = [
   { label: 'Toutes',     value: 'TOUTES'     },
   { label: 'En attente', value: 'EN_ATTENTE', dot: 'bg-[#D9A441]' },
   { label: 'Validées',   value: 'VALIDE',     dot: 'bg-[#2E7D32]' },
-  { label: 'Rejetées',   value: 'REJETE',     dot: 'bg-[#C62828]' },
+  { label: 'Rejetées',   value: 'REJETE',     dot: 'bg-[#E55A35]' },
 ];
 
 const STATUS_STYLE: Record<SubmissionStatus, { label: string; bg: string; text: string; border: string }> = {
   EN_ATTENTE:           { label: '⏳ En attente',     bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]' },
   VALIDE:               { label: '✓ Validée',          bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]' },
-  REJETE:               { label: '✕ Rejetée',          bg: 'bg-[#ffebee]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]' },
+  REJETE:               { label: '✕ Rejetée',          bg: 'bg-[#ffebee]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]' },
   CORRECTION_DEMANDEE:  { label: '✎ Correction',       bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]' },
 };
 
@@ -83,7 +83,7 @@ export default function DefisPage() {
             )}
             <button
               onClick={() => setCreateOpen(true)}
-              className="flex items-center gap-1 bg-[#C62828] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-[#C62828]/20 hover:bg-[#b51d1d] hover:shadow-md hover:shadow-[#C62828]/30 hover:-translate-y-px transition-all duration-150"
+              className="flex items-center gap-1 bg-[#E55A35] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-[#E55A35]/20 hover:bg-[#b51d1d] hover:shadow-md hover:shadow-[#E55A35]/30 hover:-translate-y-px transition-all duration-150"
             >
               + Nouveau défi
             </button>
@@ -106,7 +106,7 @@ export default function DefisPage() {
                   <span className={`text-[10px] font-black ${active ? 'text-[#1F1B2E]' : 'text-[#c0c0cc]'}`}>{n}</span>
                 )}
                 {active && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C62828] rounded-t-full" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E55A35] rounded-t-full" />
                 )}
               </button>
             );
@@ -188,7 +188,7 @@ export default function DefisPage() {
                         {isApproving ? '…' : '✓ Valider'}
                       </button>
                       <button onClick={() => handleReject(sub.id)} disabled={busy}
-                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#ffebee] text-[#C62828] border border-[#ef9a9a] enabled:hover:bg-[#C62828] enabled:hover:text-white enabled:hover:shadow-sm enabled:hover:border-[#C62828] disabled:opacity-60 transition-all duration-150">
+                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#ffebee] text-[#E55A35] border border-[#ef9a9a] enabled:hover:bg-[#E55A35] enabled:hover:text-white enabled:hover:shadow-sm enabled:hover:border-[#E55A35] disabled:opacity-60 transition-all duration-150">
                         {isRejecting ? '…' : '✕ Rejeter'}
                       </button>
                     </div>

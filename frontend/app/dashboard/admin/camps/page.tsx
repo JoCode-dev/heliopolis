@@ -62,7 +62,7 @@ export default function GestionCampsPage() {
         </div>
         <Link
           href="/dashboard/admin/camps/nouveau"
-          className="bg-[#C62828] text-white font-bold text-sm px-4 py-2 rounded-xl hover:bg-[#b51d1d] transition-colors"
+          className="bg-[#E55A35] text-white font-bold text-sm px-4 py-2 rounded-xl hover:bg-[#b51d1d] transition-colors"
         >
           + Nouveau camp
         </Link>

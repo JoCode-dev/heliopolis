@@ -21,6 +21,7 @@ enum UserRole {
   SENTINELLE // Sentinelle d'Héliopolis (District)
   GUIDE // Guide du Jardin Caché (Paroisse)
   GARDIEN // Gardien de la Création (Routier)
+  PHOTOGRAPHE // Photographe officiel de la Région
 }
 
 /// État du profil utilisateur
@@ -369,7 +370,8 @@ model User {
   messageReceipts         MessageReadReceipt[]
 
   // Médias
-  mediaUploaded Media[] @relation("MediaUploader")
+  mediaUploaded       Media[]      @relation("MediaUploader")
+  campPhotosUploaded  CampPhoto[]  @relation("CampPhotoUploader")
 
   // Annonces & modération
   announcements     Announcement[]  @relation("AnnouncementAuthor")
@@ -470,6 +472,7 @@ model Camp {
   challenges    Challenge[]       @relation("CampChallenges")
   media         Media[]
   conversations Conversation[]
+  photos        CampPhoto[]
 
   createdBy   User   @relation("CampCreator", fields: [createdById], references: [id])
   createdById String
@@ -1012,4 +1015,27 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// =============================================================
+//  PHOTOTHÈQUE (photos officielles des camps)
+// =============================================================
+
+model CampPhoto {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+
+  camp      Camp?    @relation(fields: [campId], references: [id], onDelete: SetNull)
+  campId    String?
+
+  uploader    User   @relation("CampPhotoUploader", fields: [uploaderId], references: [id])
+  uploaderId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campId])
+  @@index([uploaderId])
+  @@map("camp_photos")
 }

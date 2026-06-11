@@ -8,12 +8,12 @@ import { useAuthStore } from '@/store/auth';
 import type { Conversation, ConversationMember, Message, User } from '@/types';
 
 const HEADER_CONFIG: Record<string, { label: string; gradient: string }> = {
-  COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  REGION:     { label: '🗺️ Région',              gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  DOYENNE:    { label: '🛡️ District',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  REGION:     { label: '🗺️ Région',              gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  DOYENNE:    { label: '🛡️ District',             gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
 };
 
 function formatTime(iso: string) {
@@ -378,7 +378,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                       isDeleted
                         ? 'bg-white text-[#9b9ba8] italic'
                         : isMine
-                          ? 'bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white rounded-br-[4px]'
+                          ? 'bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white rounded-br-[4px]'
                           : 'bg-white text-[#1F1B2E] rounded-bl-[4px]'
                     }`}>
 
@@ -453,7 +453,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                           {menuMsgId === msg.id && (
                             <div className="absolute bottom-8 right-0 bg-white rounded-xl shadow-xl border border-[#e6e6ea] overflow-hidden z-20 min-w-[130px]">
                               <button onClick={() => startEdit(msg)} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#1F1B2E] hover:bg-[#f3f3f5] font-semibold">✏️ Modifier</button>
-                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: true }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#C62828] hover:bg-[#fff0f0] font-semibold">🗑️ Supprimer</button>
+                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: true }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#E55A35] hover:bg-[#fff8f3] font-semibold">🗑️ Supprimer</button>
                             </div>
                           )}
                         </div>
@@ -517,7 +517,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <button
           onClick={sendMessage}
           disabled={!input.trim() || sending}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex items-center justify-center text-white disabled:opacity-60 flex-shrink-0 transition-opacity shadow"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex items-center justify-center text-white disabled:opacity-60 flex-shrink-0 transition-opacity shadow"
         >
           {sending ? <span className="text-xs animate-pulse">…</span> : (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
@@ -530,7 +530,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
+          <div className="bg-gradient-to-r from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => { setShowGroupPanel(false); closeAddMember(); setSelectedToRemove([]); }}
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg"
@@ -590,7 +590,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                 ) : annuaire
                   .filter(u => !addSearch || u.nom.toLowerCase().includes(addSearch.toLowerCase()) || u.prenoms.toLowerCase().includes(addSearch.toLowerCase()))
                   .map(u => {
-                    const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
+                    const COLORS = ['from-[#F58A4B] via-[#E55A35] to-[#7A2820]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
                     const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
                     const isSelected = selectedToAdd.includes(u.id);
                     return (
@@ -636,7 +636,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   </span>
                   <button
                     onClick={() => setSelectedToRemove(allRemovableSelected ? [] : removableMembers.map(m => m.userId))}
-                    className="text-[12px] font-bold text-[#C62828]"
+                    className="text-[12px] font-bold text-[#E55A35]"
                   >
                     {allRemovableSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
                   </button>
@@ -647,7 +647,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                 {groupMembers.map(m => {
                   const u = m.user;
                   if (!u) return null;
-                  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
+                  const COLORS = ['from-[#F58A4B] via-[#E55A35] to-[#7A2820]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
                   const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
                   const isMe = u.id === user?.id;
                   const canSelect = isOwner && !isMe && m.role !== 'OWNER';
@@ -674,7 +674,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                         </p>
                       </div>
                       {canSelect && (
-                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#C62828] border-[#C62828]' : 'border-[#d0d0d0]'}`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#E55A35] border-[#E55A35]' : 'border-[#d0d0d0]'}`}>
                           {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
                         </div>
                       )}
@@ -688,7 +688,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   <button
                     onClick={handleConfirmRemove}
                     disabled={applyingChanges}
-                    className="w-full py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-60"
+                    className="w-full py-3 rounded-xl bg-[#E55A35] text-white font-bold text-sm disabled:opacity-60"
                   >
                     {applyingChanges ? 'Retrait en cours…' : `Retirer ${selectedToRemove.length} membre${selectedToRemove.length > 1 ? 's' : ''}`}
                   </button>
@@ -730,11 +730,11 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
               {deleteTarget.isMine && (
                 <button
                   onClick={deleteForEveryone}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[#fff0f0] text-left transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[#fff8f3] text-left transition-colors"
                 >
                   <span className="w-9 h-9 rounded-full bg-[#ffe6e6] flex items-center justify-center text-lg flex-shrink-0">🗑️</span>
                   <div>
-                    <div className="font-semibold text-sm text-[#C62828]">Supprimer pour tous</div>
+                    <div className="font-semibold text-sm text-[#E55A35]">Supprimer pour tous</div>
                     <div className="text-xs text-[#9b9ba8]">Le message disparaît pour tout le monde</div>
                   </div>
                 </button>
@@ -755,11 +755,11 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 function MsgAvatar({ author }: { author: Partial<User> }) {
   const initials = `${author.nom?.[0] ?? ''}${author.prenoms?.[0] ?? ''}`.toUpperCase() || '?';
   const COLORS = [
-    'from-[#C62828] to-[#8e1a1a]',
+    'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
     'from-[#6A1B9A] to-[#4a1370]',
     'from-[#2E7D32] to-[#1a5021]',
     'from-[#1F1B2E] to-[#3a1d4d]',
-    'from-[#F58A4B] to-[#C62828]',
+    'from-[#FFB36B] to-[#7A2820]',
   ];
   const color = COLORS[(author.id?.charCodeAt(0) ?? 0) % COLORS.length];
 

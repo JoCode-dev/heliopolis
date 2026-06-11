@@ -76,7 +76,7 @@ export default function ArtefactsPage() {
         />
       )}
 
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-xl font-bold">🏅 Mes artefacts</h1>
         <p className="text-xs opacity-85 mt-0.5">
           {ownedIds.size} / {allBadges.length} débloqué{ownedIds.size !== 1 ? 's' : ''}
@@ -95,11 +95,11 @@ export default function ArtefactsPage() {
             <div className="bg-white border border-[#ececf0] rounded-2xl p-4 mb-5">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-semibold text-[#1F1B2E]">Ta progression</span>
-                <span className="text-xs font-bold text-[#C62828]">{pct}%</span>
+                <span className="text-xs font-bold text-[#E55A35]">{pct}%</span>
               </div>
               <div className="w-full bg-[#f3f3f5] rounded-full h-2.5 overflow-hidden">
                 <div
-                  className="h-2.5 rounded-full bg-gradient-to-r from-[#D9A441] to-[#C62828] transition-all duration-500"
+                  className="h-2.5 rounded-full bg-gradient-to-r from-[#D9A441] to-[#E55A35] transition-all duration-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>

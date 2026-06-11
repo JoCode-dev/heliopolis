@@ -33,6 +33,8 @@ function ActivationContent() {
   const [dateNaissance, setDateNaissance] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+  const [prefillLoading, setPrefillLoading] = useState(false);
 
   // ── Connexion ──
   const [identifier, setIdentifier] = useState("");
@@ -62,6 +64,30 @@ function ActivationContent() {
   }, [mode]);
 
   const clearErrors = () => setError("");
+
+  /* ── Pré-remplissage matricule ── */
+  const handleMatriculeChange = (val: string) => {
+    const upper = val.toUpperCase();
+    setMatricule(upper);
+    if (prefilled) {
+      setPrefilled(false);
+      setNom("");
+      setPrenoms("");
+    }
+    if (/^\d{7}[A-Z]$/.test(upper)) {
+      setPrefillLoading(true);
+      authApi.verifierMatricule(upper)
+        .then(({ data }) => {
+          if (data.nom && data.prenoms) {
+            setNom(data.nom);
+            setPrenoms(data.prenoms);
+            setPrefilled(true);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setPrefillLoading(false));
+    }
+  };
 
   /* ── Inscription ── */
   const handleInscrire = async () => {
@@ -197,23 +223,31 @@ function ActivationContent() {
                   <p className="text-[10px] font-black tracking-[.22em] uppercase opacity-70 mb-1">
                     Identité
                   </p>
+                  {prefilled && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-white/80 bg-white/10 rounded-lg px-3 py-1.5 mb-1">
+                      <span>✓</span>
+                      <span>Identité récupérée depuis la base nationale</span>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <label className={LABEL_CLS}>Nom *</label>
                       <input
-                        className={INPUT_CLS}
+                        className={INPUT_CLS + (prefilled ? " opacity-75 cursor-default" : "")}
                         placeholder="KOUASSI"
                         value={nom}
-                        onChange={(e) => setNom(e.target.value)}
+                        readOnly={prefilled}
+                        onChange={(e) => !prefilled && setNom(e.target.value)}
                       />
                     </div>
                     <div className="flex-1">
                       <label className={LABEL_CLS}>Prénom(s) *</label>
                       <input
-                        className={INPUT_CLS}
+                        className={INPUT_CLS + (prefilled ? " opacity-75 cursor-default" : "")}
                         placeholder="Jean"
                         value={prenoms}
-                        onChange={(e) => setPrenoms(e.target.value)}
+                        readOnly={prefilled}
+                        onChange={(e) => !prefilled && setPrenoms(e.target.value)}
                       />
                     </div>
                   </div>
@@ -236,18 +270,24 @@ function ActivationContent() {
 
                   <div>
                     <label className={LABEL_CLS}>Matricule national *</label>
-                    <input
-                      className={
-                        INPUT_CLS +
-                        " tracking-widest text-center font-bold text-lg"
-                      }
-                      placeholder="0525247O"
-                      maxLength={8}
-                      value={matricule}
-                      onChange={(e) =>
-                        setMatricule(e.target.value.toUpperCase())
-                      }
-                    />
+                    <div className="relative">
+                      <input
+                        className={
+                          INPUT_CLS +
+                          " tracking-widest text-center font-bold text-lg" +
+                          (prefillLoading ? " pr-10" : "")
+                        }
+                        placeholder="0525247O"
+                        maxLength={8}
+                        value={matricule}
+                        onChange={(e) => handleMatriculeChange(e.target.value)}
+                      />
+                      {prefillLoading && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 text-sm animate-spin">
+                          ◌
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] opacity-65 mt-1">
                       7 chiffres + 1 lettre · délivré par la Nation
                     </p>

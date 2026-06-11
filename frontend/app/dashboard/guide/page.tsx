@@ -10,8 +10,8 @@ import { CampCard } from '@/components/camps/CampCard';
 import type { User, Camp, Submission, Conversation } from '@/types';
 
 const CONV_GRADIENT: Record<string, string> = {
-  COMMUNAUTE: 'from-[#F58A4B] to-[#C62828]', REGION: 'from-[#F58A4B] to-[#C62828]',
-  DOYENNE: 'from-[#6A1B9A] to-[#3d1163]', PAROISSE: 'from-[#C62828] to-[#7a1717]',
+  COMMUNAUTE: 'from-[#FFB36B] to-[#7A2820]', REGION: 'from-[#FFB36B] to-[#7A2820]',
+  DOYENNE: 'from-[#6A1B9A] to-[#3d1163]', PAROISSE: 'from-[#F58A4B] to-[#7A2820]',
   PRIVE: 'from-[#1F1B2E] to-[#3a1d4d]', GROUPE: 'from-[#2E7D32] to-[#1a5021]',
 };
 const CONV_ICON: Record<string, string> = {
@@ -92,21 +92,21 @@ export default function DashboardGuidePage() {
   );
   const quickStats = isSentinelle ? [
     { v: directReports.length, label: 'Guides',    color: '#6A1B9A' },
-    { v: allGardiens.length,   label: 'Gardiens',  color: '#C62828' },
+    { v: allGardiens.length,   label: 'Gardiens',  color: '#E55A35' },
     { v: camps.length,         label: 'Camps',     color: '#D9A441' },
-    { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
+    { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#E55A35' : '#6b6b78' },
   ] : [
     { v: directReports.length, label: 'Gardiens',  color: '#6A1B9A' },
     { v: aJour,                label: 'À jour',    color: '#2E7D32' },
     { v: camps.length,         label: 'Camps',     color: '#D9A441' },
-    { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#C62828' : '#6b6b78' },
+    { v: pending.length,       label: 'À valider', color: pending.length > 0 ? '#E55A35' : '#6b6b78' },
   ];
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden relative">
             {user?.avatarUrl
@@ -121,7 +121,7 @@ export default function DashboardGuidePage() {
           </div>
           {pending.length > 0 && (
             <Link href="/dashboard/guide/missions"
-              className="flex items-center gap-1.5 bg-[#C62828] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-full">
+              className="flex items-center gap-1.5 bg-[#E55A35] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-full">
               🎯 {pending.length} à valider
             </Link>
           )}
@@ -184,7 +184,7 @@ export default function DashboardGuidePage() {
           <Link href="/dashboard/guide/missions"
             className="bg-white rounded-xl p-3 border border-[#ececf0] shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition relative">
             {pending.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#C62828] text-white text-[9px] font-black flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#E55A35] text-white text-[9px] font-black flex items-center justify-center">
                 {pending.length}
               </span>
             )}
@@ -216,7 +216,7 @@ export default function DashboardGuidePage() {
               <div className="flex items-center justify-between mt-4 mb-2.5">
                 <h2 className="text-sm font-bold text-[#1F1B2E]">À valider</h2>
                 {pending.length > 0 && (
-                  <Link href="/dashboard/guide/missions" className="text-xs text-[#C62828] font-semibold">
+                  <Link href="/dashboard/guide/missions" className="text-xs text-[#E55A35] font-semibold">
                     Tout voir ({pending.length}) →
                   </Link>
                 )}
@@ -241,7 +241,7 @@ export default function DashboardGuidePage() {
                   <div key={sub.id} className="bg-white rounded-2xl border border-[#ececf0] mb-2.5 overflow-hidden shadow-sm">
                     <div className="px-3.5 pt-3.5 pb-2.5">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                           {g ? `${g.nom?.[0]}${g.prenoms?.[0]}`.toUpperCase() : '?'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -263,7 +263,7 @@ export default function DashboardGuidePage() {
                       </Link>
                       <div className="w-px bg-[#f0f0f0]" />
                       <Link href="/dashboard/guide/missions"
-                        className="flex-1 py-2.5 text-center text-xs font-bold text-[#C62828] hover:bg-[#fff0f0] transition">
+                        className="flex-1 py-2.5 text-center text-xs font-bold text-[#E55A35] hover:bg-[#fff8f3] transition">
                         Valider →
                       </Link>
                     </div>
@@ -301,7 +301,7 @@ export default function DashboardGuidePage() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
                           adh?.statut === 'A_JOUR'     ? 'bg-[#e8f5e9] text-[#2E7D32]' :
                           adh?.statut === 'EN_ATTENTE' ? 'bg-[#fff8e6] text-[#9c7218]' :
-                                                         'bg-[#fff0f0] text-[#C62828]'
+                                                         'bg-[#fff8f3] text-[#E55A35]'
                         }`}>
                           {adh?.statut === 'A_JOUR' ? '✓' : adh?.statut === 'EN_ATTENTE' ? '⏳' : '✕'}
                         </span>
@@ -351,7 +351,7 @@ export default function DashboardGuidePage() {
                     .slice(0, 4)
                     .map(r => (
                       <div key={r.id} className="bg-white rounded-xl border border-[#ececf0] px-3 py-2.5 mb-1.5 flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                           {r.nom[0]}{r.prenoms[0]}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -364,7 +364,7 @@ export default function DashboardGuidePage() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           r.adhesions?.[0]?.statut === 'EN_ATTENTE'
                             ? 'bg-[#fff8e6] text-[#9c7218]'
-                            : 'bg-[#fff0f0] text-[#C62828]'
+                            : 'bg-[#fff8f3] text-[#E55A35]'
                         }`}>
                           {r.adhesions?.[0]?.statut === 'EN_ATTENTE' ? 'En attente' : 'Non à jour'}
                         </span>

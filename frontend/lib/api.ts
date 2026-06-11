@@ -45,7 +45,7 @@ api.interceptors.response.use(
 export const authApi = {
   /** Vérifie qu'un matricule est pré-enregistré et disponible pour l'inscription */
   verifierMatricule: (matricule: string) =>
-    api.post<{ userId: string; role: string; hasProfile: boolean }>('/auth/verifier-matricule', { matricule }),
+    api.post<{ userId: string; role: string; hasProfile: boolean; nom: string | null; prenoms: string | null }>('/auth/verifier-matricule', { matricule }),
   /** Inscription : vérifie matricule + date de naissance et crée le compte */
   inscrire: (data: {
     nom: string;
@@ -106,6 +106,21 @@ export const challengesApi = {
   validate: (id: string, data: object) => api.post(`/challenges/submissions/${id}/validate`, data),
   retractSubmission: (id: string) => api.delete(`/challenges/submissions/${id}`),
   pending: () => api.get('/challenges/pending/submissions'),
+};
+
+// ─── Photothèque ──────────────────────────────────────────────────────────────
+export const photothequeApi = {
+  list: (campId?: string) =>
+    api.get('/phototheque', { params: campId ? { campId } : {} }),
+  camps: () => api.get('/phototheque/camps'),
+  upload: (file: File, campId?: string, caption?: string) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (campId)  fd.append('campId', campId);
+    if (caption) fd.append('caption', caption);
+    return api.post('/phototheque', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  delete: (id: string) => api.delete(`/phototheque/${id}`),
 };
 
 // ─── Conseils ─────────────────────────────────────────────────────────────────

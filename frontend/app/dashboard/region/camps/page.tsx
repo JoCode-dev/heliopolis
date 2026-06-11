@@ -8,21 +8,21 @@ const STATUS_TABS: { label: string; value: CampStatus | 'TOUS'; dot?: string }[]
   { label: 'Tous',       value: 'TOUS'      },
   { label: 'Ouverts',   value: 'OUVERT',    dot: 'bg-[#2E7D32]' },
   { label: 'En cours',  value: 'EN_COURS',  dot: 'bg-[#D9A441]' },
-  { label: 'Clôturés',  value: 'CLOTURE',   dot: 'bg-[#C62828]' },
+  { label: 'Clôturés',  value: 'CLOTURE',   dot: 'bg-[#E55A35]' },
   { label: 'Brouillons',value: 'BROUILLON', dot: 'bg-[#9b9ba8]' },
 ];
 
 const STATUS_STYLE: Record<string, { label: string; bg: string; text: string; border: string }> = {
   OUVERT:    { label: '✓ Ouvert',    bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]' },
   EN_COURS:  { label: '● En cours',  bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]' },
-  CLOTURE:   { label: '✕ Clôturé',   bg: 'bg-[#ffebee]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]' },
+  CLOTURE:   { label: '✕ Clôturé',   bg: 'bg-[#ffebee]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]' },
   BROUILLON: { label: '… Brouillon', bg: 'bg-[#f5f5f5]', text: 'text-[#6b6b78]', border: 'border-[#e0e0e0]' },
   ARCHIVE:   { label: 'Archivé',     bg: 'bg-[#f5f5f5]', text: 'text-[#9b9ba8]', border: 'border-[#e0e0e0]' },
 };
 
 const TYPE_STYLE: Record<string, { label: string; color: string }> = {
   REGIONAL:  { label: 'Régional',   color: 'text-[#6A1B9A]' },
-  NATIONAL:  { label: 'National',   color: 'text-[#C62828]' },
+  NATIONAL:  { label: 'National',   color: 'text-[#E55A35]' },
   DISTRICT:  { label: 'District',   color: 'text-[#D9A441]' },
   PAROISSIAL:{ label: 'Paroissial', color: 'text-[#2E7D32]' },
   COMMUNAUTE:{ label: 'Communauté', color: 'text-[#6b6b78]' },
@@ -31,7 +31,7 @@ const TYPE_STYLE: Record<string, { label: string; color: string }> = {
 const LEFT_BORDER: Record<string, string> = {
   OUVERT:    'border-l-[#2E7D32]',
   EN_COURS:  'border-l-[#D9A441]',
-  CLOTURE:   'border-l-[#C62828]',
+  CLOTURE:   'border-l-[#E55A35]',
   BROUILLON: 'border-l-[#9b9ba8]',
   ARCHIVE:   'border-l-[#e0e0e0]',
 };
@@ -66,7 +66,7 @@ export default function CampsRegionauxPage() {
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-lg font-black text-[#1F1B2E]">⛺ Camps régionaux</h1>
           <Link href="/dashboard/region/camps/nouveau"
-            className="flex items-center gap-1.5 bg-[#C62828] text-white font-bold text-xs px-3.5 py-2 rounded-xl hover:bg-[#b51d1d] transition-colors shadow-sm">
+            className="flex items-center gap-1.5 bg-[#E55A35] text-white font-bold text-xs px-3.5 py-2 rounded-xl hover:bg-[#b51d1d] transition-colors shadow-sm">
             + Nouveau
           </Link>
         </div>
@@ -89,7 +89,7 @@ export default function CampsRegionauxPage() {
                   </span>
                 )}
                 {active && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C62828] rounded-t-full" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E55A35] rounded-t-full" />
                 )}
               </button>
             );
@@ -116,7 +116,7 @@ export default function CampsRegionauxPage() {
             </p>
             {tab === 'TOUS' && (
               <Link href="/dashboard/region/camps/nouveau"
-                className="mt-4 px-5 py-2 bg-[#C62828] text-white text-xs font-bold rounded-xl">
+                className="mt-4 px-5 py-2 bg-[#E55A35] text-white text-xs font-bold rounded-xl">
                 + Nouveau camp
               </Link>
             )}

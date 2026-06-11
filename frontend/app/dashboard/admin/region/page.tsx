@@ -143,7 +143,7 @@ function RegionContent() {
           <p className="font-semibold">
             {membres.length === 0 ? 'Aucun membre régional enregistré' : 'Aucun résultat'}
           </p>
-          <button onClick={() => setCreateOpen(true)} className="mt-4 text-sm font-semibold text-[#C62828] hover:underline">
+          <button onClick={() => setCreateOpen(true)} className="mt-4 text-sm font-semibold text-[#E55A35] hover:underline">
             + Ajouter un membre
           </button>
         </div>
@@ -205,7 +205,7 @@ function RegionContent() {
                           <button onClick={() => setPendingSuspend(null)}
                             className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#f6f6fa] text-[#6b6b78]">Annuler</button>
                           <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-60">
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#E55A35] text-white hover:bg-[#a82020] disabled:opacity-60">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </div>
@@ -281,7 +281,7 @@ function RegionContent() {
                         {canSuspend && isPending && (
                           <div className="flex gap-1">
                             <button onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-60">
+                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#E55A35] text-white hover:bg-[#a82020] disabled:opacity-60">
                               {isLoading ? '…' : 'Oui'}
                             </button>
                             <button onClick={() => setPendingSuspend(null)}

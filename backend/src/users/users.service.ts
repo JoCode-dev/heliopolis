@@ -244,29 +244,87 @@ export class UsersService {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
 
+    // Cache district / paroisse pour éviter N+1
+    const districtCache = new Map<string, string | null>();
+    const parishCache   = new Map<string, string | null>();
+
+    const resolveDistrict = async (nom: string): Promise<string | null> => {
+      const key = nom.toLowerCase().trim();
+      if (!key) return null;
+      if (districtCache.has(key)) return districtCache.get(key)!;
+      const d = await this.prisma.district.findFirst({
+        where: { nom: { equals: key, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      const id = d?.id ?? null;
+      districtCache.set(key, id);
+      return id;
+    };
+
+    const resolveParish = async (nom: string, districtId: string | null): Promise<string | null> => {
+      const nomKey = nom.toLowerCase().trim();
+      if (!nomKey) return null;
+      const cacheKey = `${districtId ?? ''}:${nomKey}`;
+      if (parishCache.has(cacheKey)) return parishCache.get(cacheKey)!;
+      const where: Prisma.ParishWhereInput = { nom: { equals: nomKey, mode: 'insensitive' } };
+      if (districtId) where.districtId = districtId;
+      const p = await this.prisma.parish.findFirst({ where, select: { id: true } });
+      const id = p?.id ?? null;
+      parishCache.set(cacheKey, id);
+      return id;
+    };
+
+    const parseDate = (raw: unknown): Date | null => {
+      if (raw instanceof Date && !isNaN(raw.getTime())) return raw;
+      const s = String(raw).trim();
+      // DD/MM/YYYY (format utilisé dans les fichiers nationaux)
+      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+      if (m) {
+        const d = new Date(`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}T00:00:00Z`);
+        if (!isNaN(d.getTime())) return d;
+      }
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
     let importes = 0;
     let ignores = 0;
     const erreurs: { matricule: string; raison: string }[] = [];
 
     for (const row of rows) {
-      const matricule = String(row['matricule'] ?? row['Matricule'] ?? '').trim().toUpperCase();
-      const rawDate = row['dateNaissance'] ?? row['date_naissance'] ?? row['DateNaissance'] ?? row['Date Naissance'] ?? '';
-      const nomVal = String(row['nom'] ?? row['Nom'] ?? '').trim() || null;
-      const prenomsVal = String(row['prenoms'] ?? row['Prenoms'] ?? row['prénoms'] ?? '').trim() || null;
-      const regionId = String(row['regionId'] ?? row['region_id'] ?? '').trim() || null;
-      const districtId = String(row['districtId'] ?? row['district_id'] ?? '').trim() || null;
-      const parishId = String(row['parishId'] ?? row['parish_id'] ?? '').trim() || null;
+      // Colonnes format national (PDF/Excel) + rétro-compat colonnes techniques
+      const matricule = String(
+        row['Matricule'] ?? row['matricule'] ?? ''
+      ).trim().toUpperCase();
+
+      const rawDate =
+        row['Date de Naissance'] ?? row['dateNaissance'] ??
+        row['date_naissance']   ?? row['DateNaissance']  ??
+        row['Date Naissance']   ?? '';
+
+      const nomVal = String(row['Nom'] ?? row['nom'] ?? '').trim() || null;
+      const prenomsVal = String(
+        row['Prenom'] ?? row['Prénom'] ?? row['prenoms'] ??
+        row['Prenoms'] ?? row['prénoms'] ?? ''
+      ).trim() || null;
+
+      const districtName = String(row['District'] ?? row['district'] ?? '').trim();
+      const parishName   = String(
+        row['Groupe Scoute'] ?? row['Groupe Scout'] ?? row['groupe_scoute'] ?? ''
+      ).trim();
+
+      // IDs directs (ancien format) — prioritaires sur la résolution par nom
+      const directRegionId   = String(row['regionId']   ?? row['region_id']   ?? '').trim() || null;
+      const directDistrictId = String(row['districtId'] ?? row['district_id'] ?? '').trim() || null;
+      const directParishId   = String(row['parishId']   ?? row['parish_id']   ?? '').trim() || null;
 
       if (!matricule || !/^\d{7}[A-Z]$/.test(matricule)) {
         erreurs.push({ matricule: matricule || '(vide)', raison: 'Format de matricule invalide' });
         continue;
       }
 
-      let dateNaissance: Date;
-      try {
-        dateNaissance = rawDate instanceof Date ? rawDate : new Date(String(rawDate));
-        if (isNaN(dateNaissance.getTime())) throw new Error();
-      } catch {
+      const dateNaissance = parseDate(rawDate);
+      if (!dateNaissance) {
         erreurs.push({ matricule, raison: 'Date de naissance invalide' });
         continue;
       }
@@ -285,6 +343,9 @@ export class UsersService {
         continue;
       }
 
+      const districtId = directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null);
+      const parishId   = directParishId   ?? (parishName   ? await resolveParish(parishName, districtId) : null);
+
       await this.prisma.user.create({
         data: {
           matricule,
@@ -292,7 +353,7 @@ export class UsersService {
           role,
           nom: nomVal,
           prenoms: prenomsVal,
-          regionId,
+          regionId: directRegionId,
           districtId,
           parishId,
           statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION,

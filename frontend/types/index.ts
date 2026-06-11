@@ -1,5 +1,5 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
-export type UserRole = 'ADMIN' | 'REGION' | 'SENTINELLE' | 'GUIDE' | 'GARDIEN';
+export type UserRole = 'ADMIN' | 'REGION' | 'SENTINELLE' | 'GUIDE' | 'GARDIEN' | 'PHOTOGRAPHE';
 export type ProfileStatus = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE_ACTIVATION' | 'SUSPENDU' | 'ARCHIVE';
 export type AdhesionStatus = 'A_JOUR' | 'NON_A_JOUR' | 'EN_ATTENTE';
 export type CampType = 'REGIONAL' | 'DISTRICT' | 'PAROISSIAL' | 'NATIONAL' | 'COMMUNAUTE';

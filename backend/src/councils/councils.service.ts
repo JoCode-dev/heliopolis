@@ -99,11 +99,12 @@ export class CouncilsService {
 
   private roleLabel(role: UserRole, guideRole: GuideRole | null) {
     const labels: Record<UserRole, string> = {
-      [UserRole.GARDIEN]: 'Gardien',
-      [UserRole.GUIDE]: 'Guide',
-      [UserRole.SENTINELLE]: 'Sentinelle',
-      [UserRole.REGION]: 'Région',
-      [UserRole.ADMIN]: 'Admin',
+      [UserRole.GARDIEN]:     'Gardien',
+      [UserRole.GUIDE]:       'Guide',
+      [UserRole.SENTINELLE]:  'Sentinelle',
+      [UserRole.REGION]:      'Région',
+      [UserRole.ADMIN]:       'Admin',
+      [UserRole.PHOTOGRAPHE]: 'Photographe',
     };
     const base = labels[role] ?? role;
     if (role !== UserRole.GUIDE || !guideRole) return base;

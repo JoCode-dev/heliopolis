@@ -12,8 +12,8 @@ const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
 };
 const CONV_GRADIENT: Record<string, string> = {
-  COMMUNAUTE: 'from-[#F58A4B] to-[#C62828]', REGION: 'from-[#F58A4B] to-[#C62828]',
-  DOYENNE: 'from-[#6A1B9A] to-[#3d1163]', PAROISSE: 'from-[#C62828] to-[#7a1717]',
+  COMMUNAUTE: 'from-[#FFB36B] to-[#7A2820]', REGION: 'from-[#FFB36B] to-[#7A2820]',
+  DOYENNE: 'from-[#6A1B9A] to-[#3d1163]', PAROISSE: 'from-[#F58A4B] to-[#7A2820]',
   PRIVE: 'from-[#1F1B2E] to-[#3a1d4d]', GROUPE: 'from-[#2E7D32] to-[#1a5021]',
 };
 
@@ -85,17 +85,17 @@ export default function AccueilPage() {
           />
           <Link
             href="/dashboard/admin/camps/nouveau"
-            className="bg-[#C62828] text-white font-bold text-sm px-4 py-2 rounded-xl whitespace-nowrap"
+            className="bg-[#E55A35] text-white font-bold text-sm px-4 py-2 rounded-xl whitespace-nowrap"
           >
             + Créer camp
           </Link>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F58A4B] to-[#C62828] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFB36B] to-[#7A2820] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
             {user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : 'HR'}
           </div>
         </div>
         <Link
           href="/dashboard/admin/camps/nouveau"
-          className="lg:hidden bg-[#C62828] text-white font-bold text-xs px-3 py-2 rounded-xl whitespace-nowrap flex-shrink-0 ml-3"
+          className="lg:hidden bg-[#E55A35] text-white font-bold text-xs px-3 py-2 rounded-xl whitespace-nowrap flex-shrink-0 ml-3"
         >
           + Camp
         </Link>
@@ -109,7 +109,7 @@ export default function AccueilPage() {
             value: dashboard?.overview.districts ?? districts.length,
             delta: `${districts.length} chargés`,
             icon: '🛡️',
-            color: '#C62828',
+            color: '#E55A35',
             href: '/dashboard/admin/districts',
           },
           {
@@ -140,12 +140,12 @@ export default function AccueilPage() {
             href: '/dashboard/admin/participants',
           },
         ].map(kpi => (
-          <Link key={kpi.label} href={kpi.href} className="bg-white border border-[#ececf0] rounded-2xl p-4 relative overflow-hidden hover:border-[#C62828]/30 hover:shadow-sm transition-all">
+          <Link key={kpi.label} href={kpi.href} className="bg-white border border-[#ececf0] rounded-2xl p-4 relative overflow-hidden hover:border-[#E55A35]/30 hover:shadow-sm transition-all">
             <div className="absolute top-0 right-0 w-10 h-10 rounded-bl-2xl flex items-center justify-center text-lg"
               style={{ background: kpi.color, color: 'white' }}>{kpi.icon}</div>
             <div className="text-xs text-[#6b6b78] uppercase tracking-wide">{kpi.label}</div>
             <div className="text-3xl font-black text-[#1F1B2E] mt-1.5">{kpi.value}</div>
-            <div className={`text-xs mt-1 font-semibold ${'neg' in kpi && kpi.neg ? 'text-[#C62828]' : 'text-[#2E7D32]'}`}>
+            <div className={`text-xs mt-1 font-semibold ${'neg' in kpi && kpi.neg ? 'text-[#E55A35]' : 'text-[#2E7D32]'}`}>
               {kpi.delta}
             </div>
           </Link>
@@ -161,7 +161,7 @@ export default function AccueilPage() {
       <div className="bg-white border border-[#ececf0] rounded-2xl p-4 mb-5">
         <h3 className="font-bold text-sm text-[#1F1B2E] mb-4 flex justify-between">
           Suivi des districts — {activeCamp?.nom ?? 'aucun camp ouvert'}
-          <Link href="/dashboard/admin/districts" className="text-xs text-[#C62828] font-semibold">
+          <Link href="/dashboard/admin/districts" className="text-xs text-[#E55A35] font-semibold">
             Détail →
           </Link>
         </h3>
@@ -226,14 +226,14 @@ export default function AccueilPage() {
           <div className="bg-white border border-[#ececf0] rounded-2xl p-4">
             <h3 className="font-bold text-sm text-[#1F1B2E] mb-4 flex justify-between">
               🪶 À modérer
-              <Link href="/dashboard/admin/codex" className="text-xs text-[#C62828] font-semibold">
+              <Link href="/dashboard/admin/codex" className="text-xs text-[#E55A35] font-semibold">
                 Tout voir ({pending.length}) →
               </Link>
             </h3>
             <div className="flex flex-col gap-2">
               {pending.slice(0, 3).map(sub => (
                 <div key={sub.id} className="flex items-center gap-2.5 bg-[#f9f9fc] rounded-xl p-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
                     {sub.gardien?.nom?.[0] ?? '?'}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -255,7 +255,7 @@ export default function AccueilPage() {
                     <button
                       onClick={() => handleReject(sub.id)}
                       disabled={!!modActionId}
-                      className="w-7 h-7 rounded-lg bg-[#C62828] text-white text-xs flex items-center justify-center disabled:opacity-50"
+                      className="w-7 h-7 rounded-lg bg-[#E55A35] text-white text-xs flex items-center justify-center disabled:opacity-50"
                     >
                       {modActionId === sub.id + '-reject' ? '…' : '✕'}
                     </button>
@@ -270,7 +270,7 @@ export default function AccueilPage() {
           <div className={`bg-white border border-[#ececf0] rounded-2xl p-4 ${pending.length === 0 ? 'lg:col-span-2' : ''}`}>
             <h3 className="font-bold text-sm text-[#1F1B2E] mb-4 flex justify-between">
               💬 Messages récents
-              <Link href="/dashboard/admin/messages" className="text-xs text-[#C62828] font-semibold">
+              <Link href="/dashboard/admin/messages" className="text-xs text-[#E55A35] font-semibold">
                 Tout voir →
               </Link>
             </h3>

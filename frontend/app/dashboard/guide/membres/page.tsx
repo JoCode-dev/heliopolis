@@ -26,7 +26,7 @@ const STATUT_LABEL: Record<string, string> = {
 
 // Couleur de gradient par index pour les avatars
 const GRAD = [
-  'from-[#C62828] to-[#8e1a1a]',
+  'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
   'from-[#6A1B9A] to-[#4a1370]',
   'from-[#2E7D32] to-[#1a5021]',
   'from-[#1F1B2E] to-[#3a1d4d]',
@@ -113,7 +113,7 @@ export default function GuideMembresPage() {
 
       {/* ── Header avec onglets (Sentinelle) ── */}
       {isSentinelle ? (
-        <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+        <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
           <div className="px-4 pt-3 pb-0">
             <h1 className="text-[18px] font-black text-white tracking-tight">Membres</h1>
             <p className="text-[11px] text-white/50 mt-0.5 pb-2">
@@ -139,7 +139,7 @@ export default function GuideMembresPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0 flex items-center justify-between">
+        <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0 flex items-center justify-between">
           <div>
             <h1 className="text-[18px] font-black">Mes Gardiens</h1>
             <p className="text-[11px] opacity-75 mt-0.5">{actor?.parish?.nom ?? 'Ma paroisse'}</p>
@@ -166,9 +166,9 @@ export default function GuideMembresPage() {
               <div className="text-lg font-black text-[#2E7D32]">{nbAJour}</div>
               <div className="text-[9px] text-[#2E7D32] uppercase tracking-wide">À jour</div>
             </div>
-            <div className="bg-[#fff0f0] rounded-xl p-2.5 text-center border border-[#ef9a9a]">
-              <div className="text-lg font-black text-[#C62828]">{nbNonAJour}</div>
-              <div className="text-[9px] text-[#C62828] uppercase tracking-wide">Non à jour</div>
+            <div className="bg-[#fff8f3] rounded-xl p-2.5 text-center border border-[#ef9a9a]">
+              <div className="text-lg font-black text-[#E55A35]">{nbNonAJour}</div>
+              <div className="text-[9px] text-[#E55A35] uppercase tracking-wide">Non à jour</div>
             </div>
           </div>
 

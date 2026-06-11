@@ -8,6 +8,7 @@ import { BadgesModule } from './badges/badges.module.js';
 import { CampsModule } from './camps/camps.module.js';
 import { ChallengesModule } from './challenges/challenges.module.js';
 import { CodexModule } from './codex/codex.module.js';
+import { PhotothequeModule } from './phototheque/phototheque.module.js';
 import { ContactsModule } from './contacts/contacts.module.js';
 import { CouncilsModule } from './councils/councils.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module.js';
     ChallengesModule,
     BadgesModule,
     CodexModule,
+    PhotothequeModule,
     MessagingModule,
     ExportModule,
     ContactsModule,

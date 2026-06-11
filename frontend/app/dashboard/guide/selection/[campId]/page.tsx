@@ -13,13 +13,13 @@ type AdhFilter = 'tous' | 'A_JOUR' | 'EN_ATTENTE' | 'NON_A_JOUR';
 const ADH_CFG: Record<string, { label: string; dot: string; bg: string; text: string; border: string }> = {
   A_JOUR:     { label: 'À jour',     dot: 'bg-[#2E7D32]', bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]' },
   EN_ATTENTE: { label: 'En attente', dot: 'bg-[#D9A441]', bg: 'bg-[#fff8e6]', text: 'text-[#9c7218]', border: 'border-[#ffe082]' },
-  NON_A_JOUR: { label: 'Non à jour', dot: 'bg-[#C62828]', bg: 'bg-[#fff0f0]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]' },
+  NON_A_JOUR: { label: 'Non à jour', dot: 'bg-[#E55A35]', bg: 'bg-[#fff8f3]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]' },
 };
 
 const STATUS_CFG: Record<string, { label: string; bg: string; text: string; border: string; icon: string }> = {
   SELECTIONNE: { label: 'Sélectionné',  bg: 'bg-[#EDE7F6]', text: 'text-[#6A1B9A]', border: 'border-[#ce93d8]', icon: '✓'  },
   CONFIRME:    { label: 'Confirmé',     bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]', icon: '✓✓' },
-  BLOQUE:      { label: 'Bloqué',       bg: 'bg-[#fff0f0]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]', icon: '🚫' },
+  BLOQUE:      { label: 'Bloqué',       bg: 'bg-[#fff8f3]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]', icon: '🚫' },
   PRESENT:     { label: 'Présent',      bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]', icon: '✓'  },
   ABSENT:      { label: 'Absent',       bg: 'bg-[#f5f5f5]', text: 'text-[#6b6b78]', border: 'border-[#e0e0e0]', icon: '—'  },
   DESISTE:     { label: 'Désisté',      bg: 'bg-[#fff8e6]', text: 'text-[#9c7218]', border: 'border-[#ffe082]', icon: '←'  },
@@ -27,7 +27,7 @@ const STATUS_CFG: Record<string, { label: string; bg: string; text: string; bord
 };
 
 const GRAD = [
-  'from-[#C62828] to-[#8e1a1a]', 'from-[#6A1B9A] to-[#4a1370]',
+  'from-[#F58A4B] via-[#E55A35] to-[#7A2820]', 'from-[#6A1B9A] to-[#4a1370]',
   'from-[#2E7D32] to-[#1a5021]', 'from-[#1F1B2E] to-[#3a1d4d]',
   'from-[#D9A441] to-[#9c7218]',
 ];
@@ -71,7 +71,7 @@ export default function SelectionPage({ params }: { params: Promise<{ campId: st
     <div className="flex flex-col flex-1 overflow-hidden bg-white">
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
-          <div key={t.id} className={`pointer-events-auto px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl flex items-center gap-2.5 min-w-[280px] ${t.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'}`}>
+          <div key={t.id} className={`pointer-events-auto px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl flex items-center gap-2.5 min-w-[280px] ${t.ok ? 'bg-[#2E7D32]' : 'bg-[#E55A35]'}`}>
             <span>{t.ok ? '✓' : '✕'}</span><span className="flex-1">{t.msg}</span>
           </div>
         ))}
@@ -206,7 +206,7 @@ function GuideView({ campId, user, toast }: {
   return (
     <>
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <button onClick={() => history.back()} className="flex items-center gap-1 text-xs opacity-75 mb-3">‹ Retour</button>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -221,7 +221,7 @@ function GuideView({ campId, user, toast }: {
               { label: 'Total',    value: visibleGardiens.length,              color: 'bg-white/15' },
               { label: 'À jour',   value: countByAdh('A_JOUR'),               color: 'bg-[#2E7D32]/60' },
               { label: 'Inscrits', value: confirmed.size,                      color: 'bg-[#6A1B9A]/60' },
-              { label: 'Bloqués',  value: blockedGardiens.length,              color: blockedGardiens.length > 0 ? 'bg-[#C62828]/60' : 'bg-white/10' },
+              { label: 'Bloqués',  value: blockedGardiens.length,              color: blockedGardiens.length > 0 ? 'bg-[#E55A35]/60' : 'bg-white/10' },
             ].map(s => (
               <div key={s.label} className={`${s.color} rounded-xl p-2 text-center`}>
                 <div className="text-base font-black">{s.value}</div>
@@ -299,7 +299,7 @@ function GuideView({ campId, user, toast }: {
                               <span className={`font-semibold text-sm ${isRemoved ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>{r.prenoms} {r.nom}</span>
                               {wasConfirmed && !isRemoved && <span className="text-[10px] text-[#6A1B9A] font-bold bg-[#f0e8ff] px-1.5 py-0.5 rounded-full">Inscrit</span>}
                               {isNew       && <span className="text-[10px] text-[#2E7D32] font-bold bg-[#e8f5e9] px-1.5 py-0.5 rounded-full">+ Nouveau</span>}
-                              {isRemoved   && <span className="text-[10px] text-[#C62828] font-bold bg-[#fff0f0] px-1.5 py-0.5 rounded-full">À retirer</span>}
+                              {isRemoved   && <span className="text-[10px] text-[#E55A35] font-bold bg-[#fff8f3] px-1.5 py-0.5 rounded-full">À retirer</span>}
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[11px] text-[#9b9ba8] font-mono">{r.matricule ?? '—'}</span>
@@ -316,7 +316,7 @@ function GuideView({ campId, user, toast }: {
                             onClick={() => handleBlock(r.id, `${r.prenoms} ${r.nom}`)}
                             disabled={blockingId === r.id}
                             title="Bloquer ce gardien pour ce camp"
-                            className="w-7 h-7 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] flex items-center justify-center text-xs hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-60">
+                            className="w-7 h-7 rounded-lg bg-[#fff8f3] text-[#E55A35] border border-[#ef9a9a] flex items-center justify-center text-xs hover:bg-[#E55A35] hover:text-white transition-colors disabled:opacity-60">
                             {blockingId === r.id ? '…' : '🚫'}
                           </button>
                           <button onClick={() => toggle(r.id)}
@@ -335,7 +335,7 @@ function GuideView({ campId, user, toast }: {
             {blockedGardiens.length > 0 && (
               <>
                 <div className="px-4 py-1.5 bg-[#fff5f5] border-y border-[#fdd]">
-                  <span className="text-[11px] text-[#C62828] font-semibold uppercase tracking-wider">
+                  <span className="text-[11px] text-[#E55A35] font-semibold uppercase tracking-wider">
                     🚫 {blockedGardiens.length} bloqué{blockedGardiens.length > 1 ? 's' : ''}
                   </span>
                 </div>
@@ -374,11 +374,11 @@ function GuideView({ campId, user, toast }: {
           <div className="flex items-center gap-2 mb-2 text-xs">
             {toAdd.length > 0    && <span className="text-[#2E7D32] font-semibold">+ {toAdd.length} à ajouter</span>}
             {toAdd.length > 0 && toRemove.length > 0 && <span className="text-[#9b9ba8]">·</span>}
-            {toRemove.length > 0 && <span className="text-[#C62828] font-semibold">− {toRemove.length} à retirer</span>}
+            {toRemove.length > 0 && <span className="text-[#E55A35] font-semibold">− {toRemove.length} à retirer</span>}
           </div>
         )}
         <button onClick={handleSave} disabled={saving || !hasChanges}
-          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${hasChanges ? 'bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white shadow-md' : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'} disabled:opacity-60`}>
+          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${hasChanges ? 'bg-gradient-to-r from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white shadow-md' : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'} disabled:opacity-60`}>
           {saving ? '⏳ Enregistrement…'
             : hasChanges ? `Enregistrer (${selected.size} participant${selected.size > 1 ? 's' : ''})`
             : `Sélection enregistrée · ${selected.size} participant${selected.size > 1 ? 's' : ''}`}
@@ -471,7 +471,7 @@ function SentinelleView({ campId, user, toast }: {
   return (
     <>
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-5 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-5 flex-shrink-0">
         <button onClick={() => history.back()} className="flex items-center gap-1 text-xs opacity-75 mb-3">‹ Retour</button>
         <h1 className="text-xl font-black">Gestion des participants</h1>
         <p className="text-xs opacity-80 mt-0.5">{camp?.nom ?? 'Camp'} · {getTerritoryLabel(user)}</p>
@@ -481,7 +481,7 @@ function SentinelleView({ campId, user, toast }: {
             {[
               { label: 'Sélect.',  value: nbSel,          color: 'bg-[#6A1B9A]/60' },
               { label: 'Confirmés',value: nbConf,         color: 'bg-[#2E7D32]/60' },
-              { label: 'Bloqués',  value: nbBloq,         color: nbBloq > 0 ? 'bg-[#C62828]/60' : 'bg-white/10' },
+              { label: 'Bloqués',  value: nbBloq,         color: nbBloq > 0 ? 'bg-[#E55A35]/60' : 'bg-white/10' },
               { label: 'Guides',   value: nbGuidesSel,    color: 'bg-white/15' },
             ].map(s => (
               <div key={s.label} className={`${s.color} rounded-xl p-2 text-center`}>
@@ -584,7 +584,7 @@ function SentinelleView({ campId, user, toast }: {
                               {actionId === p.userId + '-remove' ? '…' : '− Retirer'}
                             </button>
                             <button onClick={() => handle('block', p.userId, `${u?.prenoms} ${u?.nom}`)} disabled={!!busy}
-                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#C62828] hover:text-white transition-colors">
+                              className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8f3] text-[#E55A35] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#E55A35] hover:text-white transition-colors">
                               {actionId === p.userId + '-block' ? '…' : '🚫 Bloquer'}
                             </button>
                           </>
@@ -656,7 +656,7 @@ function SentinelleView({ campId, user, toast }: {
                                 {actionId === g.id + '-remove' ? '…' : '− Retirer'}
                               </button>
                               <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#C62828] hover:text-white transition-colors">
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8f3] text-[#E55A35] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#E55A35] hover:text-white transition-colors">
                                 {actionId === g.id + '-block' ? '…' : '🚫 Bloquer'}
                               </button>
                             </>
@@ -667,7 +667,7 @@ function SentinelleView({ campId, user, toast }: {
                                 {actionId === g.id + '-select' ? '…' : '+ Sélectionner'}
                               </button>
                               <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#C62828] hover:text-white transition-colors">
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8f3] text-[#E55A35] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#E55A35] hover:text-white transition-colors">
                                 {actionId === g.id + '-block' ? '…' : '🚫 Bloquer'}
                               </button>
                             </>

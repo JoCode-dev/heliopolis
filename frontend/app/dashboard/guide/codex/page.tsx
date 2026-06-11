@@ -2,14 +2,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import { codexApi } from '@/lib/api';
 import { CodexItem } from '@/components/codex/CodexItem';
+import { PhotothequeTab } from '@/components/phototheque/PhotothequeTab';
 import { SectionTitle } from '@/components/ui';
 import { useCodexReactions } from '@/hooks/useCodexReactions';
 import { useAuthStore } from '@/store/auth';
 import type { Submission } from '@/types';
 
+type Tab = 'phototheque' | 'codex';
+
 export default function GuideCodexPage() {
   const { user } = useAuthStore();
   const currentUserId = user?.id;
+  const [tab, setTab] = useState<Tab>('phototheque');
   const [pending, setPending] = useState<Submission[]>([]);
   const [wall, setWall] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,12 +66,29 @@ export default function GuideCodexPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
-        <h1 className="text-xl font-bold">Mur du Codex</h1>
-        <p className="text-xs opacity-85 mt-0.5">Modération et publications des Gardiens</p>
+      <div className="bg-white border-b border-[#ececf0] px-4 pt-4 pb-0 flex-shrink-0">
+        <h1 className="text-xl font-bold text-[#1F1B2E] mb-3">🪶 Mur du Codex</h1>
+        <div className="flex">
+          {([
+            { value: 'phototheque', label: '📷 Photothèque' },
+            { value: 'codex',       label: '🪶 Publications' },
+          ] as { value: Tab; label: string }[]).map(t => (
+            <button key={t.value} onClick={() => setTab(t.value)}
+              className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider relative ${
+                tab === t.value ? 'text-[#1F1B2E]' : 'text-[#6b6b78]'
+              }`}>
+              {t.label}
+              {tab === t.value && (
+                <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#E55A35] rounded-t-full" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 bg-[#f5eed8]">
+      {tab === 'phototheque' && <PhotothequeTab canUpload={false} />}
+
+      <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 bg-[#f5eed8] ${tab !== 'codex' ? 'hidden' : ''}`}>
         {loading && (
           <div className="flex flex-col items-center justify-center py-12 text-[#6b6b78] text-sm">
             <div className="text-3xl mb-3 animate-pulse">🪶</div>
@@ -111,7 +132,7 @@ export default function GuideCodexPage() {
                   <button
                     onClick={() => handleReject(sub.id)}
                     disabled={moderating === sub.id}
-                    className="flex-1 bg-white border border-[#e6e6ea] text-[#C62828] font-bold text-sm py-2.5 rounded-xl disabled:opacity-60"
+                    className="flex-1 bg-white border border-[#e6e6ea] text-[#E55A35] font-bold text-sm py-2.5 rounded-xl disabled:opacity-60"
                   >
                     {moderating === sub.id ? '…' : '✕ Rejeter'}
                   </button>
@@ -141,19 +162,21 @@ export default function GuideCodexPage() {
                 <p>Aucune publication pour le moment.</p>
               </div>
             ) : (
-              wall.map((sub, i) => (
-                <CodexItem
-                  key={sub.id}
-                  submission={sub}
-                  priority={i === 0}
-                  canReact={!!currentUserId}
-                  reactCount={reactions[sub.id] ?? 0}
-                  hasReacted={reacted.has(sub.id)}
-                  isReacting={reactionPending.has(sub.id)}
-                  onReact={handleReact}
-                  onUnreact={handleUnreact}
-                />
-              ))
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {wall.map((sub, i) => (
+                  <CodexItem
+                    key={sub.id}
+                    submission={sub}
+                    priority={i === 0}
+                    canReact={!!currentUserId}
+                    reactCount={reactions[sub.id] ?? 0}
+                    hasReacted={reacted.has(sub.id)}
+                    isReacting={reactionPending.has(sub.id)}
+                    onReact={handleReact}
+                    onUnreact={handleUnreact}
+                  />
+                ))}
+              </div>
             )}
           </>
         )}

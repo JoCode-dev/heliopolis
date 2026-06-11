@@ -19,13 +19,13 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 const ACTION_COLORS: Record<AuditAction, string> = {
   CREATE: "bg-[#e8f5e9] text-[#2E7D32]",
   UPDATE: "bg-[#EDE7F6] text-[#6A1B9A]",
-  DELETE: "bg-[#fff0f0] text-[#C62828]",
+  DELETE: "bg-[#fff8f3] text-[#E55A35]",
   LOGIN: "bg-[#e3f2fd] text-[#1565C0]",
   LOGOUT: "bg-[#f5f5f5] text-[#6b6b78]",
   EXPORT: "bg-[#fff8e1] text-[#D9A441]",
   STATUS_CHANGE: "bg-[#fff3e0] text-[#E65100]",
   VALIDATE: "bg-[#e8f5e9] text-[#2E7D32]",
-  REJECT: "bg-[#fff0f0] text-[#C62828]",
+  REJECT: "bg-[#fff8f3] text-[#E55A35]",
 };
 
 const CATEGORIES: { value: ActionLogCategory | ""; label: string }[] = [

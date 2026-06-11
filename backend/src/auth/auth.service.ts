@@ -56,6 +56,8 @@ export class AuthService {
       userId: user.id,
       role: user.role,
       hasProfile: Boolean(user.nom && user.prenoms),
+      nom: user.nom ?? null,
+      prenoms: user.prenoms ?? null,
     };
   }
 

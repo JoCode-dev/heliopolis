@@ -21,6 +21,7 @@ const MOBILE_NAV = [
   { icon: '🎯', label: 'Défis',        href: '/dashboard/admin/defis' },
   { icon: '🪶', label: 'Codex',        href: '/dashboard/admin/codex' },
   { icon: '📤', label: 'Exports',      href: '/dashboard/admin/export' },
+  { icon: '📥', label: 'Import',       href: '/dashboard/admin/import' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -34,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AuthGuard roles={['ADMIN']}>
-      <div className="flex h-screen overflow-hidden bg-[#f6f6fa]">
+      <div className="flex h-screen overflow-hidden bg-[#fdf6f0]">
 
         {/* Sidebar desktop — partagée avec région */}
         <AdminRegionSidebar onProfileClick={() => setProfileOpen(true)} />
@@ -43,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
           {/* Top bar mobile */}
-          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
+          <div className="lg:hidden text-white px-4 py-3 flex items-center gap-3 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)' }}>
             <Link
               href="/dashboard/admin"
               prefetch={false}
@@ -52,7 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               ‹
             </Link>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] opacity-70 uppercase tracking-wider">Conseil d&apos;Héliopolis</div>
+              <div className="text-[10px] opacity-90 uppercase tracking-wider">Conseil d&apos;Héliopolis</div>
               <div className="text-sm font-bold truncate">
                 {currentSection
                   ? `${currentSection.icon} ${currentSection.label}`

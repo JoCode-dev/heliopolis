@@ -9,7 +9,7 @@ import type { Challenge, ChallengeCategory, Submission } from '@/types';
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const CAT: Record<ChallengeCategory, { border: string; pill: 'rouge' | 'vert' | 'violet' | 'or'; accent: string }> = {
-  PERSONNEL:     { border: 'border-l-[#C62828]', pill: 'rouge',  accent: '#C62828' },
+  PERSONNEL:     { border: 'border-l-[#E55A35]', pill: 'rouge',  accent: '#E55A35' },
   COMMUNAUTAIRE: { border: 'border-l-[#2E7D32]', pill: 'vert',   accent: '#2E7D32' },
   SPIRITUEL:     { border: 'border-l-[#6A1B9A]', pill: 'violet', accent: '#6A1B9A' },
   LONG:          { border: 'border-l-[#D9A441]', pill: 'or',     accent: '#D9A441' },
@@ -136,13 +136,13 @@ export default function MissionsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xl ${toast.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'}`}>
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xl ${toast.ok ? 'bg-[#2E7D32]' : 'bg-[#E55A35]'}`}>
           {toast.msg}
         </div>
       )}
 
       {/* ── Header avec onglets ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
         <div className="flex items-end gap-3 px-4 pt-3 pb-0">
           <div>
             <h1 className="text-[18px] font-black text-white tracking-tight">Missions</h1>
@@ -449,10 +449,10 @@ function ChallengeRow({ challenge: c, subs, validCount, todayDone, onClick }: {
             ? todayDone
               ? <span className="text-[12px] text-[#D9A441] font-semibold ml-auto">⏳ Soumis aujourd&apos;hui</span>
               : subs.length > 0
-                ? <span className="text-[12px] text-[#C62828] font-semibold ml-auto">● Jour {subs.length + 1} à soumettre</span>
+                ? <span className="text-[12px] text-[#E55A35] font-semibold ml-auto">● Jour {subs.length + 1} à soumettre</span>
                 : <span className="text-[12px] text-[#9b9ba8] ml-auto">Pas encore soumis</span>
             : lastSub
-              ? <span className={`text-[12px] font-semibold ml-auto ${lastSub.statut === 'EN_ATTENTE' ? 'text-[#D9A441]' : 'text-[#C62828]'}`}>
+              ? <span className={`text-[12px] font-semibold ml-auto ${lastSub.statut === 'EN_ATTENTE' ? 'text-[#D9A441]' : 'text-[#E55A35]'}`}>
                   {lastSub.statut === 'EN_ATTENTE' ? '⏳ En attente' : '✕ À corriger'}
                 </span>
               : <span className="text-[12px] text-[#9b9ba8] ml-auto">Prêt à soumettre</span>
@@ -628,7 +628,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                           className={`w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-bold border ${
                             status === 'valide'  ? 'bg-[#2E7D32] text-white border-[#2E7D32]' :
                             status === 'attente' ? 'bg-[#fff8e6] text-[#9c7218] border-[#D9A441]' :
-                            status === 'rejete'  ? 'bg-[#fff0f0] text-[#C62828] border-[#C62828]' :
+                            status === 'rejete'  ? 'bg-[#fff8f3] text-[#E55A35] border-[#E55A35]' :
                             'bg-[#f3f3f5] text-[#c0c0c8] border-[#ececf0]'
                           }`}>
                           {status === 'valide' ? '✓' : status === 'attente' ? '⏳' : status === 'rejete' ? '✕' : i + 1}
@@ -639,7 +639,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                   <div className="flex gap-3 mt-2 text-[10px] text-[#9b9ba8]">
                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#2E7D32] inline-block" />Validé</span>
                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#D9A441] inline-block" />En attente</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#C62828] inline-block" />Rejeté</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#E55A35] inline-block" />Rejeté</span>
                   </div>
                 </div>
               )}
@@ -652,7 +652,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                     <button
                       onClick={() => handleRetract(lastSub.id)}
                       disabled={retracting === lastSub.id}
-                      className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition disabled:opacity-60">
+                      className="text-[10px] font-bold text-[#E55A35] bg-white border border-[#f5c6c6] px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-[#fff8f3] transition disabled:opacity-60">
                       {retracting === lastSub.id ? '…' : '✕ Annuler'}
                     </button>
                   </div>
@@ -664,10 +664,10 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
               {/* Soumission rejetée / correction */}
               {!isDuration && lastSub && ['REJETE', 'CORRECTION_DEMANDEE'].includes(lastSub.statut) && (
                 <div className="bg-[#fff5f5] rounded-xl px-3.5 py-3 border border-[#f5c6c6]">
-                  <p className="text-[10px] font-bold text-[#C62828] uppercase tracking-wider mb-1">
+                  <p className="text-[10px] font-bold text-[#E55A35] uppercase tracking-wider mb-1">
                     {lastSub.statut === 'REJETE' ? 'Soumission rejetée' : 'Correction demandée'}
                   </p>
-                  {lastSub.texte && <p className="text-sm text-[#7a1717] italic">« {lastSub.texte} »</p>}
+                  {lastSub.texte && <p className="text-sm text-[#7A2820] italic">« {lastSub.texte} »</p>}
                 </div>
               )}
 
@@ -684,7 +684,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                       <button
                         onClick={() => handleRetract(lastSub.id)}
                         disabled={retracting === lastSub.id}
-                        className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1.5 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition ml-3 disabled:opacity-60">
+                        className="text-[10px] font-bold text-[#E55A35] bg-white border border-[#f5c6c6] px-2.5 py-1.5 rounded-full flex-shrink-0 hover:bg-[#fff8f3] transition ml-3 disabled:opacity-60">
                         {retracting === lastSub.id ? '…' : '✕ Annuler'}
                       </button>
                     </div>

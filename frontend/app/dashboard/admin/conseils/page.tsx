@@ -40,7 +40,7 @@ const ROLE_PRESETS: {
     label: "Gardiens",
     roles: ["GARDIEN"],
     icon: "🤝",
-    color: "bg-[#C62828]/10 text-[#C62828]",
+    color: "bg-[#E55A35]/10 text-[#E55A35]",
   },
   {
     key: "GUIDES_GARDIENS",
@@ -401,7 +401,7 @@ function CouncilForm({
 
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
           {error && (
-            <div className="p-3 bg-[#fff0f0] border border-[#f5c6c6] rounded-xl text-[#C62828] text-xs">
+            <div className="p-3 bg-[#fff8f3] border border-[#f5c6c6] rounded-xl text-[#E55A35] text-xs">
               {error}
             </div>
           )}

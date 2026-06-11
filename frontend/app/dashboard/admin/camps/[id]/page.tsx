@@ -11,7 +11,7 @@ const STATUTS: { value: CampStatus; label: string; color: string }[] = [
   { value: 'BROUILLON', label: 'Brouillon',  color: 'bg-[#6b6b78]/15 text-[#6b6b78]' },
   { value: 'OUVERT',    label: '✓ Ouvert',   color: 'bg-[#e1f4e3] text-[#2E7D32]' },
   { value: 'EN_COURS',  label: '▶ En cours', color: 'bg-[#fff3d6] text-[#9c7218]' },
-  { value: 'CLOTURE',   label: '✕ Clôturé',  color: 'bg-[#fde8e8] text-[#C62828]' },
+  { value: 'CLOTURE',   label: '✕ Clôturé',  color: 'bg-[#fde8e8] text-[#E55A35]' },
 ];
 
 function formatDate(d?: string) {
@@ -167,7 +167,7 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {participants.map(p => (
                   <div key={p.id} className="flex items-center gap-2.5 bg-white border border-[#ececf0] rounded-xl px-3 py-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
                       {p.user.nom?.[0]}{p.user.prenoms?.[0]}
                     </div>
                     <div className="flex-1 min-w-0">

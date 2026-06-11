@@ -186,7 +186,7 @@ function GardiensContent() {
             { label: 'Total', value: gardiens.length, color: 'text-[#1F1B2E]' },
             { label: 'Actifs', value: nbActifs, color: 'text-[#2E7D32]' },
             { label: 'À jour', value: nbAJour, color: 'text-[#2E7D32]' },
-            { label: 'Non à j.', value: nbNonAJour, color: 'text-[#C62828]' },
+            { label: 'Non à j.', value: nbNonAJour, color: 'text-[#E55A35]' },
           ].map(k => (
             <div key={k.label} className="bg-[#f9f9fc] rounded-xl p-2 text-center">
               <div className={`text-base font-black leading-none ${k.color}`}>{k.value}</div>
@@ -230,7 +230,7 @@ function GardiensContent() {
                         avatarUrl={u.avatarUrl}
                         initials={`${u.nom[0]}${u.prenoms[0]}`}
                         sizeClass="w-10 h-10 shrink-0"
-                        bgClass="bg-[#C62828]"
+                        bgClass="bg-[#E55A35]"
                         textClass="text-xs font-bold text-white"
                       />
                       <div className="flex-1 min-w-0">
@@ -263,7 +263,7 @@ function GardiensContent() {
                       )}
                       {canSuspend && !isPending && (
                         <button type="button" onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                          className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#f5f5f5] text-[#9b9ba8] hover:bg-[#ffebee] hover:text-[#C62828] transition-colors disabled:opacity-40">
+                          className="py-1.5 px-3 rounded-xl text-[11px] font-semibold bg-[#f5f5f5] text-[#9b9ba8] hover:bg-[#ffebee] hover:text-[#E55A35] transition-colors disabled:opacity-40">
                           Suspendre
                         </button>
                       )}
@@ -274,7 +274,7 @@ function GardiensContent() {
                             Annuler
                           </button>
                           <button type="button" onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-40">
+                            className="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#E55A35] text-white hover:bg-[#a82020] disabled:opacity-40">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </>

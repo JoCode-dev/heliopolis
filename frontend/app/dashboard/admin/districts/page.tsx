@@ -171,7 +171,7 @@ export default function AdminDistrictsPage() {
                 <div className="pt-2 border-t border-[#f0f0f4]">
                   <div className="flex justify-between mb-1.5">
                     <span className="text-[#6b6b78]">Adhésions à jour</span>
-                    <span className={`font-bold text-xs ${pct >= 80 ? 'text-[#2E7D32]' : pct >= 50 ? 'text-[#D9A441]' : 'text-[#C62828]'}`}>
+                    <span className={`font-bold text-xs ${pct >= 80 ? 'text-[#2E7D32]' : pct >= 50 ? 'text-[#D9A441]' : 'text-[#E55A35]'}`}>
                       {adh.aJour}/{adh.total} — {pct}%
                     </span>
                   </div>
@@ -180,7 +180,7 @@ export default function AdminDistrictsPage() {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${pct}%`,
-                        background: pct >= 80 ? '#2E7D32' : pct >= 50 ? '#D9A441' : '#C62828',
+                        background: pct >= 80 ? '#2E7D32' : pct >= 50 ? '#D9A441' : '#E55A35',
                       }}
                     />
                   </div>

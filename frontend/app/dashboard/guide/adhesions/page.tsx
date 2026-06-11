@@ -17,7 +17,7 @@ const STATUS_CONFIG: Record<AdhesionStatus, {
   bg: string; text: string; border: string; icon: string; bar: string; dot: string;
 }> = {
   A_JOUR:     { bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]', icon: '✅', bar: 'bg-[#2E7D32]', dot: 'bg-[#2E7D32]' },
-  NON_A_JOUR: { bg: 'bg-[#ffebee]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]', icon: '❌', bar: 'bg-[#C62828]', dot: 'bg-[#C62828]' },
+  NON_A_JOUR: { bg: 'bg-[#ffebee]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]', icon: '❌', bar: 'bg-[#E55A35]', dot: 'bg-[#E55A35]' },
   EN_ATTENTE: { bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]', icon: '⏳', bar: 'bg-[#D9A441]', dot: 'bg-[#D9A441]' },
 };
 
@@ -176,7 +176,7 @@ export default function GuideAdhesionsPage() {
   const FILTERS: { key: FilterKey; label: string; count: number; dot?: string }[] = [
     { key: 'tous',       label: 'Tous',     count: gardiens.length },
     { key: 'A_JOUR',     label: 'À jour',   count: nbAJour,    dot: 'bg-[#2E7D32]' },
-    { key: 'NON_A_JOUR', label: 'Non à j.', count: nbNonAJour, dot: 'bg-[#C62828]' },
+    { key: 'NON_A_JOUR', label: 'Non à j.', count: nbNonAJour, dot: 'bg-[#E55A35]' },
     { key: 'EN_ATTENTE', label: 'Attente',  count: nbAttente,  dot: 'bg-[#D9A441]' },
     { key: 'MANQUANT',   label: '—',        count: nbManquant, dot: 'bg-[#9b9ba8]' },
   ];
@@ -263,7 +263,7 @@ export default function GuideAdhesionsPage() {
                   onChange={e => { const f = e.target.files?.[0]; if (f) { setMyFile(f); setMySuccess(false); } e.target.value = ''; }} />
               </div>
               {mySuccess && <p className="text-xs text-[#2E7D32] font-medium mt-2">✓ Mis à jour.</p>}
-              {myError   && <p className="text-xs text-[#C62828] mt-1.5">{myError}</p>}
+              {myError   && <p className="text-xs text-[#E55A35] mt-1.5">{myError}</p>}
               <button onClick={handleMySave} disabled={myLoading || !myStatut}
                 className="w-full mt-3 bg-[#6A1B9A] text-white py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-[#6A1B9A]/20 enabled:hover:bg-[#5a1280] enabled:hover:shadow-md enabled:hover:shadow-[#6A1B9A]/30 enabled:hover:-translate-y-px disabled:opacity-60 transition-all duration-150">
                 {myLoading ? 'Enregistrement…' : 'Enregistrer'}
@@ -400,7 +400,7 @@ export default function GuideAdhesionsPage() {
                         </div>
 
                         {rs.success && <p className="text-xs text-[#2E7D32] font-medium mt-2">✓ Adhésion mise à jour.</p>}
-                        {rs.error   && <p className="text-xs text-[#C62828] mt-1.5">{rs.error}</p>}
+                        {rs.error   && <p className="text-xs text-[#E55A35] mt-1.5">{rs.error}</p>}
 
                         <div className="flex gap-2 mt-3">
                           <button onClick={() => setActiveRow(null)}

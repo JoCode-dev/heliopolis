@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import { useState } from 'react';
 import type { Submission } from '@/types';
 import { formatDateFr } from '@/lib/format';
 import { Avatar, Pill } from '@/components/ui';
@@ -18,7 +19,7 @@ const CAT_LABELS: Record<string, string> = {
   PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Défi long',
 };
 const CAT_BG: Record<string, string> = {
-  PERSONNEL:     'from-[#C62828] to-[#7a1717]',
+  PERSONNEL:     'from-[#F58A4B] to-[#7A2820]',
   COMMUNAUTAIRE: 'from-[#2E7D32] to-[#1a5021]',
   SPIRITUEL:     'from-[#6A1B9A] to-[#3d1163]',
   LONG:          'from-[#D9A441] to-[#8c6918]',
@@ -42,6 +43,7 @@ export function CodexItem({
   submission, reactCount, hasReacted, priority = false,
   canReact = false, isReacting = false, onReact, onUnreact,
 }: CodexItemProps) {
+  const [imgError, setImgError] = useState(false);
   const g   = submission.gardien;
   const cat = submission.challenge?.categorie ?? 'COMMUNAUTAIRE';
   const initials = g ? `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`.toUpperCase() : '?';
@@ -49,7 +51,7 @@ export function CodexItem({
   const reacted = hasReacted ?? false;
   const reactionDisabled = !canReact || isReacting;
 
-  const imageUrl = submission.preuveUrl
+  const imageUrl = submission.preuveUrl && !imgError
     ? toRelativePath(
         submission.preuveUrl.startsWith('http')
           ? submission.preuveUrl
@@ -58,7 +60,7 @@ export function CodexItem({
     : null;
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-[#e8dfc8] shadow-sm">
+    <div className="bg-white rounded-2xl overflow-hidden border border-[#e8dfc8] shadow-sm mb-4">
 
       {/* ── En-tête auteur ── */}
       <div className="flex items-center gap-2.5 px-3.5 py-3">
@@ -89,7 +91,7 @@ export function CodexItem({
       )}
 
       {/* ── Image ou gradient ── */}
-      <div className={`relative ${imageUrl ? 'h-52' : 'h-40'} overflow-hidden`}>
+      <div className={`relative ${imageUrl ? 'h-48' : 'h-24'} overflow-hidden`}>
         {imageUrl ? (
           <>
             <Image
@@ -100,16 +102,13 @@ export function CodexItem({
               sizes="(max-width: 768px) 100vw, 480px"
               priority={priority}
               loading={priority ? 'eager' : 'lazy'}
+              onError={() => setImgError(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </>
         ) : (
-          <div className={`absolute inset-0 bg-gradient-to-br ${CAT_BG[cat]}`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-            {/* Icône centrale */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-6xl opacity-20">{CAT_ICON[cat]}</span>
-            </div>
+          <div className={`absolute inset-0 bg-gradient-to-br ${CAT_BG[cat]} flex items-center justify-center`}>
+            <span className="text-5xl opacity-25">{CAT_ICON[cat]}</span>
           </div>
         )}
       </div>
@@ -135,8 +134,8 @@ export function CodexItem({
             !canReact
               ? 'bg-[#f5eed8] text-[#c0b49a] cursor-not-allowed'
               : reacted
-                ? 'bg-[#ffe6e6] text-[#C62828] hover:bg-[#ffd0d0]'
-                : 'bg-[#f5eed8] text-[#8b7b5c] hover:bg-[#ffe6e6] hover:text-[#C62828]'
+                ? 'bg-[#fff8f3] text-[#E55A35] hover:bg-[#ffe8d8]'
+                : 'bg-[#f5eed8] text-[#8b7b5c] hover:bg-[#fff8f3] hover:text-[#E55A35]'
           } ${isReacting ? 'opacity-70 cursor-wait' : ''}`}
         >
           {reacted ? '❤️' : '🤍'} {count > 0 ? count : ''}

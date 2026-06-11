@@ -85,13 +85,13 @@ export default function GuideMissionsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xl ${toast.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'}`}>
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xl ${toast.ok ? 'bg-[#2E7D32]' : 'bg-[#E55A35]'}`}>
           {toast.msg}
         </div>
       )}
 
       {/* ── Header avec onglets ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
         <div className="flex items-end gap-3 px-4 pt-3 pb-0">
           <div>
             <h1 className="text-[18px] font-black text-white tracking-tight">Missions</h1>
@@ -100,8 +100,8 @@ export default function GuideMissionsPage() {
           <div className="flex-1" />
           {pending.length > 0 && (
             <div className="pb-2 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#C62828] animate-pulse inline-block" />
-              <span className="text-[11px] text-[#C62828] font-bold">{pending.length} en attente</span>
+              <span className="w-2 h-2 rounded-full bg-[#E55A35] animate-pulse inline-block" />
+              <span className="text-[11px] text-[#E55A35] font-bold">{pending.length} en attente</span>
             </div>
           )}
         </div>
@@ -120,7 +120,7 @@ export default function GuideMissionsPage() {
               {t.count > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
                   tab === t.key
-                    ? t.urgent ? 'bg-[#C62828] text-white' : 'bg-white text-[#1F1B2E]'
+                    ? t.urgent ? 'bg-[#E55A35] text-white' : 'bg-white text-[#1F1B2E]'
                     : 'bg-white/15 text-white/60'
                 }`}>{t.count}</span>
               )}
@@ -197,7 +197,7 @@ function SubmissionRow({ sub, status, showParish, onClick }: {
       className="flex items-center w-full px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors text-left group">
 
       {/* Avatar gardien */}
-      <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+      <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
         {gardien ? `${gardien.nom?.[0]}${gardien.prenoms?.[0]}`.toUpperCase() : '?'}
       </div>
 
@@ -224,7 +224,7 @@ function SubmissionRow({ sub, status, showParish, onClick }: {
           <Pill variant={CAT_PILL[cat]}>{CAT_LABEL[cat]}</Pill>
           {preuveUrl && <span className="text-[10px] text-[#6b6b78]">📸 Photo</span>}
           {status === 'attente' && (
-            <span className="ml-auto text-[11px] font-bold text-[#C62828]">⏳ En attente</span>
+            <span className="ml-auto text-[11px] font-bold text-[#E55A35]">⏳ En attente</span>
           )}
           {status === 'validees' && (
             <span className="ml-auto text-[11px] font-bold text-[#2E7D32]">✓ Validée</span>
@@ -283,7 +283,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   sub.statut === 'VALIDE' ? 'bg-[#e8f5e9] text-[#2E7D32]' :
                   sub.statut === 'EN_ATTENTE' ? 'bg-[#fff8e6] text-[#9c7218]' :
-                  'bg-[#fff0f0] text-[#C62828]'
+                  'bg-[#fff8f3] text-[#E55A35]'
                 }`}>
                   {sub.statut === 'VALIDE' ? '✓ Validée' : sub.statut === 'EN_ATTENTE' ? '⏳ En attente' : '✕ Rejetée'}
                 </span>
@@ -305,7 +305,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
 
           {/* Profil gardien */}
           <div className="flex items-center gap-3 bg-[#f7f7fa] rounded-xl px-3.5 py-3">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#C62828] flex items-center justify-center text-white font-bold flex-shrink-0">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white font-bold flex-shrink-0">
               {gardien ? `${gardien.nom?.[0]}${gardien.prenoms?.[0]}`.toUpperCase() : '?'}
             </div>
             <div>
@@ -372,13 +372,13 @@ function ValidationPanel({ sub, onClose, onValidated }: {
                   <button
                     onClick={() => setShowRejectForm(true)}
                     disabled={!!processing}
-                    className="flex-1 py-3.5 rounded-xl bg-white border-2 border-[#C62828] text-[#C62828] font-bold text-sm disabled:opacity-60 active:scale-95 transition">
+                    className="flex-1 py-3.5 rounded-xl bg-white border-2 border-[#E55A35] text-[#E55A35] font-bold text-sm disabled:opacity-60 active:scale-95 transition">
                     ✕ Rejeter
                   </button>
                 </div>
               ) : (
                 <div>
-                  <p className="text-[10px] font-bold text-[#C62828] uppercase tracking-wider mb-2">
+                  <p className="text-[10px] font-bold text-[#E55A35] uppercase tracking-wider mb-2">
                     Motif du rejet (optionnel)
                   </p>
                   <textarea
@@ -387,7 +387,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
                     autoFocus
                     placeholder="Explique au gardien pourquoi sa preuve est insuffisante…"
                     rows={3}
-                    className="w-full px-3.5 py-3 border border-[#e6e6ea] rounded-xl text-sm font-sans resize-none focus:outline-none focus:border-[#C62828] transition"
+                    className="w-full px-3.5 py-3 border border-[#e6e6ea] rounded-xl text-sm font-sans resize-none focus:outline-none focus:border-[#E55A35] transition"
                   />
                   <div className="flex gap-3 mt-3">
                     <button
@@ -398,7 +398,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
                     <button
                       onClick={() => handle(false)}
                       disabled={!!processing}
-                      className="flex-1 py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-60 active:scale-95 transition">
+                      className="flex-1 py-3 rounded-xl bg-[#E55A35] text-white font-bold text-sm disabled:opacity-60 active:scale-95 transition">
                       {processing === 'reject' ? '…' : 'Confirmer le rejet'}
                     </button>
                   </div>
@@ -412,10 +412,10 @@ function ValidationPanel({ sub, onClose, onValidated }: {
             <div className={`rounded-xl px-3.5 py-4 text-center border ${
               sub.statut === 'VALIDE'
                 ? 'bg-[#e8f5e9] border-[#a5d6a7]'
-                : 'bg-[#fff0f0] border-[#f5c6c6]'
+                : 'bg-[#fff8f3] border-[#f5c6c6]'
             }`}>
               <div className="text-2xl mb-1">{sub.statut === 'VALIDE' ? '✅' : '✕'}</div>
-              <p className={`text-sm font-bold ${sub.statut === 'VALIDE' ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+              <p className={`text-sm font-bold ${sub.statut === 'VALIDE' ? 'text-[#2E7D32]' : 'text-[#E55A35]'}`}>
                 {sub.statut === 'VALIDE' ? 'Soumission validée' : 'Soumission rejetée'}
               </p>
               {sub.statut === 'VALIDE' && (
