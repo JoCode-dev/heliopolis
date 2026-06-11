@@ -6,6 +6,7 @@ import { challengesApi, badgesApi, campsApi, messagingApi } from '@/lib/api';
 import { Avatar, Card, SectionTitle, Progress, Pill } from '@/components/ui';
 import { getRangGardien, getNextRang, getRangProgress } from '@/lib/ranks';
 import { CampCard } from '@/components/camps/CampCard';
+import { AnnoncesSection } from '@/components/annonces/AnnoncesSection';
 import type { Badge, Challenge, ChallengeCategory, Submission, UserBadge, Camp, Conversation } from '@/types';
 
 const BADGE_EMOJI: Record<string, string> = {
@@ -164,6 +165,8 @@ export default function DashboardGardienPage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f7f7fa]">
+
+        <AnnoncesSection />
 
         {/* Stats rapides */}
         <div className="px-4 pt-4 grid grid-cols-4 gap-2">

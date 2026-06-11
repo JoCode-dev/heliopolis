@@ -138,9 +138,10 @@ export default function CampsRegionauxPage() {
                 <div className="px-4 pt-3.5 pb-3">
                   {/* Titre + badges */}
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h2 className="font-bold text-[15px] text-[#1F1B2E] leading-tight flex-1 min-w-0">
+                    <Link href={`/dashboard/region/camps/${camp.id}`}
+                      className="font-bold text-[15px] text-[#1F1B2E] leading-tight flex-1 min-w-0 hover:text-[#E55A35] transition-colors">
                       {camp.nom}
-                    </h2>
+                    </Link>
                     <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${st.bg} ${st.text} ${st.border}`}>
                       {st.label}
                     </span>

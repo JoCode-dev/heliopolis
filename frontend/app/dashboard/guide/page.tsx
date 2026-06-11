@@ -7,6 +7,7 @@ import { usersApi, challengesApi, campsApi, messagingApi } from '@/lib/api';
 import { getTerritoryLabel, ROLE_LABEL } from '@/lib/roles';
 import { Progress } from '@/components/ui';
 import { CampCard } from '@/components/camps/CampCard';
+import { AnnoncesSection } from '@/components/annonces/AnnoncesSection';
 import type { User, Camp, Submission, Conversation } from '@/types';
 
 const CONV_GRADIENT: Record<string, string> = {
@@ -168,6 +169,8 @@ export default function DashboardGuidePage() {
 
       {/* ── Contenu ── */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f7f7fa]">
+
+        <AnnoncesSection />
 
         {/* Stats rapides */}
         <div className={`px-4 pt-4 grid gap-2 ${isSentinelle ? 'grid-cols-4' : 'grid-cols-4'}`}>

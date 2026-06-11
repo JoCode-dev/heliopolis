@@ -39,7 +39,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
     : '🤝 Accueil';
 
   return (
-    <AuthGuard roles={['GARDIEN']}>
+    <AuthGuard roles={['GARDIEN', 'PHOTOGRAPHE']}>
       <div className="flex h-screen overflow-hidden bg-[#fdf6f0]">
 
         {/* ── Sidebar desktop ── */}
@@ -50,7 +50,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
           <div className="p-4 border-b border-white/20 flex-shrink-0 flex items-center gap-2.5">
             <Image src="/logo.jpeg" alt="Logo" width={52} height={52} className="object-contain rounded flex-shrink-0" loading="eager" preload />
             <div>
-              <div className="text-base font-bold">Gardien</div>
+              <div className="text-base font-bold">{user?.role === 'PHOTOGRAPHE' ? 'Photographe' : 'Gardien'}</div>
               <div className="text-[11px] opacity-90 mt-0.5">{user?.parish?.nom ?? 'Ma paroisse'}</div>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold truncate">{user?.prenoms} {user?.nom}</div>
-                  <div className="text-[10px] opacity-80">{user?.matricule}</div>
+                  <div className="text-[10px] opacity-80">{user?.role === 'PHOTOGRAPHE' ? 'Photographe' : user?.matricule}</div>
                 </div>
               </button>
               <LogoutButton confirm className="text-white/80 hover:text-white transition-colors flex-shrink-0 text-lg p-1" />

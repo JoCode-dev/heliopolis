@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { DashboardChartsSection } from '@/components/dashboard/DashboardChartsSection';
 import { campsApi } from '@/lib/api';
+import { AnnoncesSection } from '@/components/annonces/AnnoncesSection';
 import type { Camp } from '@/types';
 
 const QUICK_LINKS = [
@@ -113,6 +114,8 @@ export default function RegionHomePage() {
             </div>
           </section>
         )}
+
+        <AnnoncesSection />
 
         {/* Graphiques statistiques */}
         <section>

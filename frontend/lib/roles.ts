@@ -6,7 +6,7 @@ export const ROLE_HOME: Record<UserRole, string> = {
   SENTINELLE:  '/dashboard/guide',
   GUIDE:       '/dashboard/guide',
   GARDIEN:     '/dashboard/gardien',
-  PHOTOGRAPHE: '/dashboard/region',
+  PHOTOGRAPHE: '/dashboard/gardien',
 };
 
 export const ROLE_LABEL: Record<UserRole, string> = {

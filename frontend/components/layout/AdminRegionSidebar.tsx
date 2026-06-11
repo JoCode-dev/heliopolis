@@ -48,6 +48,7 @@ const REGION_NAV_GROUPS = [
     items: [
       { href: '/dashboard/region',          icon: '🏠', label: 'Accueil' },
       { href: '/dashboard/region/camps',     icon: '⛺', label: 'Camps' },
+      { href: '/dashboard/region/annonces', icon: '📣', label: 'Annonces' },
       { href: '/dashboard/region/conseils', icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/region/codex',    icon: '🪶', label: 'Modération' },
       { href: '/dashboard/region/messages', icon: '💬', label: 'Messagerie' },
