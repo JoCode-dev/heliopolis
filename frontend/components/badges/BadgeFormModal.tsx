@@ -13,12 +13,12 @@ type ConditionType =
   | 'categorie_spread';
 
 const CONDITION_LABELS: Record<ConditionType, string> = {
-  challenges_validated:    'Valider N défis (tous types)',
-  communautaire_validated: 'Valider N défis communautaires',
-  spirituel_validated:     'Valider N défis spirituels',
+  challenges_validated:    'Valider N quêtes (tous types)',
+  communautaire_validated: 'Valider N quêtes communautaires',
+  spirituel_validated:     'Valider N quêtes spirituels',
   points_total:            'Atteindre N points au total',
-  categorie_validated:     'Valider N défis d\'une catégorie précise',
-  categorie_spread:        'Valider des défis dans N catégories différentes',
+  categorie_validated:     'Valider N quêtes d\'une catégorie précise',
+  categorie_spread:        'Valider des quêtes dans N catégories différentes',
 };
 
 const CATEGORIES = ['PERSONNEL', 'COMMUNAUTAIRE', 'SPIRITUEL', 'LONG'];
@@ -66,12 +66,12 @@ function buildMeta(type: ConditionType, count: number, points: number, categorie
 
 function buildConditionText(type: ConditionType, count: number, points: number, categorie: string, minCat: number): string {
   switch (type) {
-    case 'challenges_validated':    return `Valider ${count} défi${count > 1 ? 's' : ''} Codex`;
-    case 'communautaire_validated': return `Valider ${count} défi${count > 1 ? 's' : ''} de catégorie Communautaire`;
-    case 'spirituel_validated':     return `Valider ${count} défi${count > 1 ? 's' : ''} de catégorie Spirituelle`;
+    case 'challenges_validated':    return `Valider ${count} quête${count > 1 ? 's' : ''} Codex`;
+    case 'communautaire_validated': return `Valider ${count} quête${count > 1 ? 's' : ''} de catégorie Communautaire`;
+    case 'spirituel_validated':     return `Valider ${count} quête${count > 1 ? 's' : ''} de catégorie Spirituelle`;
     case 'points_total':            return `Atteindre ${points} points au total`;
-    case 'categorie_validated':     return `Valider ${count} défi${count > 1 ? 's' : ''} de catégorie ${categorie.charAt(0) + categorie.slice(1).toLowerCase()}`;
-    case 'categorie_spread':        return `Valider des défis dans ${minCat} catégorie${minCat > 1 ? 's' : ''} différente${minCat > 1 ? 's' : ''}`;
+    case 'categorie_validated':     return `Valider ${count} quête${count > 1 ? 's' : ''} de catégorie ${categorie.charAt(0) + categorie.slice(1).toLowerCase()}`;
+    case 'categorie_spread':        return `Valider des quêtes dans ${minCat} catégorie${minCat > 1 ? 's' : ''} différente${minCat > 1 ? 's' : ''}`;
   }
 }
 
@@ -211,7 +211,7 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
             <label className="block text-xs font-semibold text-[#1F1B2E] mb-1">Description</label>
             <textarea
               value={description} onChange={e => setDescription(e.target.value)}
-              rows={2} placeholder="Premier défi validé — le chemin du Gardien commence."
+              rows={2} placeholder="Premier quête validé — le chemin du Gardien commence."
               className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-[#1F1B2E]"
             />
           </div>
@@ -235,7 +235,7 @@ export function BadgeFormModal({ badge, onClose, onSaved, canDelete = false }: P
             {/* Champs dynamiques selon le type */}
             {(condType === 'challenges_validated' || condType === 'communautaire_validated' || condType === 'spirituel_validated') && (
               <div>
-                <label className="block text-xs font-semibold text-[#1F1B2E] mb-1">Nombre de défis</label>
+                <label className="block text-xs font-semibold text-[#1F1B2E] mb-1">Nombre de quêtes</label>
                 <input type="number" min={1} value={count} onChange={e => setCount(Number(e.target.value))}
                   className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A]" />
               </div>

@@ -24,11 +24,11 @@ export function TopChallengesChart({ challenges }: TopChallengesChartProps) {
   if (challenges.length === 0) {
     return (
       <ChartCard
-        title="Défis les plus soumis"
+        title="Quêtes les plus soumis"
         icon="🏆"
         accentColor={BRAND_CHART_COLORS.violet}
       >
-        <ChartEmpty message="Aucun défi soumis" icon="🏆" />
+        <ChartEmpty message="Aucun quête soumis" icon="🏆" />
       </ChartCard>
     );
   }
@@ -50,7 +50,7 @@ export function TopChallengesChart({ challenges }: TopChallengesChartProps) {
 
   return (
     <ChartCard
-      title="Défis les plus soumis"
+      title="Quêtes les plus soumis"
       icon="🏆"
       accentColor={BRAND_CHART_COLORS.violet}
       description="Top 5 par nombre de soumissions"

@@ -110,8 +110,10 @@ export const challengesApi = {
 
 // ─── Photothèque ──────────────────────────────────────────────────────────────
 export const photothequeApi = {
-  publications: (campId?: string) =>
-    api.get('/phototheque/publications', { params: campId ? { campId } : {} }),
+  publications: (campId?: string, cursor?: string, limit = 12) =>
+    api.get('/phototheque/publications', {
+      params: { ...(campId ? { campId } : {}), ...(cursor ? { cursor } : {}), limit },
+    }),
   camps: () => api.get('/phototheque/camps'),
   createPublication: (files: File[], campId?: string, caption?: string) => {
     const fd = new FormData();

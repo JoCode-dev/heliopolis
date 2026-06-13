@@ -10,6 +10,8 @@ export interface DashboardStatsResponse {
     defisValides: number;
     districts: number;
     sentinelles: number;
+    guides: number;
+    conseilsAVenir: number;
   };
   activeCamp: { id: string; nom: string } | null;
   districts: Array<{
@@ -181,6 +183,8 @@ export class TerritoriesService {
       defisValides,
       districtCount,
       sentinelles,
+      guides,
+      conseilsAVenir,
       activeCamp,
       districtRows,
       gardiensByDistrict,
@@ -196,6 +200,12 @@ export class TerritoriesService {
       this.prisma.district.count({ where: { deletedAt: null } }),
       this.prisma.user.count({
         where: { deletedAt: null, role: 'SENTINELLE' },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, role: 'GUIDE' },
+      }),
+      this.prisma.council.count({
+        where: { statut: 'PLANIFIE', date: { gt: new Date() } },
       }),
       this.prisma.camp.findFirst({
         where: { statut: { in: ['OUVERT', 'EN_COURS'] } },
@@ -281,6 +291,8 @@ export class TerritoriesService {
         defisValides,
         districts: districtCount,
         sentinelles,
+        guides,
+        conseilsAVenir,
       },
       activeCamp,
       districts: districtRows.map((d) => ({

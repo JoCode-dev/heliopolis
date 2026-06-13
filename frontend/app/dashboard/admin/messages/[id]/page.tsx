@@ -65,8 +65,6 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 
   // Context menu
   const [menuMsgId, setMenuMsgId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
   // Delete — { id, isMine: peut supprimer pour tous }
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; isMine: boolean } | null>(null);
 
@@ -159,16 +157,6 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     });
     return () => { socket.emit('leave:conversation', id); socket.off('new:message'); };
   }, [id, accessToken]);
-
-  // Close menu on outside click
-  useEffect(() => {
-    if (!menuMsgId) return;
-    const h = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuMsgId(null);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [menuMsgId]);
 
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
@@ -365,15 +353,22 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   {/* Avatar de l'expéditeur (messages reçus) */}
                   {!isMine && <MsgAvatar author={msg.author} />}
 
+                  {/* ⋮ bouton actions (messages envoyés — apparaît à gauche de la bulle) */}
+                  {isMine && !isDeleted && editingId !== msg.id && (
+                    <button
+                      onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                      className="self-end mb-1.5 w-6 h-6 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-[#6b6b78] text-base flex-shrink-0 border border-[#e0e0e0]"
+                    >⋮</button>
+                  )}
+
                   {/* Bulle */}
                   <div
-                    className="group relative max-w-[72%] flex flex-col"
+                    className="relative max-w-[72%] flex flex-col"
                     style={{ transform: `translateX(${swipe}px)`, transition: swipe === 0 ? 'transform 0.2s ease-out' : 'none' }}
                     onTouchStart={e => onTouchStart(e, msg.id)}
                     onTouchMove={e => onTouchMove(e, msg.id)}
                     onTouchEnd={() => onTouchEnd(msg)}
                   >
-
                     <div className={`relative px-3 py-2 rounded-[14px] shadow-sm text-sm leading-relaxed ${
                       isDeleted
                         ? 'bg-white text-[#9b9ba8] italic'
@@ -436,46 +431,15 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                         </>
                       )}
                     </div>
-
-                    {/* Actions hover desktop — MES messages (à gauche de la bulle) */}
-                    {isMine && !isDeleted && (
-                      <div className="absolute -left-16 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" ref={menuMsgId === msg.id ? menuRef : undefined}>
-                        <button
-                          onClick={() => setReplyingTo(msg)}
-                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-xs"
-                          title="Répondre"
-                        >↩</button>
-                        <div className="relative">
-                          <button
-                            onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
-                            className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-[10px] font-bold"
-                          >···</button>
-                          {menuMsgId === msg.id && (
-                            <div className="absolute bottom-8 right-0 bg-white rounded-xl shadow-xl border border-[#e6e6ea] overflow-hidden z-20 min-w-[130px]">
-                              <button onClick={() => startEdit(msg)} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#1F1B2E] hover:bg-[#f3f3f5] font-semibold">✏️ Modifier</button>
-                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: true }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#E55A35] hover:bg-[#fff8f3] font-semibold">🗑️ Supprimer</button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Actions hover desktop — MESSAGES REÇUS (à droite de la bulle) */}
-                    {!isMine && !isDeleted && (
-                      <div className="absolute -right-14 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <button
-                          onClick={() => setReplyingTo(msg)}
-                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-xs"
-                          title="Répondre"
-                        >↩</button>
-                        <button
-                          onClick={() => setDeleteTarget({ id: msg.id, isMine: false })}
-                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#9b9ba8] text-xs"
-                          title="Masquer pour moi"
-                        >🗑️</button>
-                      </div>
-                    )}
                   </div>
+
+                  {/* ⋮ bouton actions (messages reçus — apparaît à droite de la bulle) */}
+                  {!isMine && !isDeleted && editingId !== msg.id && (
+                    <button
+                      onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                      className="self-end mb-1.5 w-6 h-6 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-[#6b6b78] text-base flex-shrink-0 border border-[#e0e0e0]"
+                    >⋮</button>
+                  )}
 
                   {/* Icône de réponse qui apparaît derrière lors du swipe (messages envoyés) */}
                   {isMine && swipe > 10 && (
@@ -698,6 +662,56 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       )}
+
+      {/* ── Action sheet message (mobile) ── */}
+      {menuMsgId && (() => {
+        const menuMsg = messages.find(m => m.id === menuMsgId);
+        if (!menuMsg) return null;
+        const isMineMenu = menuMsg.authorId === user?.id;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-end z-[60]" onClick={() => setMenuMsgId(null)}>
+            <div className="bg-white rounded-t-2xl w-full max-w-lg mx-auto shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              {menuMsg.contenu && (
+                <div className="px-5 pt-4 pb-3 border-b border-[#f0f0f4]">
+                  <p className="text-[11px] font-semibold text-[#6A1B9A] mb-0.5 truncate">{menuMsg.author.prenoms} {menuMsg.author.nom}</p>
+                  <p className="text-sm text-[#1F1B2E] line-clamp-2">{menuMsg.contenu}</p>
+                </div>
+              )}
+              <div className="flex flex-col p-3 gap-1">
+                <button
+                  onClick={() => { setReplyingTo(menuMsg); setMenuMsgId(null); }}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl active:bg-[#f0f0f4] text-left transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[#f0f0f4] flex items-center justify-center text-lg flex-shrink-0">↩</span>
+                  <span className="font-semibold text-sm text-[#1F1B2E]">Répondre</span>
+                </button>
+                {isMineMenu && (
+                  <button
+                    onClick={() => startEdit(menuMsg)}
+                    className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl active:bg-[#f0f0f4] text-left transition-colors"
+                  >
+                    <span className="w-9 h-9 rounded-full bg-[#f0f0f4] flex items-center justify-center text-lg flex-shrink-0">✏️</span>
+                    <span className="font-semibold text-sm text-[#1F1B2E]">Modifier</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: menuMsg.id, isMine: isMineMenu }); }}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl active:bg-[#fff8f3] text-left transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[#ffe6e6] flex items-center justify-center text-lg flex-shrink-0">🗑️</span>
+                  <span className="font-semibold text-sm text-[#E55A35]">Supprimer</span>
+                </button>
+                <button
+                  onClick={() => setMenuMsgId(null)}
+                  className="w-full py-3.5 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78] mt-1 active:bg-[#f7f7fb]"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Modal suppression WhatsApp-style ── */}
       {deleteTarget && (

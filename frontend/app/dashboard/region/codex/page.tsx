@@ -150,7 +150,7 @@ export default function CodexPage() {
                           )}
                         </div>
                         <p className="text-xs text-[#6b6b78] mb-2">
-                          Défi : <span className="font-semibold text-[#1F1B2E]">{sub.challenge?.titre ?? '—'}</span>
+                          Quête : <span className="font-semibold text-[#1F1B2E]">{sub.challenge?.titre ?? '—'}</span>
                         </p>
                         {sub.texte && (
                           <p className="text-xs text-[#1F1B2E] bg-[#f9f9fc] rounded-lg px-3 py-2 italic">

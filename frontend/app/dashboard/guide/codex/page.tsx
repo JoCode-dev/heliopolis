@@ -110,7 +110,7 @@ export default function GuideCodexPage() {
                     <div className="font-semibold text-sm text-[#1F1B2E]">
                       {sub.gardien ? `${sub.gardien.prenoms} ${sub.gardien.nom}` : 'Gardien'}
                     </div>
-                    <div className="text-xs text-[#6b6b78] mt-0.5">{sub.challenge?.titre ?? 'Défi'}</div>
+                    <div className="text-xs text-[#6b6b78] mt-0.5">{sub.challenge?.titre ?? 'Quête'}</div>
                   </div>
                   <span className="text-[10px] bg-[#fff3d6] text-[#9c7218] px-2 py-0.5 rounded-full font-semibold flex-shrink-0">
                     En attente

@@ -7,6 +7,8 @@ export interface DashboardStats {
     defisValides: number;
     districts: number;
     sentinelles: number;
+    guides: number;
+    conseilsAVenir: number;
   };
   activeCamp: { id: string; nom: string } | null;
   districts: Array<{

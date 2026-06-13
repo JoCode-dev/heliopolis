@@ -28,7 +28,7 @@ const DRAWER_SECTIONS = [
     items: [
       { href: '/dashboard/admin/districts',  icon: '🛡️', label: 'Districts' },
       { href: '/dashboard/admin/paroisses', icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/admin/defis',     icon: '🎯', label: 'Défis' },
+      { href: '/dashboard/admin/defis',     icon: '🎯', label: 'Quêtes' },
       { href: '/dashboard/admin/codex',     icon: '🪶', label: 'Codex' },
     ],
   },

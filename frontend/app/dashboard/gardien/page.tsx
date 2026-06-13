@@ -16,7 +16,7 @@ const CATEGORY_LABELS: Record<ChallengeCategory, string> = {
   PERSONNEL: 'Personnel',
   COMMUNAUTAIRE: 'Communautaire',
   SPIRITUEL: 'Spirituel',
-  LONG: 'Défi long',
+  LONG: 'Quête longue',
 };
 const CATEGORY_VARIANT: Record<ChallengeCategory, 'rouge' | 'vert' | 'violet' | 'or'> = {
   PERSONNEL: 'rouge',
@@ -221,7 +221,7 @@ export default function DashboardGardienPage() {
                     <div className="text-3xl font-black text-[#D9A441] leading-none">{validated}
                       <span className="text-base font-semibold text-[#6b6b78]">/{total}</span>
                     </div>
-                    <div className="text-xs text-[#6b6b78] mt-1">défis complétés · <span className="font-semibold text-[#1F1B2E]">{pct}%</span></div>
+                    <div className="text-xs text-[#6b6b78] mt-1">quêtes complétés · <span className="font-semibold text-[#1F1B2E]">{pct}%</span></div>
                   </div>
                   {latestBadge ? (
                     <div className="text-right">
@@ -302,7 +302,7 @@ export default function DashboardGardienPage() {
                 <Card className="text-center py-6 text-sm text-[#6b6b78] mb-3">
                   <div className="text-3xl mb-2">🎯</div>
                   <p className="font-semibold text-[#1F1B2E]">Aucune mission en attente</p>
-                  <p className="text-xs mt-1 text-[#6b6b78]">Explore les défis pour avancer sur ta Route !</p>
+                  <p className="text-xs mt-1 text-[#6b6b78]">Explore les quêtes pour avancer sur ta Route !</p>
                 </Card>
               )}
 

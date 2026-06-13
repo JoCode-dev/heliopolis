@@ -82,8 +82,8 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
         {/* En-tête */}
         <div className="bg-gradient-to-r from-[#1F1B2E] to-[#3a1d4d] text-white p-5 flex items-center justify-between flex-shrink-0">
           <div>
-            <div className="font-bold text-sm">Nouveau défi</div>
-            <div className="text-xs opacity-60 mt-0.5">Créer un défi pour les gardiens</div>
+            <div className="font-bold text-sm">Nouveau quête</div>
+            <div className="text-xs opacity-60 mt-0.5">Créer un quête pour les gardiens</div>
           </div>
           <button onClick={handleClose} className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors text-sm">✕</button>
         </div>
@@ -111,7 +111,7 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Décrivez le défi en détail…"
+              placeholder="Décrivez le quête en détail…"
               rows={3}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#C62828] focus:ring-2 focus:ring-[#C62828]/10 resize-none"
             />
@@ -179,7 +179,7 @@ export function CreateChallengeModal({ isOpen, onClose, onCreated }: CreateChall
             disabled={loading || !titre.trim() || !description.trim()}
             className="flex-1 bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-[#C62828]/20 enabled:hover:bg-[#b51d1d] enabled:hover:shadow-md enabled:hover:shadow-[#C62828]/30 enabled:hover:-translate-y-px transition-all duration-150 disabled:opacity-60"
           >
-            {loading ? 'Création…' : 'Créer le défi'}
+            {loading ? 'Création…' : 'Créer le quête'}
           </button>
         </div>
       </div>

@@ -33,7 +33,7 @@ const CATEGORIES: { value: ActionLogCategory | ""; label: string }[] = [
   { value: "auth", label: "Authentification" },
   { value: "user", label: "Utilisateurs" },
   { value: "camp", label: "Camps" },
-  { value: "challenge", label: "Défis" },
+  { value: "challenge", label: "Quêtes" },
   { value: "codex", label: "Codex" },
   { value: "council", label: "Conseils" },
   { value: "badge", label: "Artefacts" },

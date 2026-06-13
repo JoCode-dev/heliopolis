@@ -1,12 +1,11 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { usersApi, messagingApi, codexApi } from '@/lib/api';
+import { messagingApi, codexApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { DashboardChartsSection } from '@/components/dashboard/DashboardChartsSection';
-import { Progress, Pill } from '@/components/ui';
-import type { User, Conversation, Submission } from '@/types';
+import type { Conversation, Submission } from '@/types';
 
 const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
@@ -20,7 +19,6 @@ const CONV_GRADIENT: Record<string, string> = {
 export default function AccueilPage() {
   const { user } = useAuthStore();
   const { data: dashboard, loading: dashboardLoading } = useDashboardStats();
-  const [sentinelles, setSentinelles] = useState<User[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [pending, setPending] = useState<Submission[]>([]);
   const [modActionId, setModActionId] = useState<string | null>(null);
@@ -32,12 +30,10 @@ export default function AccueilPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [sent, conv, p] = await Promise.all([
-          usersApi.list({ role: 'SENTINELLE' }),
+        const [conv, p] = await Promise.all([
           messagingApi.conversations(),
           codexApi.pending(),
         ]);
-        setSentinelles(sent.data);
         setConversations(conv.data);
         setPending(p.data);
       } catch { /* ignore */ }
@@ -56,16 +52,7 @@ export default function AccueilPage() {
     finally { setModActionId(null); }
   };
 
-  const districts = dashboard?.districts ?? [];
   const activeCamp = dashboard?.activeCamp;
-  const activeCampParticipants = dashboard?.camps.find(c => c.id === activeCamp?.id)?.participants ?? 0;
-  const parishesCount = districts.reduce((t, d) => t + d.paroisses, 0);
-  const transmittedDistricts = districts.filter(d => d.selectionnes > 0).length;
-
-  const sentinelleByDistrict = new Map<string, User>();
-  for (const s of sentinelles) {
-    if (s.district?.id) sentinelleByDistrict.set(s.district.id, s);
-  }
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
@@ -101,49 +88,48 @@ export default function AccueilPage() {
         </Link>
       </div>
 
-      {/* KPIs cliquables */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         {[
           {
-            label: 'Districts',
-            value: dashboard?.overview.districts ?? districts.length,
-            delta: `${districts.length} chargés`,
-            icon: '🛡️',
+            label: 'Routiers',
+            value: dashboard?.overview.totalGardiens ?? '—',
+            delta: 'gardiens actifs',
+            icon: '🤝',
             color: '#E55A35',
-            href: '/dashboard/admin/districts',
+            href: '/dashboard/admin/gardiens',
           },
           {
-            label: 'Paroisses actives',
-            value: parishesCount,
-            delta: 'données territoriales',
-            icon: '⛪',
+            label: 'Guides & Sentinelles',
+            value: dashboard
+              ? (dashboard.overview.guides ?? 0) + (dashboard.overview.sentinelles ?? 0)
+              : '—',
+            delta: `${dashboard?.overview.guides ?? 0} guides · ${dashboard?.overview.sentinelles ?? 0} sentinelles`,
+            icon: '📖',
             color: '#6A1B9A',
-            href: '/dashboard/admin/paroisses',
+            href: '/dashboard/admin/guides',
           },
           {
-            label: activeCamp?.nom ?? 'Aucun camp',
-            value: activeCampParticipants,
-            delta: 'participants sélectionnés',
+            label: 'Camps disponibles',
+            value: dashboard?.overview.campsOuverts ?? '—',
+            delta: 'camps ouverts ou en cours',
             icon: '⛺',
             color: '#D9A441',
-            href: activeCamp
-              ? `/dashboard/admin/participants?campId=${activeCamp.id}`
-              : '/dashboard/admin/camps',
+            href: '/dashboard/admin/camps',
           },
           {
-            label: 'Districts transmis',
-            value: `${transmittedDistricts} / ${districts.length || 0}`,
-            delta: activeCamp ? activeCamp.nom : 'aucun camp ouvert',
-            icon: '✓',
+            label: 'Conseils à venir',
+            value: dashboard?.overview.conseilsAVenir ?? '—',
+            delta: 'conseils planifiés',
+            icon: '🏛️',
             color: '#2E7D32',
-            neg: transmittedDistricts < districts.length,
-            href: '/dashboard/admin/participants',
+            href: '/dashboard/admin/conseils',
           },
         ].map(kpi => (
           <Link key={kpi.label} href={kpi.href} className="bg-white border border-[#ececf0] rounded-2xl p-4 relative overflow-hidden hover:border-[#E55A35]/30 hover:shadow-sm transition-all">
             <div className="absolute top-0 right-0 w-10 h-10 rounded-bl-2xl flex items-center justify-center text-lg"
               style={{ background: kpi.color, color: 'white' }}>{kpi.icon}</div>
-            <div className="text-xs text-[#6b6b78] uppercase tracking-wide">{kpi.label}</div>
+            <div className="text-xs text-[#6b6b78] uppercase tracking-wide leading-tight">{kpi.label}</div>
             <div className="text-3xl font-black text-[#1F1B2E] mt-1.5">{kpi.value}</div>
             <div className={`text-xs mt-1 font-semibold ${'neg' in kpi && kpi.neg ? 'text-[#E55A35]' : 'text-[#2E7D32]'}`}>
               {kpi.delta}
@@ -152,71 +138,9 @@ export default function AccueilPage() {
         ))}
       </div>
 
-      {/* Graphiques statistiques */}
+      {/* Graphiques */}
       <div className="mb-5">
         <DashboardChartsSection data={dashboard} loading={dashboardLoading} />
-      </div>
-
-      {/* Tableau suivi districts */}
-      <div className="bg-white border border-[#ececf0] rounded-2xl p-4 mb-5">
-        <h3 className="font-bold text-sm text-[#1F1B2E] mb-4 flex justify-between">
-          Suivi des districts — {activeCamp?.nom ?? 'aucun camp ouvert'}
-          <Link href="/dashboard/admin/districts" className="text-xs text-[#E55A35] font-semibold">
-            Détail →
-          </Link>
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse min-w-[600px]">
-            <thead>
-              <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                {['District', 'Sentinelle', 'Paroisses', 'Routiers', 'Sélectionnés', 'Statut', ''].map(h => (
-                  <th key={h} className="text-left px-3 py-2.5 font-semibold border-b border-[#ececf0]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {districts.map(district => {
-                const sentinelle = sentinelleByDistrict.get(district.id);
-                const routiers = district.routiers;
-                const selected = district.selectionnes;
-                return (
-                  <tr key={district.id} className="border-b border-[#f0f0f4] hover:bg-[#fafafc]">
-                    <td className="px-3 py-3 font-semibold text-[#1F1B2E]">{district.nom}</td>
-                    <td className="px-3 py-3 text-[#6b6b78]">
-                      {sentinelle ? `${sentinelle.prenoms} ${sentinelle.nom}` : '—'}
-                    </td>
-                    <td className="px-3 py-3 text-center text-[#6b6b78]">{district.paroisses}</td>
-                    <td className="px-3 py-3 text-center text-[#6b6b78]">{routiers}</td>
-                    <td className="px-3 py-3">
-                      <div className="font-semibold text-[#1F1B2E] mb-1">{selected} / {routiers}</div>
-                      <Progress value={selected} max={routiers} />
-                    </td>
-                    <td className="px-3 py-3">
-                      {selected > 0
-                        ? <Pill variant="vert">✓ Transmis</Pill>
-                        : <Pill variant="or">⏳ En attente</Pill>}
-                    </td>
-                    <td className="px-3 py-3">
-                      <Link
-                        href={`/dashboard/admin/paroisses?districtId=${district.id}`}
-                        className="text-[11px] border border-[#e6e6ea] text-[#1F1B2E] rounded-lg px-2.5 py-1 font-semibold hover:bg-[#f6f6fa] transition-colors"
-                      >
-                        Voir
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!dashboardLoading && districts.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-[#6b6b78]">
-                    Aucun district chargé.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Modération + Messages */}

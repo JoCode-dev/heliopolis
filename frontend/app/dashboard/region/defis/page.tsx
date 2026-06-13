@@ -73,7 +73,7 @@ export default function DefisPage() {
       {/* ── Header ── */}
       <div className="bg-white border-b border-[#ececf0] px-4 pt-4 pb-0 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-lg font-black text-[#1F1B2E]">🎯 Défis & soumissions</h1>
+          <h1 className="text-lg font-black text-[#1F1B2E]">🎯 Quêtes & soumissions</h1>
           <div className="flex items-center gap-2">
             {nbAttente > 0 && (
               <span className="flex items-center gap-1.5 bg-[#fff8e1] border border-[#ffe082] text-[#D9A441] text-[11px] font-bold px-2.5 py-1 rounded-full">
@@ -85,7 +85,7 @@ export default function DefisPage() {
               onClick={() => setCreateOpen(true)}
               className="flex items-center gap-1 bg-[#E55A35] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-[#E55A35]/20 hover:bg-[#b51d1d] hover:shadow-md hover:shadow-[#E55A35]/30 hover:-translate-y-px transition-all duration-150"
             >
-              + Nouveau défi
+              + Nouveau quête
             </button>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function DefisPage() {
                     </span>
                   </div>
 
-                  {/* Défi + date */}
+                  {/* Quête + date */}
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-sm">{catIcon}</span>
                     <span className="text-[12px] font-semibold text-[#1F1B2E] truncate flex-1">

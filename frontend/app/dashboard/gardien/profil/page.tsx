@@ -88,7 +88,7 @@ export default function GardienProfilPage() {
           <div className="flex justify-between items-end mb-2">
             <div>
               <div className="text-2xl font-black text-[#D9A441]">{validated} / {total}</div>
-              <div className="text-xs text-[#6b6b78]">défis validés</div>
+              <div className="text-xs text-[#6b6b78]">quêtes validés</div>
             </div>
             <div className="text-xs text-[#6b6b78]">
               {Math.round((validated / total) * 100)}%

@@ -13,7 +13,7 @@ const FILTERS: { key: Cat; label: string; icon: string; color: string }[] = [
   { key: 'PERSONNEL',     label: 'Personnel',     icon: '🔥', color: 'bg-[#E55A35] text-white' },
   { key: 'COMMUNAUTAIRE', label: 'Communauté',   icon: '🌿', color: 'bg-[#2E7D32] text-white' },
   { key: 'SPIRITUEL',     label: 'Spirituel',     icon: '✨', color: 'bg-[#6A1B9A] text-white' },
-  { key: 'LONG',          label: 'Défi long',     icon: '🏔️', color: 'bg-[#D9A441] text-white' },
+  { key: 'LONG',          label: 'Quête longue',     icon: '🏔️', color: 'bg-[#D9A441] text-white' },
 ];
 
 interface CodexWallProps {

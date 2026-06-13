@@ -15,7 +15,7 @@ const CAT: Record<ChallengeCategory, { border: string; pill: 'rouge' | 'vert' | 
   LONG:          { border: 'border-l-[#D9A441]', pill: 'or',     accent: '#D9A441' },
 };
 const CAT_LABEL: Record<ChallengeCategory, string> = {
-  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Défi long',
+  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Quête longue',
 };
 const CAT_EMOJI: Record<ChallengeCategory, string> = {
   PERSONNEL: '🌿', COMMUNAUTAIRE: '🤝', SPIRITUEL: '🔥', LONG: '🏔️',
@@ -85,7 +85,7 @@ export default function MissionsPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Soumissions par défi (ordre chronologique)
+  // Soumissions par quête (ordre chronologique)
   const subsByChallenge = new Map<string, Submission[]>();
   for (const s of submissions) {
     const arr = subsByChallenge.get(s.challengeId) ?? [];
@@ -102,7 +102,7 @@ export default function MissionsPage() {
   const isInProgress = (c: Challenge) =>
     !isComplete(c) && (startedIds.has(c.id) || getSubs(c.id).length > 0);
 
-  // Partitions des défis
+  // Partitions des quêtes
   const completedSet  = challenges.filter(c => isComplete(c));
   const inProgressSet = challenges.filter(c => isInProgress(c));
   const availableSet  = challenges.filter(c => !isComplete(c) && !isInProgress(c));
@@ -146,7 +146,7 @@ export default function MissionsPage() {
         <div className="flex items-end gap-3 px-4 pt-3 pb-0">
           <div>
             <h1 className="text-[18px] font-black text-white tracking-tight">Missions</h1>
-            <p className="text-[11px] text-white/50 mt-0.5 pb-2">{challenges.length} défis disponibles</p>
+            <p className="text-[11px] text-white/50 mt-0.5 pb-2">{challenges.length} quêtes disponibles</p>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-3 pb-2">
@@ -167,7 +167,7 @@ export default function MissionsPage() {
 
         <div className="flex border-t border-white/10">
           {([
-            { key: 'defis',      label: 'Défis',     count: availableSet.length },
+            { key: 'defis',      label: 'Quêtes',     count: availableSet.length },
             { key: 'en-cours',   label: 'En cours',  count: inProgressSet.length },
             { key: 'accomplies', label: 'Accomplis',  count: completedSet.length },
           ] as { key: Tab; label: string; count: number }[]).map(t => (
@@ -221,7 +221,7 @@ export default function MissionsPage() {
   );
 }
 
-// ─── Onglet 1 : Défis disponibles (cartes + bouton "Voir les détails") ────────
+// ─── Onglet 1 : Quêtes disponibles (cartes + bouton "Voir les détails") ────────
 
 function DefisTab({ challenges, loading, totalPoints, onOpen }: {
   challenges: Challenge[];
@@ -247,8 +247,8 @@ function DefisTab({ challenges, loading, totalPoints, onOpen }: {
 
       {loading && <EmptyState icon="⚔️" title="Chargement…" sub="" pulse />}
       {!loading && filtered.length === 0 && (
-        <EmptyState icon="🎯" title="Aucun défi disponible"
-          sub="Tous les défis sont en cours ou accomplis." />
+        <EmptyState icon="🎯" title="Aucun quête disponible"
+          sub="Tous les quêtes sont en cours ou accomplis." />
       )}
 
       <div className="p-3 grid gap-3 sm:grid-cols-2">
@@ -260,7 +260,7 @@ function DefisTab({ challenges, loading, totalPoints, onOpen }: {
   );
 }
 
-// ─── Carte défi ───────────────────────────────────────────────────────────────
+// ─── Carte quête ───────────────────────────────────────────────────────────────
 
 function DefiCard({ challenge: c, totalPoints, onOpen }: {
   challenge: Challenge;
@@ -313,7 +313,7 @@ function DefiCard({ challenge: c, totalPoints, onOpen }: {
         }`}
         style={{ color: locked ? undefined : style.accent }}
       >
-        {locked ? '🔒 Défi verrouillé' : 'Voir les détails →'}
+        {locked ? '🔒 Quête verrouillé' : 'Voir les détails →'}
       </button>
     </div>
   );
@@ -334,7 +334,7 @@ function EnCoursTab({ challenges, loading, subsByChallenge, getValidCount, submi
       {loading && <EmptyState icon="⏳" title="Chargement…" sub="" pulse />}
       {!loading && challenges.length === 0 && (
         <EmptyState icon="🎯" title="Aucune mission en cours"
-          sub="Va dans l'onglet Défis, choisis une mission et clique sur « Commencer »." />
+          sub="Va dans l'onglet Quêtes, choisis une mission et clique sur « Commencer »." />
       )}
       {!loading && challenges.length > 0 && (
         <>
@@ -644,7 +644,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                 </div>
               )}
 
-              {/* Soumission en attente (défi simple) avec bouton Annuler */}
+              {/* Soumission en attente (quête simple) avec bouton Annuler */}
               {!isDuration && lastSub?.statut === 'EN_ATTENTE' && (
                 <div className="bg-[#fff8e6] rounded-xl px-3.5 py-3.5 border border-[#f0d88a]">
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -671,7 +671,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                 </div>
               )}
 
-              {/* Défi à durée : déjà soumis aujourd'hui */}
+              {/* Quête à durée : déjà soumis aujourd'hui */}
               {isDuration && submittedToday && !isComplete && (
                 <>
                   {/* Annuler la soumission du jour */}

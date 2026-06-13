@@ -15,8 +15,9 @@ export class PhotothequeService {
     private storage: R2StorageService,
   ) {}
 
-  async listPublications(campId?: string) {
-    return this.prisma.campPublication.findMany({
+  async listPublications(campId?: string, cursor?: string, limit = 12) {
+    const take = Math.min(limit, 50);
+    const items = await this.prisma.campPublication.findMany({
       where: campId ? { campId } : {},
       include: {
         camp: { select: { id: true, nom: true } },
@@ -24,7 +25,14 @@ export class PhotothequeService {
         photos: { select: { id: true, url: true }, orderBy: { createdAt: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
+
+    const hasMore = items.length > take;
+    const page = hasMore ? items.slice(0, take) : items;
+    const nextCursor = hasMore ? page[page.length - 1].id : null;
+    return { items: page, nextCursor, hasMore };
   }
 
   async getCampsWithPhotos() {

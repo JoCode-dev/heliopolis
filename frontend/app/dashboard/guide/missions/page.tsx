@@ -13,7 +13,7 @@ const CAT_PILL: Record<ChallengeCategory, 'rouge' | 'vert' | 'violet' | 'or'> = 
   PERSONNEL: 'rouge', COMMUNAUTAIRE: 'vert', SPIRITUEL: 'violet', LONG: 'or',
 };
 const CAT_LABEL: Record<ChallengeCategory, string> = {
-  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Défi long',
+  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Quête longue',
 };
 const CAT_EMOJI: Record<string, string> = {
   PERSONNEL: '🌿', COMMUNAUTAIRE: '🤝', SPIRITUEL: '🔥', LONG: '🏔️',
@@ -349,9 +349,9 @@ function ValidationPanel({ sub, onClose, onValidated }: {
             </div>
           )}
 
-          {/* Description du défi */}
+          {/* Description du quête */}
           <div>
-            <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-wider mb-1.5">Défi</p>
+            <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-wider mb-1.5">Quête</p>
             <p className="text-sm text-[#6b6b78] leading-relaxed">{sub.challenge.description}</p>
             {sub.challenge.preuveDemandee && (
               <p className="text-[11px] text-[#9c7218] mt-1.5 italic">📸 {sub.challenge.preuveDemandee}</p>

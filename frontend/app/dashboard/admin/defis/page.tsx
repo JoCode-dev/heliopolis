@@ -75,7 +75,7 @@ export default function AdminDefisPage() {
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
       {/* Top bar */}
       <div className="flex justify-between items-center mb-5 border-b border-[#ececf0] pb-4">
-        <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">🎯 Défis & soumissions</h1>
+        <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">🎯 Quêtes & soumissions</h1>
         <div className="flex items-center gap-3 flex-shrink-0">
           <span className="text-sm text-[#6b6b78]">
             {pending.filter(s => s.statut === 'EN_ATTENTE').length} en attente
@@ -84,7 +84,7 @@ export default function AdminDefisPage() {
             onClick={() => setCreateOpen(true)}
             className="bg-[#1F1B2E] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#2d2640] transition-colors"
           >
-            + Nouveau défi
+            + Nouveau quête
           </button>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function AdminDefisPage() {
                     )}
                   </div>
                   <p className="text-xs text-[#6b6b78] mb-2">
-                    Défi : <span className="font-semibold text-[#1F1B2E]">{sub.challenge?.titre ?? '—'}</span>
+                    Quête : <span className="font-semibold text-[#1F1B2E]">{sub.challenge?.titre ?? '—'}</span>
                     {' · '}
                     {formatDate(sub.submittedAt)}
                   </p>

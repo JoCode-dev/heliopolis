@@ -27,8 +27,12 @@ export class PhotothequeController {
 
   @UseGuards(OptionalJwtGuard)
   @Get('publications')
-  listPublications(@Query('campId') campId?: string) {
-    return this.service.listPublications(campId);
+  listPublications(
+    @Query('campId') campId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.listPublications(campId, cursor, limit ? Number(limit) : 12);
   }
 
   @UseGuards(OptionalJwtGuard)

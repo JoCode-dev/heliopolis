@@ -16,7 +16,7 @@ const CAT_VARIANTS: Record<string, 'rouge' | 'vert' | 'violet' | 'or'> = {
   PERSONNEL: 'rouge', COMMUNAUTAIRE: 'vert', SPIRITUEL: 'violet', LONG: 'or',
 };
 const CAT_LABELS: Record<string, string> = {
-  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Défi long',
+  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Quête longue',
 };
 const CAT_BG: Record<string, string> = {
   PERSONNEL:     'from-[#F58A4B] to-[#7A2820]',
@@ -81,7 +81,7 @@ export function CodexItem({
         </Pill>
       </div>
 
-      {/* ── Nom du défi ── */}
+      {/* ── Nom du quête ── */}
       {submission.challenge?.titre && (
         <div className="px-3.5 pb-2">
           <span className="inline-flex items-center gap-1 bg-[#f5eed8] text-[#8b7b5c] text-[11px] font-semibold px-2 py-0.5 rounded-lg border border-[#e0d8c0]">

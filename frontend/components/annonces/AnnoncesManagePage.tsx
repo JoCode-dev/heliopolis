@@ -294,7 +294,7 @@ export function AnnoncesManagePage() {
           </div>
           <button
             onClick={() => setModal('create')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm cursor-pointer transition-all duration-150 hover:brightness-110 hover:shadow-md active:scale-95"
             style={{ background: 'linear-gradient(135deg,#F58A4B,#E55A35)' }}
           >
             <span className="text-base leading-none">+</span> Nouvelle annonce
