@@ -18,7 +18,6 @@ const DRAWER_SECTIONS = [
     items: [
       { href: '/dashboard/region/gardiens',  icon: '🤝', label: 'Gardiens',   prefetch: true },
       { href: '/dashboard/region/guides',    icon: '📖', label: 'Encadrants', prefetch: true },
-      { href: '/dashboard/region/region',    icon: '🌍', label: 'Membres rég.', prefetch: true },
       { href: '/dashboard/region/districts',  icon: '🛡️', label: 'Districts',  prefetch: true },
     ],
   },

@@ -45,13 +45,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Top bar mobile */}
           <div className="lg:hidden text-white px-4 py-3 flex items-center gap-3 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)' }}>
-            <Link
-              href="/dashboard/admin"
-              prefetch={false}
-              className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
-            >
-              ‹
-            </Link>
+            {pathname !== '/dashboard/admin' && (
+              <Link
+                href="/dashboard/admin"
+                prefetch={false}
+                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
+              >
+                ‹
+              </Link>
+            )}
             <div className="flex-1 min-w-0">
               <div className="text-[10px] opacity-90 uppercase tracking-wider">Conseil d&apos;Héliopolis</div>
               <div className="text-sm font-bold truncate">

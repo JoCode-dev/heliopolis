@@ -89,7 +89,7 @@ export default function AccueilPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           {
             label: 'Routiers',
@@ -97,43 +97,48 @@ export default function AccueilPage() {
             delta: 'gardiens actifs',
             icon: '🤝',
             color: '#E55A35',
+            bg: '#fef3ef',
             href: '/dashboard/admin/gardiens',
           },
           {
-            label: 'Guides & Sentinelles',
+            label: 'Encadrants',
             value: dashboard
               ? (dashboard.overview.guides ?? 0) + (dashboard.overview.sentinelles ?? 0)
               : '—',
-            delta: `${dashboard?.overview.guides ?? 0} guides · ${dashboard?.overview.sentinelles ?? 0} sentinelles`,
+            delta: `${dashboard?.overview.guides ?? 0} guides · ${dashboard?.overview.sentinelles ?? 0} sent.`,
             icon: '📖',
             color: '#6A1B9A',
+            bg: '#f5eeff',
             href: '/dashboard/admin/guides',
           },
           {
-            label: 'Camps disponibles',
+            label: 'Camps',
             value: dashboard?.overview.campsOuverts ?? '—',
-            delta: 'camps ouverts ou en cours',
+            delta: 'ouverts ou en cours',
             icon: '⛺',
             color: '#D9A441',
+            bg: '#fdf8ec',
             href: '/dashboard/admin/camps',
           },
           {
-            label: 'Conseils à venir',
+            label: 'Conseils',
             value: dashboard?.overview.conseilsAVenir ?? '—',
             delta: 'conseils planifiés',
             icon: '🏛️',
             color: '#2E7D32',
+            bg: '#edf7ee',
             href: '/dashboard/admin/conseils',
           },
         ].map(kpi => (
-          <Link key={kpi.label} href={kpi.href} className="bg-white border border-[#ececf0] rounded-2xl p-4 relative overflow-hidden hover:border-[#E55A35]/30 hover:shadow-sm transition-all">
-            <div className="absolute top-0 right-0 w-10 h-10 rounded-bl-2xl flex items-center justify-center text-lg"
-              style={{ background: kpi.color, color: 'white' }}>{kpi.icon}</div>
-            <div className="text-xs text-[#6b6b78] uppercase tracking-wide leading-tight">{kpi.label}</div>
-            <div className="text-3xl font-black text-[#1F1B2E] mt-1.5">{kpi.value}</div>
-            <div className={`text-xs mt-1 font-semibold ${'neg' in kpi && kpi.neg ? 'text-[#E55A35]' : 'text-[#2E7D32]'}`}>
-              {kpi.delta}
+          <Link key={kpi.label} href={kpi.href}
+            className="bg-white border border-[#ececf0] rounded-xl p-3 flex flex-col hover:border-[#E55A35]/30 hover:shadow-sm transition-all">
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-[9px] font-bold text-[#6b6b78] uppercase tracking-wider leading-tight">{kpi.label}</span>
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ml-1.5"
+                style={{ background: kpi.bg }}>{kpi.icon}</span>
             </div>
+            <div className="text-2xl font-black leading-none" style={{ color: kpi.color }}>{kpi.value}</div>
+            <div className="text-[10px] text-[#6b6b78] mt-1 leading-tight">{kpi.delta}</div>
           </Link>
         ))}
       </div>

@@ -39,6 +39,7 @@ function GardiensContent() {
   const [pendingSuspend, setPendingSuspend] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [page, setPage] = usePaginationUrl();
 
   const parishDistrictMap = useMemo(() => {
@@ -153,13 +154,15 @@ function GardiensContent() {
           title="🤝 Gardiens"
           count={gardiens.length}
           exports={
-            <DataTableExportButtons
-              compact
-              onExportExcel={exportExcel}
-              onExportPdf={exportPdf}
-              onExportCsv={exportCsv}
-              disabled={exportDisabled}
-            />
+            <div className="hidden lg:flex items-center gap-1">
+              <DataTableExportButtons
+                compact
+                onExportExcel={exportExcel}
+                onExportPdf={exportPdf}
+                onExportCsv={exportCsv}
+                disabled={exportDisabled}
+              />
+            </div>
           }
           actions={
             <button
@@ -171,13 +174,66 @@ function GardiensContent() {
             </button>
           }
           filters={
-            <DataTableFilters
-              configs={dynamicFilterConfigs}
-              values={values}
-              onChange={setFilter}
-              onReset={resetFilters}
-              hasActiveFilters={hasActiveFilters}
-            />
+            <>
+              {/* Desktop : tous les filtres */}
+              <div className="hidden lg:block">
+                <DataTableFilters
+                  configs={dynamicFilterConfigs}
+                  values={values}
+                  onChange={setFilter}
+                  onReset={resetFilters}
+                  hasActiveFilters={hasActiveFilters}
+                />
+              </div>
+              {/* Mobile : recherche + filtres repliables */}
+              <div className="lg:hidden flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={(values.search as string) ?? ''}
+                  onChange={e => setFilter('search', e.target.value)}
+                  placeholder="Nom, matricule, paroisse…"
+                  className="w-full bg-[#f6f6fa] border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] placeholder:text-[#b0b0bc]"
+                />
+                <button type="button" onClick={() => setMobileFiltersOpen(v => !v)}
+                  className={`flex items-center justify-between w-full px-3.5 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                    hasActiveFilters ? 'border-[#1F1B2E]/30 bg-[#f0f0f4] text-[#1F1B2E]' : 'border-[#e6e6ea] bg-white text-[#6b6b78]'
+                  }`}>
+                  <span>Filtres{hasActiveFilters ? ' ·' : ''}</span>
+                  <span className={`transition-transform duration-200 text-xs ${mobileFiltersOpen ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+                {mobileFiltersOpen && (
+                  <div className="flex flex-col gap-2">
+                    <select value={(values.districtId as string) ?? ''} onChange={e => setFilter('districtId', e.target.value || undefined)}
+                      className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+                      <option value="">Tous les districts</option>
+                      {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
+                    </select>
+                    <select value={(values.parishId as string) ?? ''} onChange={e => setFilter('parishId', e.target.value || undefined)}
+                      disabled={visibleParishes.length === 0}
+                      className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] disabled:opacity-40">
+                      <option value="">Toutes les paroisses</option>
+                      {visibleParishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                    </select>
+                    <select value={(values.statut as string) ?? ''} onChange={e => setFilter('statut', e.target.value || undefined)}
+                      className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+                      <option value="">Tous les statuts</option>
+                      {STATUT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <select value={(values.adhesion as string) ?? ''} onChange={e => setFilter('adhesion', e.target.value || undefined)}
+                      className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+                      <option value="">Toutes adhésions</option>
+                      {ADHESION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    {hasActiveFilters && (
+                      <button type="button" onClick={resetFilters}
+                        className="text-xs font-semibold text-[#E55A35] text-center py-1">
+                        Réinitialiser
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           }
         />
 

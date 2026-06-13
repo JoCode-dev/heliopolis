@@ -6,8 +6,7 @@ import { GardiensBlazon } from '@/components/layout/GardiensBlazon';
 import { getHomeForRole } from '@/lib/roles';
 
 const NAV = [
-  { href: '/',      label: 'Accueil' },
-  { href: '/codex', label: 'Codex'   },
+  { href: '/', label: 'Accueil' },
 ];
 
 export function PublicTopNav() {

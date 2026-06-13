@@ -9,7 +9,7 @@ import {
 } from '@/components/data-table';
 
 type Erreur  = { matricule: string; raison: string };
-type ResultatImport = { importes: number; ignores: number; erreurs: Erreur[] };
+type ResultatImport = { importes: number; fusionnes: number; ignores: number; erreurs: Erreur[]; districtsCrees: number; paroissesCrees: number };
 
 type Membre = {
   id: string;
@@ -222,15 +222,32 @@ export default function ImportPage() {
 
         {resultat && (
           <div className="mt-5 flex flex-col gap-4">
-            <div className="grid grid-cols-3 gap-3">
-              <StatCard label="Importés"           value={resultat.importes}       color="green" />
-              <StatCard label="Ignorés (doublons)" value={resultat.ignores}        color="amber" />
-              <StatCard label="Erreurs"            value={resultat.erreurs.length} color="red"   />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard label="Créés"     value={resultat.importes}       color="green" />
+              <StatCard label="Fusionnés" value={resultat.fusionnes}      color="blue"  />
+              <StatCard label="Ignorés"   value={resultat.ignores}        color="amber" />
+              <StatCard label="Erreurs"   value={resultat.erreurs.length} color="red"   />
             </div>
+            {(resultat.districtsCrees > 0 || resultat.paroissesCrees > 0) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700 flex flex-col gap-0.5">
+                <span className="font-bold">Territoires créés automatiquement</span>
+                {resultat.districtsCrees > 0 && (
+                  <span>🛡️ {resultat.districtsCrees} district{resultat.districtsCrees > 1 ? 's' : ''} ajouté{resultat.districtsCrees > 1 ? 's' : ''}</span>
+                )}
+                {resultat.paroissesCrees > 0 && (
+                  <span>⛪ {resultat.paroissesCrees} paroisse{resultat.paroissesCrees > 1 ? 's' : ''} ajoutée{resultat.paroissesCrees > 1 ? 's' : ''}</span>
+                )}
+              </div>
+            )}
             {resultat.importes > 0 && (
               <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700">
                 <span className="font-bold">{resultat.importes} membre{resultat.importes > 1 ? 's' : ''}</span> pré-enregistré{resultat.importes > 1 ? 's' : ''}.
                 Ils apparaissent maintenant dans la liste ci-dessous.
+              </div>
+            )}
+            {resultat.fusionnes > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+                <span className="font-bold">{resultat.fusionnes} fiche{resultat.fusionnes > 1 ? 's' : ''}</span> existante{resultat.fusionnes > 1 ? 's' : ''} complétée{resultat.fusionnes > 1 ? 's' : ''} avec les informations manquantes (nom, paroisse, district…).
               </div>
             )}
             {resultat.erreurs.length > 0 && (
@@ -309,9 +326,10 @@ export default function ImportPage() {
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: number; color: 'green' | 'amber' | 'red' }) {
+function StatCard({ label, value, color }: { label: string; value: number; color: 'green' | 'blue' | 'amber' | 'red' }) {
   const styles = {
     green: 'bg-green-50 border-green-200 text-green-700',
+    blue:  'bg-blue-50  border-blue-200  text-blue-700',
     amber: 'bg-amber-50 border-amber-200 text-amber-700',
     red:   'bg-red-50   border-red-200   text-red-700',
   };

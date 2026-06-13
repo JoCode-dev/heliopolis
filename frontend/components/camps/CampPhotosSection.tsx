@@ -260,7 +260,10 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
   const isExternallyControlled = externalUploadOpen !== undefined;
 
   const [publications, setPublications] = useState<CampPublication[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore]       = useState(false);
   const [internalModal, setInternalModal] = useState(false);
   const showModal = isExternallyControlled ? (externalUploadOpen ?? false) : internalModal;
   const setShowModal = (v: boolean) => {
@@ -270,16 +273,39 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
   const [lightbox, setLightbox] = useState<{ photos: CampPhoto[]; index: number } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  const parsePubs = (data: unknown) => {
+    type Paginated = { items: CampPublication[]; nextCursor: string | null; hasMore: boolean };
+    if (Array.isArray(data)) return { items: data as CampPublication[], nextCursor: null, hasMore: false };
+    const p = data as Paginated;
+    return { items: p.items ?? [], nextCursor: p.nextCursor ?? null, hasMore: p.hasMore ?? false };
+  };
+
   const fetchPubs = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await photothequeApi.publications(campId);
-      setPublications(data as CampPublication[]);
+      const { items, nextCursor: nc, hasMore: hm } = parsePubs(data);
+      setPublications(items);
+      setNextCursor(nc);
+      setHasMore(hm);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, [campId]);
 
   useEffect(() => { void fetchPubs(); }, [fetchPubs]);
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { data } = await photothequeApi.publications(campId, nextCursor);
+      const { items, nextCursor: nc, hasMore: hm } = parsePubs(data);
+      setPublications(prev => [...prev, ...items]);
+      setNextCursor(nc);
+      setHasMore(hm);
+    } catch { /* ignore */ }
+    finally { setLoadingMore(false); }
+  };
 
   const handleDelete = async (id: string) => {
     setDeleting(id);
@@ -302,7 +328,7 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
           <h3 className="text-base font-black text-[#1F1B2E]">Photos du camp</h3>
           {publications.length > 0 && (
             <p className="text-xs text-[#9b9ba8] mt-0.5">
-              {publications.length} publication{publications.length > 1 ? 's' : ''} · {publications.reduce((s, p) => s + p.photos.length, 0)} photos
+              {publications.length}{hasMore ? '+' : ''} publication{publications.length > 1 ? 's' : ''} · {publications.reduce((s, p) => s + p.photos.length, 0)}{hasMore ? '+' : ''} photos
             </p>
           )}
         </div>
@@ -344,8 +370,9 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
           </p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {publications.map(pub => (
+          {publications.map((pub) => (
             <div key={pub.id} className="bg-white border border-[#ececf0] rounded-2xl overflow-hidden shadow-sm flex flex-col">
 
               {/* En-tête */}
@@ -393,6 +420,32 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
             </div>
           ))}
         </div>
+
+        {/* Charger plus */}
+        {hasMore && (
+          <div className="mt-5 flex justify-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-[#e0e0e8] bg-white text-sm font-semibold text-[#1F1B2E] hover:border-[#1F1B2E] transition-colors disabled:opacity-60"
+            >
+              {loadingMore ? (
+                <>
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-[#1F1B2E]/30 border-t-[#1F1B2E] animate-spin" />
+                  Chargement…
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  Charger plus de photos
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {/* Modal upload */}

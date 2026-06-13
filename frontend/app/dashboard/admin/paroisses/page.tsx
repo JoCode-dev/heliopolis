@@ -4,19 +4,25 @@ import { useSearchParams } from 'next/navigation';
 import { territoriesApi, usersApi } from '@/lib/api';
 import { deferEffect } from '@/lib/effects';
 import { Select } from '@/components/ui';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePaginationUrl } from '@/hooks/usePaginationUrl';
 import type { District, Parish, User } from '@/types';
+
+const PER_PAGE = 20;
 
 function ParoissesContent() {
   const searchParams = useSearchParams();
   const initialDistrictId = searchParams.get('districtId') ?? '';
 
   const [districts, setDistricts] = useState<District[]>([]);
-  const [parishes, setParishes] = useState<Parish[]>([]);
+  const [allParishes, setAllParishes] = useState<Parish[]>([]);
   const [guides, setGuides] = useState<User[]>([]);
   const [gardiens, setGardiens] = useState<User[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState(initialDistrictId);
   const [loading, setLoading] = useState(true);
-  const [loadingParishes, setLoadingParishes] = useState(false);
+  const [page, setPage] = usePaginationUrl();
+  const [sortKey, setSortKey] = useState<'nom' | 'district' | 'guide' | 'gardiens' | 'adhesion'>('nom');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [showModal, setShowModal] = useState(false);
   const [modalDistrictId, setModalDistrictId] = useState('');
@@ -27,39 +33,19 @@ function ParoissesContent() {
 
   useEffect(() => deferEffect(async () => {
       try {
-        const [d, g, gar] = await Promise.all([
+        const [d, p, g, gar] = await Promise.all([
           territoriesApi.districts(),
+          territoriesApi.parishes(),
           usersApi.list({ role: 'GUIDE' }),
           usersApi.list({ role: 'GARDIEN' }),
         ]);
         setDistricts(d.data);
+        setAllParishes(p.data);
         setGuides(g.data);
         setGardiens(gar.data);
       } catch { /* ignore */ }
       finally { setLoading(false); }
   }), []);
-
-  useEffect(() => {
-    if (!selectedDistrictId) return deferEffect(() => setParishes([]));
-
-    let cancelled = false;
-    void Promise.resolve().then(async () => {
-      if (cancelled) return;
-      setLoadingParishes(true);
-      try {
-        const { data } = await territoriesApi.parishes(selectedDistrictId);
-        if (!cancelled) setParishes(data);
-      } catch {
-        if (!cancelled) setParishes([]);
-      } finally {
-        if (!cancelled) setLoadingParishes(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedDistrictId]);
 
   const guideByParish = new Map<string, User>();
   for (const g of guides) {
@@ -83,6 +69,35 @@ function ParoissesContent() {
     }
   }
 
+  function toggleSort(key: typeof sortKey) {
+    if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  }
+
+  const filtered = selectedDistrictId
+    ? allParishes.filter(p => p.district?.id === selectedDistrictId || (p as Parish & { districtId?: string }).districtId === selectedDistrictId)
+    : allParishes;
+
+  const parishes = [...filtered].sort((a, b) => {
+    let va = '';
+    let vb = '';
+    if (sortKey === 'nom')      { va = a.nom ?? ''; vb = b.nom ?? ''; }
+    if (sortKey === 'district') { va = a.district?.nom ?? ''; vb = b.district?.nom ?? ''; }
+    if (sortKey === 'guide')    { const ga = guideByParish.get(a.id); const gb = guideByParish.get(b.id); va = ga ? `${ga.nom} ${ga.prenoms}` : ''; vb = gb ? `${gb.nom} ${gb.prenoms}` : ''; }
+    if (sortKey === 'gardiens') { const na = gardiensByParish.get(a.id) ?? 0; const nb = gardiensByParish.get(b.id) ?? 0; return sortDir === 'asc' ? na - nb : nb - na; }
+    if (sortKey === 'adhesion') {
+      const aa = adhesionsByParish.get(a.id); const ab = adhesionsByParish.get(b.id);
+      const ra = aa ? aa.aJour / (aa.total || 1) : -1;
+      const rb = ab ? ab.aJour / (ab.total || 1) : -1;
+      return sortDir === 'asc' ? ra - rb : rb - ra;
+    }
+    const cmp = va.localeCompare(vb, 'fr', { sensitivity: 'base' });
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const pagedParishes = parishes.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   function openModal() {
     setModalDistrictId(selectedDistrictId);
     setModalNom('');
@@ -97,12 +112,9 @@ function ParoissesContent() {
     setSaving(true);
     setSaveError('');
     try {
-      await territoriesApi.createParish({ nom, districtId: modalDistrictId });
+      const { data: created } = await territoriesApi.createParish({ nom, districtId: modalDistrictId });
+      setAllParishes(prev => [...prev, created as Parish]);
       setShowModal(false);
-      if (modalDistrictId === selectedDistrictId) {
-        const { data } = await territoriesApi.parishes(selectedDistrictId);
-        setParishes(data);
-      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -116,7 +128,7 @@ function ParoissesContent() {
     setDeletingId(parish.id);
     try {
       await territoriesApi.deleteParish(parish.id);
-      setParishes(prev => prev.filter(p => p.id !== parish.id));
+      setAllParishes(prev => prev.filter(p => p.id !== parish.id));
     } catch { /* ignore */ }
     finally { setDeletingId(null); }
   }
@@ -128,7 +140,7 @@ function ParoissesContent() {
         <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">Paroisses</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-[#6b6b78] hidden sm:block">
-            {parishes.length} paroisse{parishes.length > 1 ? 's' : ''}
+            {parishes.length}{selectedDistrictId ? '' : ` / ${allParishes.length}`} paroisse{allParishes.length > 1 ? 's' : ''}
           </span>
           <button
             onClick={openModal}
@@ -148,7 +160,7 @@ function ParoissesContent() {
         ) : (
           <Select
             value={selectedDistrictId}
-            onChange={e => setSelectedDistrictId(e.target.value)}
+            onChange={e => { setSelectedDistrictId(e.target.value); setPage(1); }}
             className="w-full max-w-sm">
             <option value="">— Tous les districts —</option>
             {districts.map(d => (
@@ -158,29 +170,24 @@ function ParoissesContent() {
         )}
       </div>
 
-      {loadingParishes && (
+      {loading && (
         <div className="flex items-center justify-center py-16 text-[#6b6b78] text-sm">Chargement…</div>
       )}
 
-      {!loadingParishes && selectedDistrictId && parishes.length === 0 && (
+      {!loading && parishes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-[#6b6b78]">
           <div className="text-5xl mb-3">⛪</div>
-          <p className="font-semibold">Aucune paroisse dans ce district</p>
+          <p className="font-semibold">
+            {selectedDistrictId ? 'Aucune paroisse dans ce district' : 'Aucune paroisse enregistrée'}
+          </p>
         </div>
       )}
 
-      {!selectedDistrictId && !loading && (
-        <div className="flex flex-col items-center justify-center py-16 text-[#6b6b78]">
-          <div className="text-5xl mb-3">🛡️</div>
-          <p className="font-semibold">Sélectionnez un district pour voir ses paroisses</p>
-        </div>
-      )}
-
-      {parishes.length > 0 && !loadingParishes && (
+      {parishes.length > 0 && !loading && (
         <>
           {/* Mobile — cards */}
           <div className="flex flex-col gap-3 lg:hidden">
-            {parishes.map(parish => {
+            {pagedParishes.map(parish => {
               const guide = guideByParish.get(parish.id);
               const nbGardiens = gardiensByParish.get(parish.id) ?? 0;
               const adh = adhesionsByParish.get(parish.id);
@@ -226,14 +233,28 @@ function ParoissesContent() {
           <div className="hidden lg:block bg-white border border-[#ececf0] rounded-2xl overflow-hidden">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                  {['Paroisse', 'District', 'Guide', 'Gardiens', 'Adhésions à jour', ''].map(h => (
-                    <th key={h} className="text-left px-4 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
+                <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide text-[11px]">
+                  {([
+                    { label: 'Paroisse',        key: 'nom'      },
+                    { label: 'District',         key: 'district' },
+                    { label: 'Guide',            key: 'guide'    },
+                    { label: 'Gardiens',         key: 'gardiens' },
+                    { label: 'Adhésions à jour', key: 'adhesion' },
+                  ] as const).map(col => (
+                    <th key={col.key}
+                      onClick={() => toggleSort(col.key)}
+                      className="text-left px-4 py-3 font-semibold border-b border-[#ececf0] cursor-pointer select-none hover:text-[#1F1B2E] transition-colors whitespace-nowrap">
+                      {col.label}
+                      <span className="ml-1 opacity-60">
+                        {sortKey === col.key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                      </span>
+                    </th>
                   ))}
+                  <th className="border-b border-[#ececf0] px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
-                {parishes.map(parish => {
+                {pagedParishes.map(parish => {
                   const guide = guideByParish.get(parish.id);
                   const nbGardiens = gardiensByParish.get(parish.id) ?? 0;
                   const adh = adhesionsByParish.get(parish.id);
@@ -263,6 +284,12 @@ function ParoissesContent() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            totalItems={parishes.length}
+            perPage={PER_PAGE}
+            onChange={setPage}
+          />
         </>
       )}
 

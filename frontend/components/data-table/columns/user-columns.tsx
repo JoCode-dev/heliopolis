@@ -217,19 +217,22 @@ export function createGardienColumns(
   ];
 }
 
-export const ROLE_LABEL: Record<'GUIDE' | 'SENTINELLE', string> = {
+export const ROLE_LABEL: Record<'GUIDE' | 'SENTINELLE' | 'REGION', string> = {
   GUIDE: 'Guide',
   SENTINELLE: 'Sentinelle',
+  REGION: 'Région',
 };
-export const ROLE_PILL: Record<'GUIDE' | 'SENTINELLE', 'violet' | 'or'> = {
+export const ROLE_PILL: Record<'GUIDE' | 'SENTINELLE' | 'REGION', 'violet' | 'or' | 'vert'> = {
   GUIDE: 'violet',
   SENTINELLE: 'or',
+  REGION: 'vert',
 };
 
 export function createGuideColumns(
   actions: {
     onSuspend: (user: User) => void;
     onReactivate: (user: User) => void;
+    onPromote?: (user: User) => void;
     pendingSuspend: string | null;
     setPendingSuspend: (id: string | null) => void;
     actionLoading: string | null;
@@ -250,7 +253,7 @@ export function createGuideColumns(
               avatarUrl={u.avatarUrl}
               initials={`${u.nom[0]}${u.prenoms[0]}`}
               sizeClass="w-7 h-7 shrink-0"
-              bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : 'bg-[#D9A441]'}
+              bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : u.role === 'REGION' ? 'bg-[#1F1B2E]' : 'bg-[#D9A441]'}
               textClass="text-[10px] font-bold text-white"
             />
             <span className="font-semibold text-[#1F1B2E] truncate">
@@ -284,13 +287,13 @@ export function createGuideColumns(
         <DataTableColumnHeader column={column} title="Rôle" />
       ),
       cell: ({ row }) => (
-        <Pill variant={ROLE_PILL[row.original.role as 'GUIDE' | 'SENTINELLE']}>
-          {ROLE_LABEL[row.original.role as 'GUIDE' | 'SENTINELLE']}
+        <Pill variant={ROLE_PILL[row.original.role as 'GUIDE' | 'SENTINELLE' | 'REGION']}>
+          {ROLE_LABEL[row.original.role as 'GUIDE' | 'SENTINELLE' | 'REGION']}
         </Pill>
       ),
       meta: {
         exportHeader: 'Rôle',
-        exportValue: row => ROLE_LABEL[row.role as 'GUIDE' | 'SENTINELLE'] ?? row.role,
+        exportValue: row => ROLE_LABEL[row.role as 'GUIDE' | 'SENTINELLE' | 'REGION'] ?? row.role,
       },
     },
     {
@@ -364,7 +367,17 @@ export function createGuideColumns(
         const canReactivate = u.statutProfil === 'SUSPENDU';
 
         return (
-          <>
+          <div className="flex flex-col gap-1">
+            {actions.onPromote && (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION') && !isPending && (
+              <button
+                type="button"
+                onClick={() => actions.onPromote!(u)}
+                disabled={isLoading}
+                className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] disabled:opacity-50"
+              >
+                ⇅ Rôle
+              </button>
+            )}
             {canReactivate && (
               <button
                 type="button"
@@ -404,10 +417,10 @@ export function createGuideColumns(
                 </button>
               </div>
             )}
-            {!canSuspend && !canReactivate && (
+            {!actions.onPromote && !canSuspend && !canReactivate && (
               <span className="text-[10px] text-[#b0b0bc]">—</span>
             )}
-          </>
+          </div>
         );
       },
     },

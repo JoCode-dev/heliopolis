@@ -20,7 +20,6 @@ const DRAWER_SECTIONS = [
       { href: '/dashboard/admin/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/admin/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/admin/guides',       icon: '📖', label: 'Encadrants' },
-      { href: '/dashboard/admin/region',       icon: '🌍', label: 'Membres rég.' },
     ],
   },
   {

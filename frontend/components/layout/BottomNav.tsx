@@ -11,7 +11,6 @@ interface NavItem { href: string; icon: string; label: string; }
 
 const GUEST_ITEMS: NavItem[] = [
   { href: '/',          icon: '🏠', label: 'Accueil'  },
-  { href: '/codex',     icon: '🪶', label: 'Codex'    },
   { href: '/activation',icon: '🛡️', label: 'S\'inscrire' },
 ];
 

@@ -235,7 +235,7 @@ export class UsersService {
   async importerMatricules(
     buffer: Buffer,
     actor: AuthUser,
-  ): Promise<{ importes: number; ignores: number; erreurs: { matricule: string; raison: string }[] }> {
+  ): Promise<{ importes: number; fusionnes: number; ignores: number; erreurs: { matricule: string; raison: string }[]; districtsCrees: number; paroissesCrees: number }> {
     if (actor.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Seul l\'administrateur peut importer des matricules');
     }
@@ -244,18 +244,30 @@ export class UsersService {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
 
+    // Région par défaut pour la création de nouveaux districts
+    const regionId: string | null =
+      actor.regionId ??
+      (await this.prisma.region.findFirst({ select: { id: true } }))?.id ??
+      null;
+
     // Cache district / paroisse pour éviter N+1
     const districtCache = new Map<string, string | null>();
     const parishCache   = new Map<string, string | null>();
+    let districtsCrees  = 0;
+    let paroissesCrees  = 0;
 
     const resolveDistrict = async (nom: string): Promise<string | null> => {
       const key = nom.toLowerCase().trim();
       if (!key) return null;
       if (districtCache.has(key)) return districtCache.get(key)!;
-      const d = await this.prisma.district.findFirst({
+      let d = await this.prisma.district.findFirst({
         where: { nom: { equals: key, mode: 'insensitive' } },
         select: { id: true },
       });
+      if (!d && regionId) {
+        d = await this.prisma.district.create({ data: { nom, regionId }, select: { id: true } });
+        districtsCrees++;
+      }
       const id = d?.id ?? null;
       districtCache.set(key, id);
       return id;
@@ -268,7 +280,11 @@ export class UsersService {
       if (parishCache.has(cacheKey)) return parishCache.get(cacheKey)!;
       const where: Prisma.ParishWhereInput = { nom: { equals: nomKey, mode: 'insensitive' } };
       if (districtId) where.districtId = districtId;
-      const p = await this.prisma.parish.findFirst({ where, select: { id: true } });
+      let p = await this.prisma.parish.findFirst({ where, select: { id: true } });
+      if (!p && districtId) {
+        p = await this.prisma.parish.create({ data: { nom, districtId }, select: { id: true } });
+        paroissesCrees++;
+      }
       const id = p?.id ?? null;
       parishCache.set(cacheKey, id);
       return id;
@@ -287,8 +303,9 @@ export class UsersService {
       return isNaN(d.getTime()) ? null : d;
     };
 
-    let importes = 0;
-    let ignores = 0;
+    let importes  = 0;
+    let fusionnes = 0;
+    let ignores   = 0;
     const erreurs: { matricule: string; raison: string }[] = [];
 
     for (const row of rows) {
@@ -337,9 +354,41 @@ export class UsersService {
         continue;
       }
 
-      const existing = await this.prisma.user.findUnique({ where: { matricule } });
+      const existing = await this.prisma.user.findUnique({
+        where: { matricule },
+        select: { id: true, nom: true, prenoms: true, districtId: true, parishId: true, regionId: true },
+      });
+
       if (existing) {
-        ignores++;
+        // Fusion : compléter uniquement les champs manquants
+        const updates: Record<string, unknown> = {};
+
+        if (!existing.nom      && nomVal)     updates.nom     = nomVal;
+        if (!existing.prenoms  && prenomsVal) updates.prenoms = prenomsVal;
+        if (!existing.regionId && directRegionId) updates.regionId = directRegionId;
+
+        // District : résoudre (et créer si besoin) uniquement si manquant
+        let mergeDistrictId = existing.districtId;
+        if (!existing.districtId) {
+          const resolvedDistrict = directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null);
+          if (resolvedDistrict) {
+            updates.districtId = resolvedDistrict;
+            mergeDistrictId    = resolvedDistrict;
+          }
+        }
+
+        // Paroisse : résoudre uniquement si manquante (on a besoin du districtId final)
+        if (!existing.parishId && mergeDistrictId) {
+          const resolvedParish = directParishId ?? (parishName ? await resolveParish(parishName, mergeDistrictId) : null);
+          if (resolvedParish) updates.parishId = resolvedParish;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await this.prisma.user.update({ where: { id: existing.id }, data: updates });
+          fusionnes++;
+        } else {
+          ignores++;
+        }
         continue;
       }
 
@@ -365,13 +414,13 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.CREATE,
       category: 'user',
-      summary: `Import de matricules : ${importes} importés, ${ignores} ignorés, ${erreurs.length} erreurs`,
+      summary: `Import : ${importes} créés, ${fusionnes} fusionnés, ${ignores} ignorés, ${districtsCrees} districts créés, ${paroissesCrees} paroisses créées, ${erreurs.length} erreurs`,
       actor,
       target: { entityType: 'User', entityId: 'bulk' },
-      metadata: { importes, ignores, erreurs: erreurs.length },
+      metadata: { importes, fusionnes, ignores, erreurs: erreurs.length, districtsCrees, paroissesCrees },
     });
 
-    return { importes, ignores, erreurs };
+    return { importes, fusionnes, ignores, erreurs, districtsCrees, paroissesCrees };
   }
 
   /** Promotion : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION */
@@ -384,20 +433,17 @@ export class UsersService {
       select: { id: true, nom: true, prenoms: true, role: true, statutProfil: true },
     });
     if (!user) throw new NotFoundException('Membre introuvable');
-    if (user.statutProfil !== ProfileStatus.ACTIF) {
-      throw new BadRequestException('Seul un membre actif peut être promu');
+    if (user.statutProfil === ProfileStatus.SUSPENDU || user.statutProfil === ProfileStatus.ARCHIVE) {
+      throw new BadRequestException('Un membre suspendu ou archivé ne peut pas être promu');
     }
 
-    if (targetRole === UserRole.SENTINELLE) {
-      if (user.role !== UserRole.GUIDE) {
-        throw new BadRequestException('Seul un guide peut être promu sentinelle');
-      }
-    } else if (targetRole === UserRole.REGION) {
-      if (user.role !== UserRole.GUIDE && user.role !== UserRole.SENTINELLE) {
-        throw new BadRequestException('Seul un guide ou une sentinelle peut être promu régional');
-      }
-    } else {
-      throw new BadRequestException('Promotion non autorisée vers ce rôle');
+    const transitions: Partial<Record<UserRole, UserRole[]>> = {
+      [UserRole.GUIDE]:      [UserRole.SENTINELLE, UserRole.REGION],
+      [UserRole.SENTINELLE]: [UserRole.GUIDE,      UserRole.REGION],
+      [UserRole.REGION]:     [UserRole.GUIDE,      UserRole.SENTINELLE],
+    };
+    if (!transitions[user.role]?.includes(targetRole)) {
+      throw new BadRequestException(`Transition ${user.role} → ${targetRole} non autorisée`);
     }
 
     const updated = await this.prisma.user.update({

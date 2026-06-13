@@ -41,6 +41,9 @@ function GuidesContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingSuspend, setPendingSuspend] = useState<string | null>(null);
+  const [promoting, setPromoting] = useState<User | null>(null);
+  const [promoteLoading, setPromoteLoading] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [page, setPage] = usePaginationUrl();
 
   const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
@@ -50,6 +53,7 @@ function GuidesContent() {
         { value: ROLE_ALL, label: 'Tous' },
         { value: 'GUIDE', label: 'Guide' },
         { value: 'SENTINELLE', label: 'Sentinelle' },
+        { value: 'REGION', label: 'Région' },
       ]},
       { id: 'districtId', type: 'select', placeholder: 'Tous les districts', options: [], resetOnChange: ['parishId'] },
       { id: 'parishId', type: 'select', placeholder: 'Toutes les paroisses', options: [] },
@@ -76,6 +80,7 @@ function GuidesContent() {
       { value: ROLE_ALL, label: 'Tous' },
       { value: 'GUIDE', label: 'Guide' },
       { value: 'SENTINELLE', label: 'Sentinelle' },
+      { value: 'REGION', label: 'Région' },
     ]},
     {
       id: 'districtId',
@@ -98,13 +103,14 @@ function GuidesContent() {
   useEffect(() => {
     (async () => {
       try {
-        const [g, s, d, p] = await Promise.all([
+        const [g, s, r, d, p] = await Promise.all([
           usersApi.list({ role: 'GUIDE' }),
           usersApi.list({ role: 'SENTINELLE' }),
+          usersApi.list({ role: 'REGION' }),
           territoriesApi.districts(),
           territoriesApi.parishes(),
         ]);
-        setGuides([...g.data, ...s.data]);
+        setGuides([...g.data, ...s.data, ...r.data]);
         setDistricts(d.data);
         setParishes(p.data);
       } catch { /* ignore */ }
@@ -116,6 +122,17 @@ function GuidesContent() {
     () => filterUsers(guides, values, { parishDistrictMap, roleAllValue: ROLE_ALL }),
     [guides, values, parishDistrictMap],
   );
+
+  const handlePromouvoir = async (targetRole: 'GUIDE' | 'SENTINELLE' | 'REGION') => {
+    if (!promoting) return;
+    setPromoteLoading(true);
+    try {
+      const { data } = await usersApi.promouvoir(promoting.id, targetRole);
+      setGuides(prev => prev.map(u => u.id === promoting.id ? { ...u, role: (data as User).role } : u));
+      setPromoting(null);
+    } catch { /* ignore */ }
+    finally { setPromoteLoading(false); }
+  };
 
   const handleStatut = async (user: User, newStatut: 'SUSPENDU' | 'ACTIF') => {
     setActionLoading(user.id);
@@ -131,6 +148,7 @@ function GuidesContent() {
     () => createGuideColumns({
       onSuspend: u => handleStatut(u, 'SUSPENDU'),
       onReactivate: u => handleStatut(u, 'ACTIF'),
+      onPromote: u => setPromoting(u),
       pendingSuspend,
       setPendingSuspend,
       actionLoading,
@@ -156,6 +174,7 @@ function GuidesContent() {
 
   const nbGuides = guides.filter(u => u.role === 'GUIDE').length;
   const nbSentinelles = guides.filter(u => u.role === 'SENTINELLE').length;
+  const nbRegion = guides.filter(u => u.role === 'REGION').length;
   const nbActifs = guides.filter(u => u.statutProfil === 'ACTIF').length;
   const nbSuspendus = guides.filter(u => u.statutProfil === 'SUSPENDU').length;
   const nbAdhAJour = guides.filter(u => u.adhesions?.[0]?.statut === 'A_JOUR').length;
@@ -163,16 +182,19 @@ function GuidesContent() {
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
+      {/* ── Header ── */}
       <div className="flex justify-between items-center mb-5 border-b border-[#ececf0] pb-4">
         <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">📖 Encadrants</h1>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-sm text-[#6b6b78]">{guides.length} encadrant{guides.length > 1 ? 's' : ''}</span>
-          <DataTableExportButtons
-            onExportExcel={exportExcel}
-            onExportPdf={exportPdf}
-            onExportCsv={exportCsv}
-            disabled={exportDisabled}
-          />
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-sm text-[#6b6b78] hidden sm:inline">{guides.length} encadrant{guides.length > 1 ? 's' : ''}</span>
+          <div className="hidden lg:flex items-center gap-2">
+            <DataTableExportButtons
+              onExportExcel={exportExcel}
+              onExportPdf={exportPdf}
+              onExportCsv={exportCsv}
+              disabled={exportDisabled}
+            />
+          </div>
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
@@ -183,23 +205,26 @@ function GuidesContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
+      {/* ── KPIs : scroll horizontal sur mobile, grille sur desktop ── */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-5 -mx-4 px-4 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible lg:pb-0">
         {[
           { label: 'Guides', value: nbGuides, color: '#6A1B9A' },
           { label: 'Sentinelles', value: nbSentinelles, color: '#D9A441' },
+          { label: 'Région', value: nbRegion, color: '#1F1B2E' },
           { label: 'Actifs', value: nbActifs, color: '#2E7D32' },
           { label: 'Suspendus', value: nbSuspendus, color: '#E55A35' },
-          { label: 'Adhés. à jour', value: nbAdhAJour, color: '#2E7D32' },
+          { label: 'À jour', value: nbAdhAJour, color: '#2E7D32' },
           { label: 'Non à jour', value: nbAdhNonAJour, color: '#E55A35' },
         ].map(kpi => (
-          <div key={kpi.label} className="bg-white border border-[#ececf0] rounded-xl p-3">
+          <div key={kpi.label} className="flex-shrink-0 min-w-[76px] lg:min-w-0 bg-white border border-[#ececf0] rounded-xl p-3">
             <div className="text-xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
             <div className="text-[10px] text-[#6b6b78] uppercase tracking-wide mt-0.5 leading-tight">{kpi.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="mb-5">
+      {/* ── Filtres desktop ── */}
+      <div className="hidden lg:block mb-5">
         <DataTableFilters
           configs={filterConfigs}
           values={values}
@@ -207,6 +232,73 @@ function GuidesContent() {
           onReset={resetFilters}
           hasActiveFilters={hasActiveFilters}
         />
+      </div>
+
+      {/* ── Filtres mobile : recherche + toggle + avancés repliables ── */}
+      <div className="lg:hidden mb-5 flex flex-col gap-2">
+        <input
+          type="text"
+          value={(values.search as string) ?? ''}
+          onChange={e => setFilter('search', e.target.value)}
+          placeholder="Rechercher par nom, matricule, paroisse…"
+          className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] placeholder:text-[#b0b0bc]"
+        />
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {[
+            { value: ROLE_ALL, label: 'Tous' },
+            { value: 'GUIDE', label: 'Guide' },
+            { value: 'SENTINELLE', label: 'Sentinelle' },
+            { value: 'REGION', label: 'Région' },
+          ].map(opt => (
+            <button key={opt.value} type="button"
+              onClick={() => setFilter('role', opt.value)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                ((values.role as string) ?? ROLE_ALL) === opt.value
+                  ? 'bg-[#1F1B2E] text-white'
+                  : 'bg-[#f0f0f4] text-[#6b6b78]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => setMobileFiltersOpen(v => !v)}
+          className={`flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+            hasActiveFilters ? 'border-[#1F1B2E]/30 bg-[#f0f0f4] text-[#1F1B2E]' : 'border-[#e6e6ea] bg-white text-[#6b6b78]'
+          }`}>
+          <span>Filtres avancés{hasActiveFilters ? ' ·' : ''}</span>
+          <span className={`transition-transform duration-200 text-xs ${mobileFiltersOpen ? 'rotate-180' : ''}`}>▾</span>
+        </button>
+        {mobileFiltersOpen && (
+          <div className="flex flex-col gap-2 pt-1">
+            <select value={(values.districtId as string) ?? ''} onChange={e => setFilter('districtId', e.target.value || undefined)}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+              <option value="">Tous les districts</option>
+              {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
+            </select>
+            <select value={(values.parishId as string) ?? ''} onChange={e => setFilter('parishId', e.target.value || undefined)}
+              disabled={visibleParishes.length === 0}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] disabled:opacity-40">
+              <option value="">Toutes les paroisses</option>
+              {visibleParishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+            </select>
+            <select value={(values.statut as string) ?? ''} onChange={e => setFilter('statut', e.target.value || undefined)}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+              <option value="">Tous les statuts</option>
+              {STATUT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select value={(values.adhesion as string) ?? ''} onChange={e => setFilter('adhesion', e.target.value || undefined)}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+              <option value="">Toutes adhésions</option>
+              {ADHESION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            {hasActiveFilters && (
+              <button type="button" onClick={resetFilters}
+                className="text-xs font-semibold text-[#E55A35] text-center py-1">
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -237,7 +329,7 @@ function GuidesContent() {
                       avatarUrl={u.avatarUrl}
                       initials={`${u.nom[0]}${u.prenoms[0]}`}
                       sizeClass="w-10 h-10"
-                      bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : 'bg-[#D9A441]'}
+                      bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : u.role === 'REGION' ? 'bg-[#1F1B2E]' : 'bg-[#D9A441]'}
                       textClass="text-xs font-bold text-white"
                     />
                     <div className="flex-1 min-w-0">
@@ -247,8 +339,8 @@ function GuidesContent() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Pill variant={ROLE_PILL[u.role as 'GUIDE' | 'SENTINELLE']} className="text-[10px]">
-                        {ROLE_LABEL[u.role as 'GUIDE' | 'SENTINELLE']}
+                      <Pill variant={ROLE_PILL[u.role as 'GUIDE' | 'SENTINELLE' | 'REGION']} className="text-[10px]">
+                        {ROLE_LABEL[u.role as 'GUIDE' | 'SENTINELLE' | 'REGION']}
                       </Pill>
                       <Pill variant={STATUT_PILL[u.statutProfil] ?? 'gris'} className="text-[10px]">
                         {STATUT_LABEL[u.statutProfil] ?? u.statutProfil}
@@ -260,8 +352,14 @@ function GuidesContent() {
                       )}
                     </div>
                   </div>
-                  {(canSuspend || canReactivate) && (
-                    <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4]">
+                  {((canSuspend || canReactivate) || (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION')) && (
+                    <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4] flex flex-col gap-1.5">
+                      {!isPending && (
+                        <button type="button" onClick={() => setPromoting(u)} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] transition-colors disabled:opacity-50">
+                          Changer le rôle
+                        </button>
+                      )}
                       {canReactivate && (
                         <button type="button" onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
                           className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
@@ -314,11 +412,77 @@ function GuidesContent() {
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={u => {
-          if (u.role === 'GUIDE' || u.role === 'SENTINELLE') setGuides(prev => [u, ...prev]);
+          if (u.role === 'GUIDE') setGuides(prev => [u, ...prev]);
         }}
         defaultRole="GUIDE"
-        allowedRoles={['GUIDE', 'SENTINELLE']}
+        allowedRoles={['GUIDE']}
       />
+
+      {/* ── Modal promotion ── */}
+      {promoting && (() => {
+        const role = promoting.role as 'GUIDE' | 'SENTINELLE' | 'REGION';
+        const ROLES = {
+          GUIDE:      { icon: '📖', label: 'Guide',         desc: 'Responsable d\'une paroisse', bg: 'bg-[#f5eeff]', border: 'border-[#6A1B9A]/20', iconBg: 'bg-[#6A1B9A]' },
+          SENTINELLE: { icon: '🛡️', label: 'Sentinelle',   desc: 'Responsable d\'un district',  bg: 'bg-[#fdf8ec]', border: 'border-[#D9A441]/30', iconBg: 'bg-[#D9A441]' },
+          REGION:     { icon: '🌍', label: 'Membre Région', desc: 'Conseil régional',             bg: 'bg-[#f0f0f4]', border: 'border-[#1F1B2E]/10', iconBg: 'bg-[#1F1B2E]' },
+        };
+        const promotions   = role === 'GUIDE' ? (['SENTINELLE', 'REGION'] as const)  : role === 'SENTINELLE' ? (['REGION'] as const) : [];
+        const retrogrades  = role === 'REGION' ? (['SENTINELLE', 'GUIDE'] as const) : role === 'SENTINELLE' ? (['GUIDE'] as const)  : [];
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-end z-[60]" onClick={() => !promoteLoading && setPromoting(null)}>
+            <div className="bg-white rounded-t-2xl w-full max-w-lg mx-auto shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="px-5 pt-4 pb-3 border-b border-[#f0f0f4]">
+                <p className="text-[11px] text-[#9b9ba8] mb-0.5">{promoting.prenoms} {promoting.nom}</p>
+                <p className="text-sm font-bold text-[#1F1B2E]">Changer le rôle · actuellement <span className="text-[#6A1B9A]">{ROLES[role].label}</span></p>
+              </div>
+              <div className="flex flex-col p-3 gap-2">
+                {promotions.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1">Promouvoir</p>
+                    {promotions.map(target => {
+                      const r = ROLES[target];
+                      return (
+                        <button key={target} onClick={() => handlePromouvoir(target)} disabled={promoteLoading}
+                          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl ${r.bg} border ${r.border} active:opacity-80 text-left disabled:opacity-60`}>
+                          <span className={`w-9 h-9 rounded-full ${r.iconBg} flex items-center justify-center text-base flex-shrink-0`}>{r.icon}</span>
+                          <div>
+                            <div className="font-semibold text-sm text-[#1F1B2E]">{r.label}</div>
+                            <div className="text-xs text-[#9b9ba8]">{r.desc}</div>
+                          </div>
+                          <span className="ml-auto text-xs text-[#9b9ba8]">↑</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+                {retrogrades.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1 mt-1">Rétrograder</p>
+                    {retrogrades.map(target => {
+                      const r = ROLES[target];
+                      return (
+                        <button key={target} onClick={() => handlePromouvoir(target)} disabled={promoteLoading}
+                          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white border border-[#e6e6ea] active:bg-[#f9f9fc] text-left disabled:opacity-60">
+                          <span className={`w-9 h-9 rounded-full ${r.iconBg} flex items-center justify-center text-base flex-shrink-0 opacity-70`}>{r.icon}</span>
+                          <div>
+                            <div className="font-semibold text-sm text-[#6b6b78]">{r.label}</div>
+                            <div className="text-xs text-[#b0b0bc]">{r.desc}</div>
+                          </div>
+                          <span className="ml-auto text-xs text-[#b0b0bc]">↓</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+                <button onClick={() => setPromoting(null)} disabled={promoteLoading}
+                  className="w-full py-3 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78] mt-1">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
