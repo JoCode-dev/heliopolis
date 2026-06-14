@@ -106,15 +106,21 @@ export default function ConseilInscriptionPage() {
   }, []);
 
   useEffect(() => {
-    if (!districtId) { setParishes([]); return; }
+    if (!districtId) return;
     territoriesApi.parishes(districtId)
       .then(r => setParishes(r.data as Parish[]))
       .catch(() => {});
   }, [districtId]);
 
   useEffect(() => {
-    prefillFromUser();
-  }, [prefillFromUser]);
+    if (isLoggedIn) {
+      // Schedule state updates asynchronously to avoid cascading renders
+      const timer = setTimeout(() => {
+        prefillFromUser();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoggedIn, prefillFromUser]);
 
   const handleSubmit = async () => {
     if (!nom.trim() || !prenoms.trim()) {
