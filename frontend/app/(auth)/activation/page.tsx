@@ -155,6 +155,7 @@ function ActivationContent() {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError("");
+    router.replace(m === "connexion" ? "/activation?login=1" : "/activation");
   };
 
   return (
