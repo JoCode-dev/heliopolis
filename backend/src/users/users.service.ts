@@ -244,30 +244,43 @@ export class UsersService {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
 
-    // Région par défaut pour la création de nouveaux districts
-    const regionId: string | null =
-      actor.regionId ??
-      (await this.prisma.region.findFirst({ select: { id: true } }))?.id ??
-      null;
-
     // Cache district / paroisse pour éviter N+1
     const districtCache = new Map<string, string | null>();
     const parishCache   = new Map<string, string | null>();
     let districtsCrees  = 0;
     let paroissesCrees  = 0;
 
+    // Normalisation pour correspondance floue : minuscules, sans accents, sans "requin " en tête
+    const normalize = (s: string) =>
+      s.toLowerCase().trim()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/^requin\s+/, '');
+
+    // Chargement unique de tous les districts actifs pour le matching flou
+    const allDistricts = await this.prisma.district.findMany({
+      where: { deletedAt: null },
+      select: { id: true, nom: true },
+    });
+
     const resolveDistrict = async (nom: string): Promise<string | null> => {
       const key = nom.toLowerCase().trim();
       if (!key) return null;
       if (districtCache.has(key)) return districtCache.get(key)!;
+
+      // 1. Correspondance exacte (insensible à la casse)
       let d = await this.prisma.district.findFirst({
-        where: { nom: { equals: key, mode: 'insensitive' } },
+        where: { nom: { equals: nom.trim(), mode: 'insensitive' }, deletedAt: null },
         select: { id: true },
       });
-      if (!d && regionId) {
-        d = await this.prisma.district.create({ data: { nom, regionId }, select: { id: true } });
-        districtsCrees++;
+
+      // 2. Correspondance floue : normaliser accents + préfixe "Requin"
+      if (!d) {
+        const normInput = normalize(nom);
+        const match = allDistricts.find(existing => normalize(existing.nom) === normInput);
+        if (match) d = { id: match.id };
       }
+
+      // Plus de création automatique de district
       const id = d?.id ?? null;
       districtCache.set(key, id);
       return id;
@@ -393,6 +406,12 @@ export class UsersService {
       }
 
       const districtId = directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null);
+
+      // Avertir si le district du fichier ne correspond à aucun district existant
+      if (districtName && !districtId) {
+        erreurs.push({ matricule, raison: `District introuvable : "${districtName}"` });
+      }
+
       const parishId   = directParishId   ?? (parishName   ? await resolveParish(parishName, districtId) : null);
 
       await this.prisma.user.create({
@@ -414,7 +433,7 @@ export class UsersService {
     this.actionLog.record({
       action: AuditAction.CREATE,
       category: 'user',
-      summary: `Import : ${importes} créés, ${fusionnes} fusionnés, ${ignores} ignorés, ${districtsCrees} districts créés, ${paroissesCrees} paroisses créées, ${erreurs.length} erreurs`,
+      summary: `Import : ${importes} créés, ${fusionnes} fusionnés, ${ignores} ignorés, ${paroissesCrees} paroisses créées, ${erreurs.length} erreurs`,
       actor,
       target: { entityType: 'User', entityId: 'bulk' },
       metadata: { importes, fusionnes, ignores, erreurs: erreurs.length, districtsCrees, paroissesCrees },

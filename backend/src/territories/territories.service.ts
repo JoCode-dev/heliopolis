@@ -138,6 +138,44 @@ export class TerritoriesService {
     });
   }
 
+  async renameDistrict(id: string, nom: string) {
+    const district = await this.prisma.district.findFirst({ where: { id, deletedAt: null } });
+    if (!district) throw new NotFoundException('District introuvable');
+
+    const conflict = await this.prisma.district.findFirst({
+      where: { regionId: district.regionId, nom, deletedAt: null, NOT: { id } },
+    });
+    if (conflict) throw new ConflictException('Un district avec ce nom existe déjà');
+
+    return this.prisma.district.update({
+      where: { id },
+      data: { nom },
+      include: { region: { select: { id: true, nom: true } }, _count: { select: { parishes: true, users: true } } },
+    });
+  }
+
+  async mergeDistricts(sourceId: string, targetId: string) {
+    if (sourceId === targetId) throw new ConflictException('Source et cible identiques');
+
+    const [source, target] = await Promise.all([
+      this.prisma.district.findFirst({ where: { id: sourceId, deletedAt: null } }),
+      this.prisma.district.findFirst({ where: { id: targetId, deletedAt: null } }),
+    ]);
+    if (!source) throw new NotFoundException('District source introuvable');
+    if (!target) throw new NotFoundException('District cible introuvable');
+
+    await this.prisma.$transaction([
+      // Migrer les paroisses
+      this.prisma.parish.updateMany({ where: { districtId: sourceId, deletedAt: null }, data: { districtId: targetId } }),
+      // Migrer les membres
+      this.prisma.user.updateMany({ where: { districtId: sourceId, deletedAt: null }, data: { districtId: targetId } }),
+      // Soft-delete le district source
+      this.prisma.district.update({ where: { id: sourceId }, data: { deletedAt: new Date() } }),
+    ]);
+
+    return { merged: true, targetId, sourceId };
+  }
+
   async deleteParish(id: string) {
     const parish = await this.prisma.parish.findFirst({
       where: { id, deletedAt: null },

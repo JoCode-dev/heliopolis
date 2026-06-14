@@ -1,8 +1,8 @@
 /**
  * Seed — Héliopolis · Route en Joie 2026 · Région d'Abidjan
  *
- * SEED_STRUCTURE=MYTHOLOGIQUE  → 5 Règnes · 21 Districts · 42 Sanctuaires (défaut)
- * SEED_STRUCTURE=CLASSIQUE     → 21 Districts Scouts · 784 Routiers (GARDIEN) · Route en Joie 2026
+ * SEED_STRUCTURE=CLASSIQUE     → 21 Districts Scouts officiels · Route en Joie 2026 (défaut)
+ * SEED_STRUCTURE=MYTHOLOGIQUE  → 5 Règnes · 21 Districts · 42 Sanctuaires (structure de démo)
  *
  * Exécuter : npx prisma db seed
  *            SEED_STRUCTURE=CLASSIQUE npx prisma db seed
@@ -172,22 +172,6 @@ const CLASSIQUE: SeedStructureData = {
   communityParish: 'LES CACHALOTS',
   districts: [
     {
-      nom: 'Agbakou In Hin Brê',
-      code: 'DIST-AIB',
-      parishes: ['Requin Bleu', 'Requin Renard', 'Requin Epineux'],
-    },
-    {
-      nom: 'Black Tail Shark',
-      code: 'DIST-BTS',
-      parishes: [
-        'BLACK JELLYFISH',
-        'Black Hamlet',
-        'BLACK MOLLY',
-        'Black Moray',
-        'BLACK STARFISH',
-      ],
-    },
-    {
       nom: 'Mango Taika',
       code: 'DIST-MTA',
       parishes: [
@@ -202,27 +186,9 @@ const CLASSIQUE: SeedStructureData = {
       ],
     },
     {
-      nom: 'Requin à Pointe Blanche',
-      code: 'DIST-RPB',
-      parishes: [
-        'PIEUVRE BLANCHE',
-        'TORTUE BLANCHE',
-        'STERNE BLANCHE',
-        'OTARIE BLANCHE',
-        'RAIE BLANCHE',
-        'Equipe de District Requin à Pointe Blanche',
-      ],
-    },
-    {
-      nom: 'Requin à Pointe Noire',
-      code: 'DIST-RPN',
-      parishes: [
-        'LES POISSONS CHATS',
-        'Les Etoiles de Mer',
-        'LES HYPPOCAMPES',
-        'LES RAIES MANTAS',
-        'LES PIRANHAS TACHETÉS',
-      ],
+      nom: 'Requin Agbakou In Hin Gbre',
+      code: 'DIST-AIB',
+      parishes: ['Requin Bleu', 'Requin Renard', 'Requin Epineux'],
     },
     {
       nom: 'Requin Baleine',
@@ -235,6 +201,17 @@ const CLASSIQUE: SeedStructureData = {
         'LES RORQUALS',
         'LES NARVALS',
         'LES BELUGAS',
+      ],
+    },
+    {
+      nom: 'Requin Black Tail Shark',
+      code: 'DIST-BTS',
+      parishes: [
+        'BLACK JELLYFISH',
+        'Black Hamlet',
+        'BLACK MOLLY',
+        'Black Moray',
+        'BLACK STARFISH',
       ],
     },
     {
@@ -251,18 +228,7 @@ const CLASSIQUE: SeedStructureData = {
       ],
     },
     {
-      nom: 'REQUIN CORAIL Alépé Nord',
-      code: 'DIST-RCA',
-      parishes: [
-        'LES DABOUKES DE AHOUE',
-        'LES AGUILLARTS DE LAME',
-        "LES GEY SHARKS  D'ATTIEKOI",
-        "LES REQUINS CITRONS D'AHOUTOUE",
-        'LES BLACKS SHARKS DE BROFODOUME',
-      ],
-    },
-    {
-      nom: 'Requin Des Caraibes',
+      nom: 'Requin Caraïbe',
       code: 'DIST-RDC',
       parishes: [
         'Les Nitainos',
@@ -273,7 +239,18 @@ const CLASSIQUE: SeedStructureData = {
       ],
     },
     {
-      nom: 'Requin Féroce',
+      nom: 'Requin Corail',
+      code: 'DIST-RCA',
+      parishes: [
+        'LES DABOUKES DE AHOUE',
+        'LES AGUILLARTS DE LAME',
+        "LES GEY SHARKS D'ATTIEKOI",
+        "LES REQUINS CITRONS D'AHOUTOUE",
+        'LES BLACKS SHARKS DE BROFODOUME',
+      ],
+    },
+    {
+      nom: 'Requin Féroces',
       code: 'DIST-RFE',
       parishes: ['Les Marsouins', 'Les Vaquitas', 'Les Rorquals'],
     },
@@ -288,14 +265,14 @@ const CLASSIQUE: SeedStructureData = {
       parishes: [
         'LES LANCETTES LUMINEUX',
         'LES REQUINS LANCETTES DOCILE',
-        'LES REQUINS LANCETTES ROYAUX /REQUIN LANCETTE  AIGUILLARD ROYAL',
+        'LES REQUINS LANCETTES ROYAUX',
         'LES REQUINS LANCETTES ELEGANT',
         'LES REQUINS LANCETTES AVIATORS',
         'LES REQUINS LANCETTES EPINEUX',
       ],
     },
     {
-      nom: 'Requin Leopard',
+      nom: 'Requin Léopard',
       code: 'DIST-RLE',
       parishes: [
         'CHAPELLE SAINTE TRINITE',
@@ -304,7 +281,7 @@ const CLASSIQUE: SeedStructureData = {
       ],
     },
     {
-      nom: 'Requin MAKO',
+      nom: 'Requin Maquo',
       code: 'DIST-RMA',
       parishes: [
         'LES REQUINS SAUMON',
@@ -347,7 +324,7 @@ const CLASSIQUE: SeedStructureData = {
       ],
     },
     {
-      nom: 'REQUIN PELERIN',
+      nom: 'Requin Pélerin',
       code: 'DIST-RPL',
       parishes: [
         'BALEINE À BOSSE',
@@ -359,9 +336,27 @@ const CLASSIQUE: SeedStructureData = {
       ],
     },
     {
-      nom: 'Requin Sable',
-      code: 'DIST-RSA',
-      parishes: ['LES BIDJARAS', 'LES WIRADJURIS', 'LES WURUNDJERIS'],
+      nom: 'Requin Pointe blanche',
+      code: 'DIST-RPB',
+      parishes: [
+        'PIEUVRE BLANCHE',
+        'TORTUE BLANCHE',
+        'STERNE BLANCHE',
+        'OTARIE BLANCHE',
+        'RAIE BLANCHE',
+        'Equipe de District Requin Pointe blanche',
+      ],
+    },
+    {
+      nom: 'Requin Pointe noire',
+      code: 'DIST-RPN',
+      parishes: [
+        'LES POISSONS CHATS',
+        'Les Etoiles de Mer',
+        'LES HYPPOCAMPES',
+        'LES RAIES MANTAS',
+        'LES PIRANHAS TACHETÉS',
+      ],
     },
     {
       nom: 'Requin Scie',
@@ -369,7 +364,7 @@ const CLASSIQUE: SeedStructureData = {
       parishes: ['ANGE DE MER', 'LION DE MER', 'LES ELEPHANT DE MER'],
     },
     {
-      nom: 'Requin Taureau Alépé Sud',
+      nom: 'Requin Taureau',
       code: 'DIST-RTA',
       parishes: [
         'LES LONGIMANES',
@@ -377,6 +372,11 @@ const CLASSIQUE: SeedStructureData = {
         'LES BABOSSES',
         'LES REQUINS TIGRE',
       ],
+    },
+    {
+      nom: 'Requin des sables',
+      code: 'DIST-RSA',
+      parishes: ['LES BIDJARAS', 'LES WIRADJURIS', 'LES WURUNDJERIS'],
     },
   ],
 };
@@ -387,7 +387,7 @@ const CLASSIQUE: SeedStructureData = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const structureKey = (process.env.SEED_STRUCTURE ?? 'MYTHOLOGIQUE') as
+  const structureKey = (process.env.SEED_STRUCTURE ?? 'CLASSIQUE') as
     | 'MYTHOLOGIQUE'
     | 'CLASSIQUE';
 
@@ -766,8 +766,8 @@ async function main() {
   console.log('  └─────────────────┴──────────────┴──────────────────────┘');
   console.log('');
   console.log('  Pour changer de structure :');
-  console.log('  SEED_STRUCTURE=CLASSIQUE     npx prisma db seed');
-  console.log('  SEED_STRUCTURE=MYTHOLOGIQUE  npx prisma db seed');
+  console.log('  SEED_STRUCTURE=MYTHOLOGIQUE  npx prisma db seed  (structure de démo)');
+  console.log('  SEED_STRUCTURE=CLASSIQUE     npx prisma db seed  (défaut — districts officiels)');
   console.log('');
   console.log('  URL API  : http://localhost:4000/api');
   console.log('  URL App  : http://localhost:3000');

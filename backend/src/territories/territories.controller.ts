@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { TerritoriesService } from './territories.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -41,6 +41,20 @@ export class TerritoriesController {
   @Post('districts')
   createDistrict(@Body() body: { nom: string; code?: string; regionId: string }) {
     return this.territoriesService.createDistrict(body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch('districts/:id/rename')
+  renameDistrict(@Param('id') id: string, @Body() body: { nom: string }) {
+    return this.territoriesService.renameDistrict(id, body.nom);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('districts/:id/merge')
+  mergeDistricts(@Param('id') sourceId: string, @Body() body: { targetId: string }) {
+    return this.territoriesService.mergeDistricts(sourceId, body.targetId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

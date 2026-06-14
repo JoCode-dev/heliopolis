@@ -25,6 +25,18 @@ export default function AdminDistrictsPage() {
   // Suppression
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Renommer
+  const [renameTarget, setRenameTarget] = useState<District | null>(null);
+  const [renameNom, setRenameNom] = useState('');
+  const [renameError, setRenameError] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
+
+  // Fusionner
+  const [mergeSource, setMergeSource] = useState<District | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState('');
+  const [mergeSaving, setMergeSaving] = useState(false);
+  const [mergeError, setMergeError] = useState('');
+
   useEffect(() => {
     (async () => {
       try {
@@ -87,6 +99,38 @@ export default function AdminDistrictsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleRename(e: React.FormEvent) {
+    e.preventDefault();
+    if (!renameTarget) return;
+    const nom = renameNom.trim();
+    if (!nom) return;
+    setRenameSaving(true);
+    setRenameError('');
+    try {
+      const { data } = await territoriesApi.renameDistrict(renameTarget.id, nom);
+      setDistricts(prev => prev.map(d => d.id === renameTarget.id ? data : d).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')));
+      setRenameTarget(null);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erreur';
+      setRenameError(msg);
+    } finally { setRenameSaving(false); }
+  }
+
+  async function handleMerge(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mergeSource || !mergeTargetId) return;
+    setMergeSaving(true);
+    setMergeError('');
+    try {
+      await territoriesApi.mergeDistricts(mergeSource.id, mergeTargetId);
+      setDistricts(prev => prev.filter(d => d.id !== mergeSource.id));
+      setMergeSource(null);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erreur lors de la fusion';
+      setMergeError(msg);
+    } finally { setMergeSaving(false); }
   }
 
   async function handleDelete(district: District) {
@@ -187,24 +231,103 @@ export default function AdminDistrictsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-auto">
+              <div className="flex gap-2 mt-auto flex-wrap">
                 <Link
                   href={`/dashboard/admin/paroisses?districtId=${district.id}`}
                   className="flex-1 text-center text-xs border border-[#e0e0ea] text-[#1F1B2E] rounded-lg px-3 py-2 font-semibold hover:bg-[#f5f5fb] hover:border-[#c8c8d8] hover:shadow-sm transition-all duration-150">
-                  Voir paroisses →
+                  Paroisses →
                 </Link>
+                <button
+                  onClick={() => { setRenameTarget(district); setRenameNom(district.nom); setRenameError(''); }}
+                  className="text-xs border border-[#e0e0ea] text-[#6b6b78] rounded-lg px-2.5 py-2 font-semibold hover:bg-[#f5f5fb] hover:border-[#c8c8d8] transition-all duration-150"
+                  title="Renommer"
+                >✎</button>
+                <button
+                  onClick={() => { setMergeSource(district); setMergeTargetId(''); setMergeError(''); }}
+                  className="text-xs border border-[#e0eefc] text-[#1565C0] rounded-lg px-2.5 py-2 font-semibold hover:bg-[#e8f0fe] transition-all duration-150"
+                  title="Fusionner avec un autre district"
+                >⇄</button>
                 <button
                   onClick={() => handleDelete(district)}
                   disabled={deletingId === district.id}
-                  className="text-xs border border-[#fce8e8] text-red-400 rounded-lg px-3 py-2 font-semibold enabled:hover:bg-red-50 enabled:hover:border-red-200 enabled:hover:shadow-sm disabled:opacity-60 transition-all duration-150"
+                  className="text-xs border border-[#fce8e8] text-red-400 rounded-lg px-2.5 py-2 font-semibold enabled:hover:bg-red-50 enabled:hover:border-red-200 disabled:opacity-60 transition-all duration-150"
                 >
-                  {deletingId === district.id ? '…' : 'Suppr.'}
+                  {deletingId === district.id ? '…' : '🗑'}
                 </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Modal renommer */}
+      {renameTarget && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 pb-16 sm:pb-4" onClick={() => setRenameTarget(null)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-base font-black text-[#1F1B2E] mb-1">Renommer le district</h2>
+            <p className="text-xs text-[#9b9ba8] mb-5">Actuellement : <span className="font-semibold text-[#1F1B2E]">{renameTarget.nom}</span></p>
+            <form onSubmit={handleRename} className="flex flex-col gap-4">
+              <input
+                type="text"
+                value={renameNom}
+                onChange={e => setRenameNom(e.target.value)}
+                placeholder="Nouveau nom"
+                required
+                autoFocus
+                className="w-full px-3 py-2.5 text-sm border border-[#e6e6ea] rounded-xl focus:outline-none focus:border-[#1F1B2E]"
+              />
+              {renameError && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{renameError}</p>}
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setRenameTarget(null)} className="px-4 py-2 rounded-xl text-sm font-semibold border border-[#e0e0ea] text-[#6b6b78]">Annuler</button>
+                <button type="submit" disabled={renameSaving || !renameNom.trim()} className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#1F1B2E] text-white disabled:opacity-60">
+                  {renameSaving ? 'Enregistrement…' : 'Renommer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal fusionner */}
+      {mergeSource && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 pb-16 sm:pb-4" onClick={() => setMergeSource(null)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-base font-black text-[#1F1B2E] mb-1">Fusionner le district</h2>
+            <p className="text-xs text-[#9b9ba8] mb-1">
+              <span className="font-semibold text-[#E55A35]">{mergeSource.nom}</span> sera supprimé.
+            </p>
+            <p className="text-xs text-[#9b9ba8] mb-5">Tous ses membres et paroisses seront transférés vers le district cible.</p>
+            <form onSubmit={handleMerge} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#6b6b78] mb-1.5 uppercase tracking-wide">District cible (à conserver)</label>
+                <select
+                  value={mergeTargetId}
+                  onChange={e => setMergeTargetId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 text-sm border border-[#e6e6ea] rounded-xl focus:outline-none focus:border-[#1F1B2E] bg-white"
+                >
+                  <option value="">— Choisir le district cible —</option>
+                  {districts.filter(d => d.id !== mergeSource.id).map(d => (
+                    <option key={d.id} value={d.id}>{d.nom}</option>
+                  ))}
+                </select>
+              </div>
+              {mergeError && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{mergeError}</p>}
+              {mergeTargetId && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+                  ⚠️ Cette action est <strong>irréversible</strong>. Le district « {mergeSource.nom} » sera définitivement supprimé.
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setMergeSource(null)} className="px-4 py-2 rounded-xl text-sm font-semibold border border-[#e0e0ea] text-[#6b6b78]">Annuler</button>
+                <button type="submit" disabled={mergeSaving || !mergeTargetId} className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#E55A35] text-white disabled:opacity-60">
+                  {mergeSaving ? 'Fusion…' : 'Fusionner et supprimer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal création — z-[60] pour passer au-dessus de la nav mobile */}
       {showModal && (
