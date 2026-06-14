@@ -23,6 +23,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
     "db:dev": "prisma dev",
     "prisma:generate": "prisma generate && node scripts/fix-prisma-client.mjs",
     "db:sync": "node scripts/sync-prisma-dev-url.mjs",

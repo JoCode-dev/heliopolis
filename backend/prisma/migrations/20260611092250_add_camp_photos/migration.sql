@@ -2,10 +2,10 @@
 ALTER TYPE "UserRole" ADD VALUE 'PHOTOGRAPHE';
 
 -- DropIndex
-DROP INDEX "challenges_embedding_idx";
+DROP INDEX IF EXISTS "challenges_embedding_idx";
 
 -- DropIndex
-DROP INDEX "messages_embedding_idx";
+DROP INDEX IF EXISTS "messages_embedding_idx";
 
 -- AlterTable
 ALTER TABLE "users" ALTER COLUMN "nom" DROP NOT NULL,
