@@ -402,6 +402,12 @@ export class UsersService {
         } else {
           ignores++;
         }
+        // Marquer à jour pour 2026 quel que soit le cas (fusion ou ignoré)
+        await this.prisma.adhesion.upsert({
+          where: { userId_annee: { userId: existing.id, annee: 2026 } },
+          create: { userId: existing.id, annee: 2026, statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+          update: { statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+        });
         continue;
       }
 
@@ -414,7 +420,7 @@ export class UsersService {
 
       const parishId   = directParishId   ?? (parishName   ? await resolveParish(parishName, districtId) : null);
 
-      await this.prisma.user.create({
+      const created = await this.prisma.user.create({
         data: {
           matricule,
           dateNaissance,
@@ -426,6 +432,13 @@ export class UsersService {
           parishId,
           statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION,
         },
+        select: { id: true },
+      });
+      // Marquer à jour pour 2026 dès la création
+      await this.prisma.adhesion.upsert({
+        where: { userId_annee: { userId: created.id, annee: 2026 } },
+        create: { userId: created.id, annee: 2026, statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+        update: { statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
       });
       importes++;
     }
