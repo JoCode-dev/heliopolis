@@ -166,7 +166,7 @@ export default function ImportPage() {
   const handlePerPage = (val: number) => { setPerPage(val); setPage(1); };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 max-w-5xl mx-auto w-full">
+    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 w-full">
 
       {/* ── Formulaire d'upload ── */}
       <div className="max-w-2xl">

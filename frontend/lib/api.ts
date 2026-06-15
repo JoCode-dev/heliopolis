@@ -222,6 +222,8 @@ export const logsApi = {
     page?: number;
     limit?: number;
   }) => api.get('/logs', { params }),
+  deleteByDate: (date: string) => api.delete(`/logs/${date}`),
+  deleteAll: () => api.delete('/logs/all'),
 };
 
 export const codexApi = {

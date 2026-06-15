@@ -269,7 +269,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end lg:items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-white w-full max-w-lg rounded-t-3xl lg:rounded-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">

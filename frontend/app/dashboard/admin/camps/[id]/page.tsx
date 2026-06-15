@@ -71,7 +71,7 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
-      <div className="max-w-5xl mx-auto space-y-4">
+      <div className="space-y-4">
 
         {/* ── En-tête camp ── */}
         <div>
@@ -130,10 +130,10 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* ── Grille info + participants ── */}
-        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
 
-          {/* Colonne gauche */}
-          <div className="space-y-4">
+          {/* Colonne gauche (2/3) */}
+          <div className="lg:col-span-2 space-y-4">
 
             {/* Infos camp */}
             <div className="bg-white border border-[#ececf0] rounded-2xl shadow-sm p-4 space-y-4">

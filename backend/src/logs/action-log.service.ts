@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { appendFile, mkdir, readdir, readFile } from 'fs/promises';
+import { appendFile, mkdir, readdir, readFile, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
@@ -140,5 +140,20 @@ export class ActionLogService implements OnModuleInit {
     const items = filtered.slice(start, start + limit);
 
     return { items, total, page, limit, date };
+  }
+
+  async deleteByDate(date: string): Promise<{ deleted: boolean }> {
+    const filePath = this.filePathForDate(date);
+    if (!existsSync(filePath)) return { deleted: false };
+    await unlink(filePath);
+    return { deleted: true };
+  }
+
+  async deleteAll(): Promise<{ count: number }> {
+    if (!existsSync(this.actionsDir)) return { count: 0 };
+    const files = await readdir(this.actionsDir);
+    const jsonlFiles = files.filter((f) => f.endsWith('.jsonl'));
+    await Promise.all(jsonlFiles.map((f) => unlink(join(this.actionsDir, f))));
+    return { count: jsonlFiles.length };
   }
 }

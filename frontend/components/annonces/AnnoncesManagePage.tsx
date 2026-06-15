@@ -102,7 +102,7 @@ function AnnonceModal({ initial, onClose, onSaved }: ModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white w-full sm:max-w-xl rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#ececf0] flex-shrink-0">
@@ -284,7 +284,7 @@ export function AnnoncesManagePage() {
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
-      <div className="max-w-4xl mx-auto">
+      <div>
 
         {/* En-tête */}
         <div className="flex items-center justify-between mb-5">
