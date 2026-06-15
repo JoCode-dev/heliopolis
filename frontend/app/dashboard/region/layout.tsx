@@ -21,7 +21,7 @@ const NAV_LABELS: { prefix: string; icon: string; label: string }[] = [
   { prefix: '/dashboard/region/region',       icon: '🌍', label: 'Membres région'     },
   { prefix: '/dashboard/region/districts',     icon: '🛡️', label: 'Districts'          },
   { prefix: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses'           },
-  { prefix: '/dashboard/region/defis',        icon: '🎯', label: 'Défis & soumissions'},
+  { prefix: '/dashboard/region/defis',        icon: '🎯', label: 'Quêtes & soumissions'},
   { prefix: '/dashboard/region/codex',        icon: '🪶', label: 'Modération'         },
   { prefix: '/dashboard/region/messages',     icon: '💬', label: 'Messagerie'         },
   { prefix: '/dashboard/region/export',       icon: '📤', label: 'Exports'            },
@@ -40,7 +40,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
 
   return (
     <AuthGuard roles={['REGION']}>
-      <div className="flex h-screen overflow-hidden bg-[#f6f6fa]">
+      <div className="flex h-screen overflow-hidden bg-[#fdf6f0]">
 
         {/* Sidebar desktop */}
         <AdminRegionSidebar variant="region" onProfileClick={() => setProfileOpen(true)} />
@@ -49,7 +49,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
           {/* ── Top bar mobile ── */}
-          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
+          <div className="lg:hidden text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)' }}>
 
             {/* Bouton retour — masqué sur l'accueil */}
             {isHome ? (
@@ -65,7 +65,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
 
             {/* Titre centré */}
             <div className="flex-1 text-center">
-              <div className="text-[10px] opacity-60 uppercase tracking-wider leading-none mb-0.5">
+              <div className="text-[10px] opacity-85 uppercase tracking-wider leading-none mb-0.5">
                 {user?.region?.nom ?? 'Conseil régional'}
               </div>
               <div className="text-sm font-bold leading-tight">

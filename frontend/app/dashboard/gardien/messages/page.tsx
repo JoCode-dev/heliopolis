@@ -1,8 +1,10 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { messagingApi, contactsApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { useAuthStore } from '@/store/auth';
 import type { Conversation, ContactItem, ContactUser, Contact } from '@/types';
 
@@ -13,18 +15,13 @@ const CONV_ICON: Record<string, string> = {
   COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
 };
 const CONV_GRADIENT: Record<string, string> = {
-  COMMUNAUTE: 'from-[#F58A4B] to-[#C62828]',
-  REGION:     'from-[#F58A4B] to-[#C62828]',
+  COMMUNAUTE: 'from-[#FFB36B] to-[#7A2820]',
+  REGION:     'from-[#FFB36B] to-[#7A2820]',
   DOYENNE:    'from-[#6A1B9A] to-[#3d1163]',
-  PAROISSE:   'from-[#C62828] to-[#7a1717]',
+  PAROISSE:   'from-[#F58A4B] to-[#7A2820]',
   PRIVE:      'from-[#1F1B2E] to-[#3a1d4d]',
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
 };
-const CANAL_LABEL: Record<string, string> = {
-  COMMUNAUTE: 'Communauté', REGION: 'Région', DOYENNE: 'District',
-  PAROISSE: 'Paroisse', GROUPE: 'Groupe', PRIVE: 'Privé',
-};
-
 type Tab = 'messages' | 'contacts';
 const TAB_KEY = 'gardien-messages-tab';
 
@@ -57,10 +54,10 @@ export default function MessagesPage() {
   const [tab, setTab] = useState<Tab>('messages');
 
   /* ── Persistance de l'onglet via localStorage ── */
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     const saved = localStorage.getItem(TAB_KEY) as Tab;
     if (saved === 'messages' || saved === 'contacts') setTab(saved);
-  }, []);
+  }), []);
 
   const handleTabChange = (t: Tab) => {
     setTab(t);
@@ -73,10 +70,10 @@ export default function MessagesPage() {
     <div className="flex flex-col flex-1 overflow-hidden bg-white">
 
       {/* ── Header ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
         <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
-          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
-            {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" /> : initials}
+          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden relative">
+            {user?.avatarUrl ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="36px" /> : initials}
           </div>
           <h1 className="flex-1 text-[18px] font-black text-white tracking-tight">Messagerie</h1>
         </div>
@@ -116,7 +113,7 @@ function MessagesTab({ myId, msgsBase }: { myId?: string; msgsBase: string }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handlePin = async (conv: Conversation) => {
     await messagingApi.togglePin(conv.id).catch(() => {});
@@ -214,7 +211,7 @@ function MessagesTab({ myId, msgsBase }: { myId?: string; msgsBase: string }) {
             <p className="text-sm text-[#9b9ba8] mb-5">Elle disparaîtra de ta liste.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 rounded-xl border border-[#e6e6ea] text-sm font-bold text-[#6b6b78]">Annuler</button>
-              <button onClick={() => handleDelete(deleteConfirmId)} className="flex-1 py-3 rounded-xl bg-[#C62828] text-white text-sm font-bold">Supprimer</button>
+              <button onClick={() => handleDelete(deleteConfirmId)} className="flex-1 py-3 rounded-xl bg-[#E55A35] text-white text-sm font-bold">Supprimer</button>
             </div>
           </div>
         </div>
@@ -274,10 +271,10 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   useEffect(() => {
-    if (!canSearch) { setSearchRes([]); return; }
+    if (!canSearch) return deferEffect(() => setSearchRes([]));
     const t = setTimeout(async () => {
       setSearching(true);
       try { const r = await contactsApi.search(searchQ); setSearchRes(r.data); }
@@ -354,7 +351,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-2xl text-white text-sm font-semibold shadow-xl flex items-center gap-2.5 min-w-[240px] max-w-[90vw] ${
-          toast.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'
+          toast.ok ? 'bg-[#2E7D32]' : 'bg-[#E55A35]'
         }`}>
           <span className="text-base">{toast.ok ? '✓' : '✕'}</span>
           <span className="flex-1">{toast.msg}</span>
@@ -405,7 +402,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
               <ContactRow key={u.id} user={u} action={
                 isContact ? (
                   <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id}
-                    className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                    className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                     {dmLoading === u.id ? '…' : '💬'}
                   </button>
                 ) : alreadySent ? (
@@ -429,7 +426,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
       <div className="px-4 pt-3">
         <ListDivider label={
           received.length > 0
-            ? <><span>🔔 Demandes reçues</span><span className="ml-1.5 bg-[#C62828] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{received.length}</span></>
+            ? <><span>🔔 Demandes reçues</span><span className="ml-1.5 bg-[#E55A35] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{received.length}</span></>
             : <span>🔔 Demandes reçues</span>
         } />
         {received.length > 0 ? (
@@ -496,7 +493,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
               onClick={() => handleDM(u.id)}
               action={
                 <button onClick={() => handleDM(u.id)} disabled={dmLoading === u.id}
-                  className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                  className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                   {dmLoading === u.id ? '…' : '💬'}
                 </button>
               }
@@ -514,7 +511,7 @@ function ContactsTab({ msgsBase }: { msgsBase: string }) {
               onClick={() => handleDM(c.user.id)}
               action={
                 <button onClick={() => handleDM(c.user.id)} disabled={dmLoading === c.user.id}
-                  className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-50">
+                  className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1 rounded-full font-bold disabled:opacity-60">
                   {dmLoading === c.user.id ? '…' : '💬'}
                 </button>
               }
@@ -591,7 +588,7 @@ function NewConvModal({ onClose, onCreated }: {
   const [joiningChannel, setJoiningChannel]   = useState<string | null>(null);
 
   /* Charge contacts + conversations existantes en parallèle */
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     setLoading(true);
     Promise.all([contactsApi.parish(), contactsApi.list(), messagingApi.conversations()])
       .then(([parish, accepted, convRes]) => {
@@ -618,7 +615,7 @@ function NewConvModal({ onClose, onCreated }: {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }), []);
 
   const visible = search.trim()
     ? contacts.filter(u => {
@@ -678,13 +675,11 @@ function NewConvModal({ onClose, onCreated }: {
     finally { setJoiningChannel(null); }
   };
 
-  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]']; // fallback unused
-
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-white">
 
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
         <div className="flex items-center gap-2 px-4 py-3">
           <button onClick={mode === 'pick' ? onClose : goBack}
             className="w-8 h-8 flex items-center justify-center text-white/80 text-2xl leading-none">‹</button>
@@ -697,7 +692,7 @@ function NewConvModal({ onClose, onCreated }: {
           {mode === 'group' && (
             <button onClick={handleCreateGroup}
               disabled={!groupName.trim() || selected.length === 0 || creating}
-              className="text-[13px] font-bold text-white/90 bg-white/20 px-3 py-1 rounded-full disabled:opacity-40">
+              className="text-[13px] font-bold text-white/90 bg-white/20 px-3 py-1 rounded-full disabled:opacity-60">
               {creating ? '…' : `Créer${selected.length > 0 ? ` (${selected.length})` : ''}`}
             </button>
           )}
@@ -756,7 +751,7 @@ function NewConvModal({ onClose, onCreated }: {
               <div className="flex flex-col items-center justify-center py-12 text-[#9b9ba8]">
                 <div className="text-3xl mb-3">📡</div>
                 <p className="text-sm font-semibold text-[#1F1B2E]">Aucun canal disponible</p>
-                <p className="text-xs mt-1 text-center">Aucun canal d'équipe n'est disponible pour votre territoire.</p>
+                <p className="text-xs mt-1 text-center">Aucun canal d&apos;équipe n&apos;est disponible pour votre territoire.</p>
               </div>
             )}
 
@@ -767,8 +762,8 @@ function NewConvModal({ onClose, onCreated }: {
                 </p>
                 {channels.map(ch => {
                   const typeGradient: Record<string, string> = {
-                    PAROISSE:   'from-[#C62828] to-[#7a1717]',
-                    GARDIENS:   'from-[#C62828] to-[#7a1717]',
+                    PAROISSE:   'from-[#F58A4B] to-[#7A2820]',
+                    GARDIENS:   'from-[#F58A4B] to-[#7A2820]',
                     DOYENNE:    'from-[#6A1B9A] to-[#4a1370]',
                     GUIDES:     'from-[#6A1B9A] to-[#4a1370]',
                     REGION:     'from-[#1F1B2E] to-[#3a1d4d]',
@@ -793,7 +788,7 @@ function NewConvModal({ onClose, onCreated }: {
                       <button
                         onClick={() => handleJoinChannel(ch.channelKey)}
                         disabled={isJoining}
-                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 ${
+                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-60 ${
                           ch.isMember
                             ? 'bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white'
                             : `bg-gradient-to-r ${typeGradient[ch.channelKey]} text-white shadow-sm`
@@ -874,7 +869,8 @@ function NewConvModal({ onClose, onCreated }: {
                   >
                     <div className="relative flex-shrink-0">
                       {(u as { avatarUrl?: string }).avatarUrl
-                        ? <img src={(u as { avatarUrl?: string }).avatarUrl}
+                        ? <Image src={(u as { avatarUrl?: string }).avatarUrl as string}
+                            width={50} height={50}
                             className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
                         : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${avatarCls} flex items-center justify-center text-sm font-bold text-white`}>
                             {u.nom[0]}{u.prenoms[0]}
@@ -939,7 +935,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
   }, []);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    if (query.length < 2) return deferEffect(() => setResults([]));
     const t = setTimeout(async () => {
       setSearching(true);
       try { const r = await contactsApi.search(query); setResults(r.data); }
@@ -1029,7 +1025,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
                     isContact ? (
                       <button onClick={() => { onDM(u.id); onClose(); }}
                         disabled={dmLoading === u.id}
-                        className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-50">
+                        className="text-[11px] bg-[#1F1B2E] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-60">
                         {dmLoading === u.id ? '…' : '💬 Message'}
                       </button>
                     ) : alreadySent ? (
@@ -1040,7 +1036,7 @@ function AddContactModal({ accepted, sent, dmLoading, onClose, onRequest, onDM, 
                       <button
                         onClick={() => handleRequest(u.id, `${u.prenoms} ${u.nom}`)}
                         disabled={isReq}
-                        className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-50">
+                        className="text-[11px] bg-[#6A1B9A] text-white px-3 py-1.5 rounded-full font-bold disabled:opacity-60">
                         {isReq ? '…' : '+ Ajouter'}
                       </button>
                     )
@@ -1082,6 +1078,7 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
   const lastMsg  = conv.messages?.[0];
   const timeStr  = convTimeLabel(conv.lastMessageAt);
   const preview  = lastMsg?.deletedAt ? '🚫 Message supprimé' : lastMsg?.contenu ?? '';
+  const unread   = conv.unreadCount ?? 0;
 
   /* Pour les convs privées : nom et avatar de l'interlocuteur */
   const otherMember = conv.type === 'PRIVE' && myId
@@ -1111,7 +1108,7 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
           <span className="text-xl">{conv.isPinned ? '📍' : '📌'}</span>
           <span className="text-[10px]">{conv.isPinned ? 'Retirer' : 'Épingler'}</span>
         </button>
-        <button onClick={onDelete} className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#C62828] text-white font-bold">
+        <button onClick={onDelete} className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#E55A35] text-white font-bold">
           <span className="text-xl">🗑️</span>
           <span className="text-[10px]">Supprimer</span>
         </button>
@@ -1122,10 +1119,11 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
         style={{ transform: `translateX(-${swipeX}px)`, transition: swipeX === 0 || swipeX === ACTION_W ? 'transform 0.2s ease-out' : 'none' }}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         <Link href={`${msgsBase}/${conv.id}`}
-          className="flex items-center px-3 py-2.5 bg-white hover:bg-[#F5F5F5] transition-colors pr-10">
+          className={`flex items-center px-3 py-2.5 hover:bg-[#F5F5F5] transition-colors pr-10 ${unread > 0 ? 'bg-[#fafafa]' : 'bg-white'}`}>
           {/* Avatar : photo réelle pour PRIVE, icône pour les canaux */}
           {otherAvatar?.avatarUrl ? (
-            <img src={otherAvatar.avatarUrl}
+            <Image src={otherAvatar.avatarUrl}
+              width={50} height={50}
               className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" alt="" />
           ) : otherAvatar ? (
             <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#1F1B2E] to-[#3a1d4d] flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -1137,13 +1135,28 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
             </div>
           )}
           <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
-            <div className="flex justify-between items-baseline gap-2">
-              <span className="font-semibold text-[15px] text-[#1F1B2E] truncate">{displayName}</span>
-              {timeStr && <span className="text-[12px] text-[#9b9ba8] flex-shrink-0">{timeStr}</span>}
+            <div className="flex justify-between items-center gap-2">
+              <span className={`text-[15px] truncate ${unread > 0 ? 'font-bold text-[#1F1B2E]' : 'font-semibold text-[#1F1B2E]'}`}>
+                {displayName}
+              </span>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {timeStr && (
+                  <span className={`text-[12px] ${unread > 0 ? 'text-[#2E7D32] font-semibold' : 'text-[#9b9ba8]'}`}>
+                    {timeStr}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[13px] text-[#9b9ba8] truncate flex-1 leading-snug">{preview}</span>
-              {conv.isPinned && <span className="text-[11px] flex-shrink-0">📌</span>}
+              <span className={`text-[13px] truncate flex-1 leading-snug ${unread > 0 ? 'text-[#1F1B2E] font-medium' : 'text-[#9b9ba8]'}`}>
+                {preview}
+              </span>
+              {conv.isPinned && !unread && <span className="text-[11px] flex-shrink-0">📌</span>}
+              {unread > 0 && (
+                <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[#2E7D32] text-white text-[11px] font-bold flex items-center justify-center leading-none">
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
             </div>
           </div>
         </Link>
@@ -1161,7 +1174,7 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
             <button onClick={onPin} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-[#1F1B2E] hover:bg-[#F5F5F5] font-medium rounded-t-xl">
               {conv.isPinned ? '📍 Désépingler' : '📌 Épingler'}
             </button>
-            <button onClick={onDelete} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-[#C62828] hover:bg-[#fff0f0] font-medium rounded-b-xl">
+            <button onClick={onDelete} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-[#E55A35] hover:bg-[#fff8f3] font-medium rounded-b-xl">
               🗑️ Supprimer
             </button>
           </div>
@@ -1176,7 +1189,7 @@ const ROLE_AVATAR: Record<string, string> = {
   REGION:     'from-[#6A1B9A] to-[#3d1163]',
   SENTINELLE: 'from-[#1D4ED8] to-[#1e3a8a]',
   GUIDE:      'from-[#16A34A] to-[#14532D]',
-  GARDIEN:    'from-[#C62828] to-[#8e1a1a]',
+  GARDIEN:    'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
 };
 
 const ROLE_PILL: Record<string, string> = {
@@ -1184,7 +1197,7 @@ const ROLE_PILL: Record<string, string> = {
   REGION:     'bg-[#EDE7F6] text-[#6A1B9A]',
   SENTINELLE: 'bg-[#DBEAFE] text-[#1D4ED8]',
   GUIDE:      'bg-[#DCFCE7] text-[#16A34A]',
-  GARDIEN:    'bg-[#FEE2E2] text-[#C62828]',
+  GARDIEN:    'bg-[#FEE2E2] text-[#E55A35]',
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -1205,7 +1218,7 @@ function ContactRow({ user, sub, action, onClick }: {
       onClick={onClick}
     >
       {(user as { avatarUrl?: string }).avatarUrl ? (
-        <img src={(user as { avatarUrl?: string }).avatarUrl} alt={initials}
+        <Image src={(user as { avatarUrl?: string }).avatarUrl as string} width={50} height={50} alt={initials}
           className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" />
       ) : (
         <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${avatarCls} flex-shrink-0`}>

@@ -25,21 +25,19 @@ export class SettingsService {
         select: { id: true },
       });
 
-      membresInitialises = membres.length;
+      // skipDuplicates = true : les adhésions déjà existantes pour cette année
+      // (statuts A_JOUR, etc.) sont CONSERVÉES — seuls les membres qui n'ont
+      // pas encore d'entrée pour cette année reçoivent NON_A_JOUR.
+      const result = await this.prisma.adhesion.createMany({
+        data: membres.map(m => ({
+          userId: m.id,
+          annee,
+          statut: AdhesionStatus.NON_A_JOUR,
+        })),
+        skipDuplicates: true,
+      });
 
-      // Transaction atomique : reset complet pour la nouvelle année
-      await this.prisma.$transaction([
-        // Supprimer les éventuelles adhesions déjà existantes pour cette année
-        this.prisma.adhesion.deleteMany({ where: { annee } }),
-        // Créer NON_A_JOUR pour tout le monde
-        this.prisma.adhesion.createMany({
-          data: membres.map(m => ({
-            userId: m.id,
-            annee,
-            statut: AdhesionStatus.NON_A_JOUR,
-          })),
-        }),
-      ]);
+      membresInitialises = result.count;
     }
 
     await this.prisma.systemConfig.upsert({

@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { use, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { messagingApi, usersApi } from '@/lib/api';
@@ -7,12 +8,12 @@ import { useAuthStore } from '@/store/auth';
 import type { Conversation, ConversationMember, Message, User } from '@/types';
 
 const HEADER_CONFIG: Record<string, { label: string; gradient: string }> = {
-  COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  REGION:     { label: '🗺️ Région',              gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  DOYENNE:    { label: '🛡️ District',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#C62828] to-[#8e1a1a]' },
-  GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#C62828] to-[#8e1a1a]' },
+  COMMUNAUTE: { label: '🌍 Communauté',         gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  REGION:     { label: '🗺️ Région',              gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  DOYENNE:    { label: '🛡️ District',             gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
 };
 
 function formatTime(iso: string) {
@@ -64,8 +65,6 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 
   // Context menu
   const [menuMsgId, setMenuMsgId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
   // Delete — { id, isMine: peut supprimer pour tous }
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; isMine: boolean } | null>(null);
 
@@ -158,16 +157,6 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     });
     return () => { socket.emit('leave:conversation', id); socket.off('new:message'); };
   }, [id, accessToken]);
-
-  // Close menu on outside click
-  useEffect(() => {
-    if (!menuMsgId) return;
-    const h = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuMsgId(null);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [menuMsgId]);
 
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
@@ -296,9 +285,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       <div className={`bg-gradient-to-r ${header.gradient} text-white px-4 py-2.5 flex items-center gap-3 flex-shrink-0`}>
         <button onClick={() => router.back()} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg leading-none">‹</button>
         {convType === 'PRIVE' && privatePartner && (
-          <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden relative">
             {privatePartner.avatarUrl
-              ? <img src={privatePartner.avatarUrl} className="w-full h-full object-cover" alt="" />
+              ? <Image src={privatePartner.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
               : `${privatePartner.nom[0]}${privatePartner.prenoms[0]}`}
           </div>
         )}
@@ -364,20 +353,27 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   {/* Avatar de l'expéditeur (messages reçus) */}
                   {!isMine && <MsgAvatar author={msg.author} />}
 
+                  {/* ⋮ bouton actions (messages envoyés — apparaît à gauche de la bulle) */}
+                  {isMine && !isDeleted && editingId !== msg.id && (
+                    <button
+                      onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                      className="self-end mb-1.5 w-6 h-6 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-[#6b6b78] text-base flex-shrink-0 border border-[#e0e0e0]"
+                    >⋮</button>
+                  )}
+
                   {/* Bulle */}
                   <div
-                    className="group relative max-w-[72%] flex flex-col"
+                    className="relative max-w-[72%] flex flex-col"
                     style={{ transform: `translateX(${swipe}px)`, transition: swipe === 0 ? 'transform 0.2s ease-out' : 'none' }}
                     onTouchStart={e => onTouchStart(e, msg.id)}
                     onTouchMove={e => onTouchMove(e, msg.id)}
                     onTouchEnd={() => onTouchEnd(msg)}
                   >
-
                     <div className={`relative px-3 py-2 rounded-[14px] shadow-sm text-sm leading-relaxed ${
                       isDeleted
                         ? 'bg-white text-[#9b9ba8] italic'
                         : isMine
-                          ? 'bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white rounded-br-[4px]'
+                          ? 'bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white rounded-br-[4px]'
                           : 'bg-white text-[#1F1B2E] rounded-bl-[4px]'
                     }`}>
 
@@ -435,46 +431,15 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                         </>
                       )}
                     </div>
-
-                    {/* Actions hover desktop — MES messages (à gauche de la bulle) */}
-                    {isMine && !isDeleted && (
-                      <div className="absolute -left-16 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" ref={menuMsgId === msg.id ? menuRef : undefined}>
-                        <button
-                          onClick={() => setReplyingTo(msg)}
-                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-xs"
-                          title="Répondre"
-                        >↩</button>
-                        <div className="relative">
-                          <button
-                            onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
-                            className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-[10px] font-bold"
-                          >···</button>
-                          {menuMsgId === msg.id && (
-                            <div className="absolute bottom-8 right-0 bg-white rounded-xl shadow-xl border border-[#e6e6ea] overflow-hidden z-20 min-w-[130px]">
-                              <button onClick={() => startEdit(msg)} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#1F1B2E] hover:bg-[#f3f3f5] font-semibold">✏️ Modifier</button>
-                              <button onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: msg.id, isMine: true }); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-[#C62828] hover:bg-[#fff0f0] font-semibold">🗑️ Supprimer</button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Actions hover desktop — MESSAGES REÇUS (à droite de la bulle) */}
-                    {!isMine && !isDeleted && (
-                      <div className="absolute -right-14 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <button
-                          onClick={() => setReplyingTo(msg)}
-                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#6b6b78] text-xs"
-                          title="Répondre"
-                        >↩</button>
-                        <button
-                          onClick={() => setDeleteTarget({ id: msg.id, isMine: false })}
-                          className="w-6 h-6 rounded-full bg-white shadow border border-[#e6e6ea] flex items-center justify-center text-[#9b9ba8] text-xs"
-                          title="Masquer pour moi"
-                        >🗑️</button>
-                      </div>
-                    )}
                   </div>
+
+                  {/* ⋮ bouton actions (messages reçus — apparaît à droite de la bulle) */}
+                  {!isMine && !isDeleted && editingId !== msg.id && (
+                    <button
+                      onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                      className="self-end mb-1.5 w-6 h-6 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-[#6b6b78] text-base flex-shrink-0 border border-[#e0e0e0]"
+                    >⋮</button>
+                  )}
 
                   {/* Icône de réponse qui apparaît derrière lors du swipe (messages envoyés) */}
                   {isMine && swipe > 10 && (
@@ -516,7 +481,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <button
           onClick={sendMessage}
           disabled={!input.trim() || sending}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0 transition-opacity shadow"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex items-center justify-center text-white disabled:opacity-60 flex-shrink-0 transition-opacity shadow"
         >
           {sending ? <span className="text-xs animate-pulse">…</span> : (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
@@ -529,7 +494,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
+          <div className="bg-gradient-to-r from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => { setShowGroupPanel(false); closeAddMember(); setSelectedToRemove([]); }}
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg"
@@ -589,13 +554,13 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                 ) : annuaire
                   .filter(u => !addSearch || u.nom.toLowerCase().includes(addSearch.toLowerCase()) || u.prenoms.toLowerCase().includes(addSearch.toLowerCase()))
                   .map(u => {
-                    const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
+                    const COLORS = ['from-[#F58A4B] via-[#E55A35] to-[#7A2820]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
                     const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
                     const isSelected = selectedToAdd.includes(u.id);
                     return (
                       <button key={u.id} onClick={() => toggleAdd(u.id)} className="flex items-center w-full px-4 py-3 hover:bg-[#F5F5F5] transition-colors">
                         {u.avatarUrl
-                          ? <img src={u.avatarUrl} className="w-11 h-11 rounded-full object-cover flex-shrink-0" alt="" />
+                          ? <Image src={u.avatarUrl} width={44} height={44} className="w-11 h-11 rounded-full object-cover flex-shrink-0" alt="" />
                           : <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{u.nom[0]}{u.prenoms[0]}</div>
                         }
                         <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1 text-left">
@@ -616,7 +581,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   <button
                     onClick={handleConfirmAdd}
                     disabled={applyingChanges}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2E7D32] to-[#1a5021] text-white font-bold text-sm disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2E7D32] to-[#1a5021] text-white font-bold text-sm disabled:opacity-60"
                   >
                     {applyingChanges ? 'Ajout en cours…' : `Ajouter ${selectedToAdd.length} membre${selectedToAdd.length > 1 ? 's' : ''}`}
                   </button>
@@ -635,7 +600,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   </span>
                   <button
                     onClick={() => setSelectedToRemove(allRemovableSelected ? [] : removableMembers.map(m => m.userId))}
-                    className="text-[12px] font-bold text-[#C62828]"
+                    className="text-[12px] font-bold text-[#E55A35]"
                   >
                     {allRemovableSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
                   </button>
@@ -646,7 +611,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                 {groupMembers.map(m => {
                   const u = m.user;
                   if (!u) return null;
-                  const COLORS = ['from-[#C62828] to-[#8e1a1a]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
+                  const COLORS = ['from-[#F58A4B] via-[#E55A35] to-[#7A2820]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
                   const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
                   const isMe = u.id === user?.id;
                   const canSelect = isOwner && !isMe && m.role !== 'OWNER';
@@ -659,7 +624,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                     >
                       <div className="relative flex-shrink-0">
                         {u.avatarUrl
-                          ? <img src={u.avatarUrl} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
+                          ? <Image src={u.avatarUrl} width={50} height={50} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
                           : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom[0]}{u.prenoms[0]}</div>
                         }
                         {m.role === 'OWNER' && (
@@ -673,7 +638,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                         </p>
                       </div>
                       {canSelect && (
-                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#C62828] border-[#C62828]' : 'border-[#d0d0d0]'}`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#E55A35] border-[#E55A35]' : 'border-[#d0d0d0]'}`}>
                           {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
                         </div>
                       )}
@@ -687,7 +652,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   <button
                     onClick={handleConfirmRemove}
                     disabled={applyingChanges}
-                    className="w-full py-3 rounded-xl bg-[#C62828] text-white font-bold text-sm disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-[#E55A35] text-white font-bold text-sm disabled:opacity-60"
                   >
                     {applyingChanges ? 'Retrait en cours…' : `Retirer ${selectedToRemove.length} membre${selectedToRemove.length > 1 ? 's' : ''}`}
                   </button>
@@ -698,9 +663,59 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
+      {/* ── Action sheet message (mobile) ── */}
+      {menuMsgId && (() => {
+        const menuMsg = messages.find(m => m.id === menuMsgId);
+        if (!menuMsg) return null;
+        const isMineMenu = menuMsg.authorId === user?.id;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-end z-[60]" onClick={() => setMenuMsgId(null)}>
+            <div className="bg-white rounded-t-2xl w-full max-w-lg mx-auto shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              {menuMsg.contenu && (
+                <div className="px-5 pt-4 pb-3 border-b border-[#f0f0f4]">
+                  <p className="text-[11px] font-semibold text-[#6A1B9A] mb-0.5 truncate">{menuMsg.author.prenoms} {menuMsg.author.nom}</p>
+                  <p className="text-sm text-[#1F1B2E] line-clamp-2">{menuMsg.contenu}</p>
+                </div>
+              )}
+              <div className="flex flex-col p-3 gap-1">
+                <button
+                  onClick={() => { setReplyingTo(menuMsg); setMenuMsgId(null); }}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl active:bg-[#f0f0f4] text-left transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[#f0f0f4] flex items-center justify-center text-lg flex-shrink-0">↩</span>
+                  <span className="font-semibold text-sm text-[#1F1B2E]">Répondre</span>
+                </button>
+                {isMineMenu && (
+                  <button
+                    onClick={() => startEdit(menuMsg)}
+                    className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl active:bg-[#f0f0f4] text-left transition-colors"
+                  >
+                    <span className="w-9 h-9 rounded-full bg-[#f0f0f4] flex items-center justify-center text-lg flex-shrink-0">✏️</span>
+                    <span className="font-semibold text-sm text-[#1F1B2E]">Modifier</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => { setMenuMsgId(null); setDeleteTarget({ id: menuMsg.id, isMine: isMineMenu }); }}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl active:bg-[#fff8f3] text-left transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[#ffe6e6] flex items-center justify-center text-lg flex-shrink-0">🗑️</span>
+                  <span className="font-semibold text-sm text-[#E55A35]">Supprimer</span>
+                </button>
+                <button
+                  onClick={() => setMenuMsgId(null)}
+                  className="w-full py-3.5 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78] mt-1 active:bg-[#f7f7fb]"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Modal suppression WhatsApp-style ── */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[60] pb-16"
           onClick={() => setDeleteTarget(null)}>
           <div className="bg-white rounded-t-2xl w-full max-w-lg shadow-xl overflow-hidden"
             onClick={e => e.stopPropagation()}>
@@ -729,11 +744,11 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
               {deleteTarget.isMine && (
                 <button
                   onClick={deleteForEveryone}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[#fff0f0] text-left transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[#fff8f3] text-left transition-colors"
                 >
                   <span className="w-9 h-9 rounded-full bg-[#ffe6e6] flex items-center justify-center text-lg flex-shrink-0">🗑️</span>
                   <div>
-                    <div className="font-semibold text-sm text-[#C62828]">Supprimer pour tous</div>
+                    <div className="font-semibold text-sm text-[#E55A35]">Supprimer pour tous</div>
                     <div className="text-xs text-[#9b9ba8]">Le message disparaît pour tout le monde</div>
                   </div>
                 </button>
@@ -754,18 +769,20 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 function MsgAvatar({ author }: { author: Partial<User> }) {
   const initials = `${author.nom?.[0] ?? ''}${author.prenoms?.[0] ?? ''}`.toUpperCase() || '?';
   const COLORS = [
-    'from-[#C62828] to-[#8e1a1a]',
+    'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
     'from-[#6A1B9A] to-[#4a1370]',
     'from-[#2E7D32] to-[#1a5021]',
     'from-[#1F1B2E] to-[#3a1d4d]',
-    'from-[#F58A4B] to-[#C62828]',
+    'from-[#FFB36B] to-[#7A2820]',
   ];
   const color = COLORS[(author.id?.charCodeAt(0) ?? 0) % COLORS.length];
 
   if (author.avatarUrl) {
     return (
-      <img
+      <Image
         src={author.avatarUrl}
+        width={32}
+        height={32}
         alt={initials}
         className="w-8 h-8 rounded-full object-cover flex-shrink-0 shadow-sm"
       />

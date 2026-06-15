@@ -35,7 +35,7 @@ export function Pagination({ page, totalItems, perPage, onChange }: PaginationPr
         <button
           onClick={() => onChange(page - 1)}
           disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold bg-white border border-[#e0e0e8] text-[#6b6b78] hover:border-[#1F1B2E] hover:text-[#1F1B2E] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold bg-white border border-[#e0e0e8] text-[#6b6b78] hover:border-[#1F1B2E] hover:text-[#1F1B2E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           ‹
         </button>
@@ -63,7 +63,7 @@ export function Pagination({ page, totalItems, perPage, onChange }: PaginationPr
         <button
           onClick={() => onChange(page + 1)}
           disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold bg-white border border-[#e0e0e8] text-[#6b6b78] hover:border-[#1F1B2E] hover:text-[#1F1B2E] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold bg-white border border-[#e0e0e8] text-[#6b6b78] hover:border-[#1F1B2E] hover:text-[#1F1B2E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           ›
         </button>

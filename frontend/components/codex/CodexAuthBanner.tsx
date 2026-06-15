@@ -11,7 +11,7 @@ export function CodexAuthBanner() {
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#4CAF50] to-[#2E7D32] rounded-l-2xl" />
         <span className="text-xl ml-1">🪶</span>
         <div className="flex-1 text-xs text-[#1F1B2E] leading-relaxed">
-          Bienvenue, <strong>{user.prenoms}</strong>. Relève des défis et publie tes actions.
+          Bienvenue, <strong>{user.prenoms}</strong>. Relève des quêtes et publie tes actions.
         </div>
         <Link
           href="/dashboard/gardien/missions"
@@ -46,13 +46,13 @@ export function CodexAuthBanner() {
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#F58A4B] to-[#C62828] rounded-l-2xl" />
       <span className="text-xl ml-1">✨</span>
       <div className="flex-1 text-xs text-[#1F1B2E] leading-relaxed">
-        Pour <strong>publier ton action</strong> ou réagir, rejoins la Route.
+        Pour <strong>publier ton action</strong> ou réagir, active ton profil de gardien.
       </div>
       <Link
-        href="/rejoindre"
+        href="/activation"
         className="bg-[#C62828] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
       >
-        Rejoindre →
+        Activer →
       </Link>
     </div>
   );

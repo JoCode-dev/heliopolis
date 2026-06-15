@@ -43,7 +43,7 @@ export default function GardienProfilPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-xl font-bold">Mon Profil</h1>
         <p className="text-xs opacity-85 mt-0.5">Gardien de la Création</p>
       </div>
@@ -53,7 +53,7 @@ export default function GardienProfilPage() {
         {/* Card identité */}
         <Card className="mb-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
               {user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?'}
             </div>
             <div className="flex-1 min-w-0">
@@ -76,7 +76,7 @@ export default function GardienProfilPage() {
                 ? <span className="inline-flex items-center gap-1 bg-[#e8f5e9] text-[#2E7D32] text-[10px] font-bold px-2 py-0.5 rounded-full">✓ À jour</span>
                 : adhesionStatut === 'EN_ATTENTE'
                   ? <span className="inline-flex items-center gap-1 bg-[#fff3cd] text-[#9c7218] text-[10px] font-bold px-2 py-0.5 rounded-full">⏳ En attente</span>
-                  : <span className="inline-flex items-center gap-1 bg-[#ffeaea] text-[#C62828] text-[10px] font-bold px-2 py-0.5 rounded-full">✗ Non à jour</span>
+                  : <span className="inline-flex items-center gap-1 bg-[#ffeaea] text-[#E55A35] text-[10px] font-bold px-2 py-0.5 rounded-full">✗ Non à jour</span>
               }
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function GardienProfilPage() {
           <div className="flex justify-between items-end mb-2">
             <div>
               <div className="text-2xl font-black text-[#D9A441]">{validated} / {total}</div>
-              <div className="text-xs text-[#6b6b78]">défis validés</div>
+              <div className="text-xs text-[#6b6b78]">quêtes validés</div>
             </div>
             <div className="text-xs text-[#6b6b78]">
               {Math.round((validated / total) * 100)}%

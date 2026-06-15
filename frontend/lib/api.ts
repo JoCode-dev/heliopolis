@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { DashboardStats } from '@/types/dashboard-stats';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
@@ -42,6 +43,17 @@ api.interceptors.response.use(
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
+  /** Vérifie qu'un matricule est pré-enregistré et disponible pour l'inscription */
+  verifierMatricule: (matricule: string) =>
+    api.post<{ userId: string; role: string; hasProfile: boolean; nom: string | null; prenoms: string | null }>('/auth/verifier-matricule', { matricule }),
+  /** Inscription : vérifie matricule + date de naissance et crée le compte */
+  inscrire: (data: {
+    nom: string;
+    prenoms: string;
+    matricule: string;
+    dateNaissance: string; // YYYY-MM-DD
+    password: string;
+  }) => api.post<{ accessToken: string; refreshToken: string }>('/auth/inscrire', data),
   activate: (matricule: string) => api.post('/auth/activate', { matricule }),
   login: (identifier: string, password: string) => api.post('/auth/login', { identifier, password }),
   logout: () => api.post('/auth/logout'),
@@ -53,9 +65,16 @@ export const authApi = {
 // ─── Territories ─────────────────────────────────────────────────────────────
 export const territoriesApi = {
   stats: () => api.get('/territories/stats'),
+  dashboardStats: () => api.get<DashboardStats>('/territories/dashboard-stats'),
   regions: () => api.get('/territories/regions'),
   districts: (regionId?: string) => api.get('/territories/districts', { params: { regionId } }),
   parishes: (districtId?: string) => api.get('/territories/parishes', { params: { districtId } }),
+  createDistrict: (data: { nom: string; code?: string; regionId: string }) => api.post('/territories/districts', data),
+  renameDistrict: (id: string, nom: string) => api.patch(`/territories/districts/${id}/rename`, { nom }),
+  mergeDistricts: (sourceId: string, targetId: string) => api.post(`/territories/districts/${sourceId}/merge`, { targetId }),
+  deleteDistrict: (id: string) => api.delete(`/territories/districts/${id}`),
+  createParish: (data: { nom: string; districtId: string }) => api.post('/territories/parishes', data),
+  deleteParish: (id: string) => api.delete(`/territories/parishes/${id}`),
 };
 
 // ─── Camps ───────────────────────────────────────────────────────────────────
@@ -91,13 +110,118 @@ export const challengesApi = {
   pending: () => api.get('/challenges/pending/submissions'),
 };
 
-// ─── Codex ────────────────────────────────────────────────────────────────────
+// ─── Photothèque ──────────────────────────────────────────────────────────────
+export const photothequeApi = {
+  publications: (campId?: string, cursor?: string, limit = 12) =>
+    api.get('/phototheque/publications', {
+      params: { ...(campId ? { campId } : {}), ...(cursor ? { cursor } : {}), limit },
+    }),
+  camps: () => api.get('/phototheque/camps'),
+  createPublication: (files: File[], campId?: string, caption?: string) => {
+    const fd = new FormData();
+    files.forEach(f => fd.append('files', f));
+    if (campId)  fd.append('campId', campId);
+    if (caption) fd.append('caption', caption);
+    return api.post('/phototheque/publications', fd);
+  },
+  deletePublication: (id: string) => api.delete(`/phototheque/publications/${id}`),
+};
+
+// ─── Annonces ────────────────────────────────────────────────────────────────
+export const annoncesApi = {
+  list: () => api.get('/annonces'),
+  listAll: () => api.get('/annonces/all'),
+  create: (
+    body: { titre: string; contenu?: string; portee?: string; statut?: string; publishedAt?: string; expiresAt?: string },
+    photos?: File[],
+  ) => {
+    const fd = new FormData();
+    Object.entries(body).forEach(([k, v]) => { if (v !== undefined) fd.append(k, v); });
+    photos?.forEach(f => fd.append('photos', f));
+    return api.post('/annonces', fd);
+  },
+  update: (
+    id: string,
+    body: { titre?: string; contenu?: string; portee?: string; statut?: string; publishedAt?: string; expiresAt?: string },
+    photos?: File[],
+  ) => {
+    const fd = new FormData();
+    Object.entries(body).forEach(([k, v]) => { if (v !== undefined) fd.append(k, v as string); });
+    photos?.forEach(f => fd.append('photos', f));
+    return api.patch(`/annonces/${id}`, fd);
+  },
+  deletePhoto: (photoId: string) => api.delete(`/annonces/photos/${photoId}`),
+  remove: (id: string) => api.delete(`/annonces/${id}`),
+};
+
+// ─── Conseils ─────────────────────────────────────────────────────────────────
+const API_BASE = BASE;
+
+async function publicFetch<T>(
+  path: string,
+  options: RequestInit = {},
+  accessToken?: string | null,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.message ?? 'Erreur API'), {
+      status: res.status,
+      message: body.message ?? 'Erreur API',
+    });
+  }
+  return res.json() as Promise<T>;
+}
+
 export const councilsApi = {
   list:   ()                           => api.get('/councils'),
   get:    (id: string)                 => api.get(`/councils/${id}`),
   create: (data: object)               => api.post('/councils', data),
   update: (id: string, data: object)   => api.patch(`/councils/${id}`, data),
   remove: (id: string)                 => api.delete(`/councils/${id}`),
+  getParticipants: (id: string)        => api.get(`/councils/${id}/participants`),
+};
+
+export const councilsPublicApi = {
+  getByToken: (token: string) =>
+    publicFetch(`/councils/public/${token}`),
+  register: (
+    token: string,
+    data: object,
+    accessToken?: string | null,
+  ) =>
+    publicFetch(`/councils/public/${token}/register`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, accessToken),
+  updateFeedback: (
+    token: string,
+    data: object,
+    accessToken?: string | null,
+  ) =>
+    publicFetch(`/councils/public/${token}/feedback`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }, accessToken),
+};
+
+export const logsApi = {
+  dates: () => api.get<string[]>('/logs/dates'),
+  list: (params?: {
+    date?: string;
+    action?: string;
+    category?: string;
+    actorId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/logs', { params }),
 };
 
 export const codexApi = {
@@ -136,6 +260,7 @@ export const messagingApi = {
   suggestedChannels:     () => api.get('/messaging/conversations/channels/suggestions'),
   createOrJoinChannel:   (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES') =>
     api.post('/messaging/conversations/channel', { channelKey }),
+  search: (q: string) => api.get('/messaging/search', { params: { q } }),
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -143,6 +268,27 @@ export const usersApi = {
   list: (params?: object) => api.get('/users', { params }),
   get: (id: string) => api.get(`/users/${id}`),
   create: (data: object) => api.post('/users', data),
+  /** Pré-enregistre un matricule (ADMIN) — détermine le rôle via l'âge */
+  preEnregistrer: (data: {
+    matricule: string;
+    dateNaissance: string;
+    nom?: string;
+    prenoms?: string;
+    regionId?: string;
+    districtId?: string;
+    parishId?: string;
+  }) => api.post('/users/pre-enregistrer', data),
+  /** Import en masse CSV/Excel de matricules (ADMIN) */
+  importerMatricules: (file: File) => {
+    const form = new FormData();
+    form.append('fichier', file);
+    return api.post('/users/importer', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  /** Changer le rôle d'un membre (promotion ou rétrogradation entre GUIDE, SENTINELLE, REGION) */
+  promouvoir: (id: string, role: 'GUIDE' | 'SENTINELLE' | 'REGION') =>
+    api.patch(`/users/${id}/promouvoir`, { role }),
   update: (id: string, data: object) => api.patch(`/users/${id}`, data),
   updateMe: (data: { nom?: string; prenoms?: string; email?: string; telephone?: string }) =>
     api.patch('/users/me', data),
@@ -193,6 +339,21 @@ export const contactsApi = {
 export const settingsApi = {
   getAnneePastorale: () => api.get('/settings/annee-pastorale'),
   setAnneePastorale: (annee: number) => api.patch('/settings/annee-pastorale', { annee }),
+};
+
+// ─── Notifications (PWA push) ────────────────────────────────────────────────
+export const notificationsApi = {
+  getVapidPublicKey: () => api.get<{ publicKey: string }>('/notifications/vapid-public-key'),
+  subscribe: (data: {
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    userAgent?: string;
+  }) => api.post('/notifications/subscribe', data),
+  unsubscribe: (endpoint: string) =>
+    api.delete('/notifications/subscribe', { data: { endpoint } }),
+  updatePreferences: (data: { notifPush?: boolean; notifEmail?: boolean }) =>
+    api.patch('/notifications/preferences', data),
 };
 
 // ─── Export ───────────────────────────────────────────────────────────────────

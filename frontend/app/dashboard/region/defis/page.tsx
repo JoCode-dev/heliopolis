@@ -1,6 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { codexApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
+import { CreateChallengeModal } from '@/components/defis/CreateChallengeModal';
 import type { Submission, SubmissionStatus } from '@/types';
 
 type TabFilter = 'TOUTES' | 'EN_ATTENTE' | 'VALIDE' | 'REJETE';
@@ -9,13 +11,13 @@ const TABS: { label: string; value: TabFilter; dot?: string }[] = [
   { label: 'Toutes',     value: 'TOUTES'     },
   { label: 'En attente', value: 'EN_ATTENTE', dot: 'bg-[#D9A441]' },
   { label: 'Validées',   value: 'VALIDE',     dot: 'bg-[#2E7D32]' },
-  { label: 'Rejetées',   value: 'REJETE',     dot: 'bg-[#C62828]' },
+  { label: 'Rejetées',   value: 'REJETE',     dot: 'bg-[#E55A35]' },
 ];
 
 const STATUS_STYLE: Record<SubmissionStatus, { label: string; bg: string; text: string; border: string }> = {
   EN_ATTENTE:           { label: '⏳ En attente',     bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]' },
   VALIDE:               { label: '✓ Validée',          bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]' },
-  REJETE:               { label: '✕ Rejetée',          bg: 'bg-[#ffebee]', text: 'text-[#C62828]', border: 'border-[#ef9a9a]' },
+  REJETE:               { label: '✕ Rejetée',          bg: 'bg-[#ffebee]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]' },
   CORRECTION_DEMANDEE:  { label: '✎ Correction',       bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]' },
 };
 
@@ -32,16 +34,17 @@ export default function DefisPage() {
   const [loading, setLoading]         = useState(true);
   const [tab, setTab]                 = useState<TabFilter>('TOUTES');
   const [actionId, setActionId]       = useState<string | null>(null);
+  const [createOpen, setCreateOpen]   = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const { data } = await codexApi.pending();
       setSubmissions(data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => deferEffect(load), [load]);
 
   const handleApprove = async (id: string) => {
     setActionId(id + '-ok');
@@ -70,13 +73,21 @@ export default function DefisPage() {
       {/* ── Header ── */}
       <div className="bg-white border-b border-[#ececf0] px-4 pt-4 pb-0 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-lg font-black text-[#1F1B2E]">🎯 Défis & soumissions</h1>
-          {nbAttente > 0 && (
-            <span className="flex items-center gap-1.5 bg-[#fff8e1] border border-[#ffe082] text-[#D9A441] text-[11px] font-bold px-2.5 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D9A441] animate-pulse" />
-              {nbAttente} en attente
-            </span>
-          )}
+          <h1 className="text-lg font-black text-[#1F1B2E]">🎯 Quêtes & soumissions</h1>
+          <div className="flex items-center gap-2">
+            {nbAttente > 0 && (
+              <span className="flex items-center gap-1.5 bg-[#fff8e1] border border-[#ffe082] text-[#D9A441] text-[11px] font-bold px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D9A441] animate-pulse" />
+                {nbAttente}
+              </span>
+            )}
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-1 bg-[#E55A35] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-[#E55A35]/20 hover:bg-[#b51d1d] hover:shadow-md hover:shadow-[#E55A35]/30 hover:-translate-y-px transition-all duration-150"
+            >
+              + Nouveau quête
+            </button>
+          </div>
         </div>
 
         {/* Onglets tab-bar */}
@@ -95,7 +106,7 @@ export default function DefisPage() {
                   <span className={`text-[10px] font-black ${active ? 'text-[#1F1B2E]' : 'text-[#c0c0cc]'}`}>{n}</span>
                 )}
                 {active && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C62828] rounded-t-full" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E55A35] rounded-t-full" />
                 )}
               </button>
             );
@@ -153,7 +164,7 @@ export default function DefisPage() {
                     </span>
                   </div>
 
-                  {/* Défi + date */}
+                  {/* Quête + date */}
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-sm">{catIcon}</span>
                     <span className="text-[12px] font-semibold text-[#1F1B2E] truncate flex-1">
@@ -173,11 +184,11 @@ export default function DefisPage() {
                   {isPending && (
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => handleApprove(sub.id)} disabled={busy}
-                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40">
+                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] enabled:hover:bg-[#2E7D32] enabled:hover:text-white enabled:hover:shadow-sm enabled:hover:border-[#2E7D32] disabled:opacity-60 transition-all duration-150">
                         {isApproving ? '…' : '✓ Valider'}
                       </button>
                       <button onClick={() => handleReject(sub.id)} disabled={busy}
-                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#ffebee] text-[#C62828] border border-[#ef9a9a] hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-40">
+                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-[#ffebee] text-[#E55A35] border border-[#ef9a9a] enabled:hover:bg-[#E55A35] enabled:hover:text-white enabled:hover:shadow-sm enabled:hover:border-[#E55A35] disabled:opacity-60 transition-all duration-150">
                         {isRejecting ? '…' : '✕ Rejeter'}
                       </button>
                     </div>
@@ -190,6 +201,12 @@ export default function DefisPage() {
 
         <div className="h-4" />
       </div>
+
+      <CreateChallengeModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => setCreateOpen(false)}
+      />
     </div>
   );
 }

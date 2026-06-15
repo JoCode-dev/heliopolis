@@ -1,5 +1,5 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
-export type UserRole = 'ADMIN' | 'REGION' | 'SENTINELLE' | 'GUIDE' | 'GARDIEN';
+export type UserRole = 'ADMIN' | 'REGION' | 'SENTINELLE' | 'GUIDE' | 'GARDIEN' | 'PHOTOGRAPHE';
 export type ProfileStatus = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE_ACTIVATION' | 'SUSPENDU' | 'ARCHIVE';
 export type AdhesionStatus = 'A_JOUR' | 'NON_A_JOUR' | 'EN_ATTENTE';
 export type CampType = 'REGIONAL' | 'DISTRICT' | 'PAROISSIAL' | 'NATIONAL' | 'COMMUNAUTE';
@@ -23,6 +23,7 @@ export interface User {
   id: string; nom: string; prenoms: string; matricule?: string;
   email?: string; telephone?: string; avatarUrl?: string;
   role: UserRole; statutProfil: ProfileStatus;
+  notifPush?: boolean; notifEmail?: boolean;
   region?: Region; district?: District; parish?: Parish;
   adhesions?: Adhesion[];
   _count?: { badges: number; submissions: number };
@@ -81,11 +82,69 @@ export interface Council {
   lieu?: string;
   statut: CouncilStatus;
   targetRoles: string[];
+  qrToken?: string;
   region?:   { id: string; nom: string };
   district?: { id: string; nom: string };
   parish?:   { id: string; nom: string };
   createdBy?: Partial<User>;
   createdAt: string;
+}
+
+export interface CouncilPublic {
+  nom: string;
+  description?: string;
+  date: string;
+  lieu?: string;
+  statut: CouncilStatus;
+  targetRoles: string[];
+  region?:   { id: string; nom: string };
+  district?: { id: string; nom: string };
+  parish?:   { id: string; nom: string };
+  registrationOpen: boolean;
+}
+
+export interface CouncilParticipant {
+  id: string;
+  nom: string;
+  prenoms: string;
+  contact?: string;
+  district?: { id: string; nom: string };
+  parish?: { id: string; nom: string };
+  fonction?: string;
+  note?: number;
+  avis?: string;
+  registeredAt: string;
+  user?: { id: string; nom: string; prenoms: string };
+}
+
+// ─── Journal d'actions ───────────────────────────────────────────────────────
+export type AuditAction =
+  | 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  | 'EXPORT' | 'STATUS_CHANGE' | 'VALIDATE' | 'REJECT';
+
+export type ActionLogCategory =
+  | 'auth' | 'user' | 'camp' | 'challenge' | 'codex'
+  | 'council' | 'badge' | 'export' | 'settings';
+
+export interface ActionLogEntry {
+  id: string;
+  timestamp: string;
+  action: AuditAction;
+  category: ActionLogCategory;
+  summary: string;
+  actor?: { id: string; role: string; label: string };
+  target: { entityType: string; entityId: string };
+  metadata?: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+}
+
+export interface ActionLogsResponse {
+  items: ActionLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  date: string;
 }
 
 // ─── Challenges / Soumissions ────────────────────────────────────────────────
@@ -127,6 +186,7 @@ export interface Conversation {
   members?: ConversationMember[];
   messages?: Message[];
   _count?: { messages: number };
+  unreadCount?: number;
 }
 export interface ConversationMember {
   id: string; userId: string; role: string;
@@ -139,6 +199,44 @@ export interface Message {
   author: Partial<User>;
   replyTo?: Partial<Message>;
   createdAt: string; editedAt?: string; deletedAt?: string;
+}
+
+// ─── Photothèque ─────────────────────────────────────────────────────────────
+export interface CampPhoto {
+  id: string;
+  url: string;
+}
+
+export interface CampPublication {
+  id: string;
+  caption?: string;
+  campId?: string;
+  camp?: { id: string; nom: string };
+  uploader: { id: string; nom: string; prenoms: string; avatarUrl?: string };
+  photos: CampPhoto[];
+  createdAt: string;
+}
+
+// ─── Annonces ────────────────────────────────────────────────────────────────
+export type AnnouncementStatus = 'BROUILLON' | 'PUBLIE' | 'PLANIFIE' | 'ARCHIVE';
+export type AnnouncementScope  = 'COMMUNAUTE' | 'REGION' | 'DOYENNE' | 'PAROISSE';
+
+export interface AnnouncementPhoto {
+  id: string;
+  url: string;
+}
+
+export interface Annonce {
+  id: string;
+  titre: string;
+  contenu?: string;
+  portee: AnnouncementScope;
+  statut: AnnouncementStatus;
+  publishedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+  author: { id: string; nom: string; prenoms: string; avatarUrl?: string };
+  photos: AnnouncementPhoto[];
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────

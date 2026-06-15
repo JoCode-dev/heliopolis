@@ -6,74 +6,111 @@ import { Pagination } from '@/components/ui/Pagination';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { usePaginationUrl } from '@/hooks/usePaginationUrl';
-import { downloadCsv } from '@/lib/csvExport';
+import {
+  DataTable,
+  DataTableExportButtons,
+  DataTableFilters,
+  useDataTable,
+  useTableExport,
+  useTableFilters,
+  type TableFilterConfig,
+} from '@/components/data-table';
+import {
+  ADHESION_LABEL,
+  ADHESION_PILL,
+  createGuideColumns,
+  ROLE_LABEL,
+  ROLE_PILL,
+  STATUT_LABEL,
+  STATUT_PILL,
+} from '@/components/data-table/columns/user-columns';
+import { filterUsers } from '@/components/data-table/utils/filter-users';
 import type { District, Parish, User } from '@/types';
 
 const PER_PAGE = 10;
+const ROLE_ALL = 'TOUS';
 
-type RoleFilter = 'TOUS' | 'GUIDE' | 'SENTINELLE';
-
-const ROLE_LABEL: Record<'GUIDE' | 'SENTINELLE', string> = {
-  GUIDE:      'Guide',
-  SENTINELLE: 'Sentinelle',
-};
-const ROLE_PILL: Record<'GUIDE' | 'SENTINELLE', 'violet' | 'or'> = {
-  GUIDE:      'violet',
-  SENTINELLE: 'or',
-};
-const STATUT_PILL: Record<string, 'vert' | 'rouge' | 'or' | 'gris'> = {
-  ACTIF:                 'vert',
-  INACTIF:               'rouge',
-  EN_ATTENTE_ACTIVATION: 'or',
-  SUSPENDU:              'rouge',
-  ARCHIVE:               'gris',
-};
-const STATUT_LABEL: Record<string, string> = {
-  ACTIF:                 'Actif',
-  INACTIF:               'Inactif',
-  EN_ATTENTE_ACTIVATION: 'En attente',
-  SUSPENDU:              'Suspendu',
-  ARCHIVE:               'Archivé',
-};
-const ADHESION_PILL: Record<string, 'vert' | 'rouge' | 'or'> = {
-  A_JOUR:    'vert',
-  NON_A_JOUR: 'rouge',
-  EN_ATTENTE: 'or',
-};
-const ADHESION_LABEL: Record<string, string> = {
-  A_JOUR:    'À jour',
-  NON_A_JOUR: 'Non à jour',
-  EN_ATTENTE: 'En attente',
-};
+const STATUT_OPTIONS = Object.entries(STATUT_LABEL).map(([value, label]) => ({ value, label }));
+const ADHESION_OPTIONS = Object.entries(ADHESION_LABEL).map(([value, label]) => ({ value, label }));
 
 function GuidesContent() {
-  const [guides, setGuides]         = useState<User[]>([]);
-  const [districts, setDistricts]   = useState<District[]>([]);
-  const [parishes, setParishes]     = useState<Parish[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [guides, setGuides] = useState<User[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [parishes, setParishes] = useState<Parish[]>([]);
+  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-
-  // Filtres
-  const [search, setSearch]             = useState('');
-  const [roleFilter, setRoleFilter]     = useState<RoleFilter>('TOUS');
-  const [districtId, setDistrictId]     = useState('');
-  const [parishId, setParishId]         = useState('');
-  const [page, setPage]                 = usePaginationUrl();
-
-  // Confirmation inline de suspension (stocke l'id en attente)
   const [pendingSuspend, setPendingSuspend] = useState<string | null>(null);
+  const [promoting, setPromoting] = useState<User | null>(null);
+  const [promoteLoading, setPromoteLoading] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [page, setPage] = usePaginationUrl();
+
+  const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
+    [
+      { id: 'search', type: 'search', placeholder: 'Rechercher par nom, matricule, paroisse…' },
+      { id: 'role', type: 'toggle', options: [
+        { value: ROLE_ALL, label: 'Tous' },
+        { value: 'GUIDE', label: 'Guide' },
+        { value: 'SENTINELLE', label: 'Sentinelle' },
+        { value: 'REGION', label: 'Région' },
+      ]},
+      { id: 'districtId', type: 'select', placeholder: 'Tous les districts', options: [], resetOnChange: ['parishId'] },
+      { id: 'parishId', type: 'select', placeholder: 'Toutes les paroisses', options: [] },
+      { id: 'statut', type: 'select', placeholder: 'Tous les statuts', options: STATUT_OPTIONS },
+      { id: 'adhesion', type: 'select', placeholder: 'Toutes adhésions', options: ADHESION_OPTIONS },
+    ],
+    () => setPage(1),
+  );
+
+  const parishDistrictMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of parishes) map.set(p.id, p.district.id);
+    return map;
+  }, [parishes]);
+
+  const visibleParishes = useMemo(
+    () => (values.districtId ? parishes.filter(p => p.district.id === values.districtId) : parishes),
+    [parishes, values.districtId],
+  );
+
+  const filterConfigs = useMemo<TableFilterConfig[]>(() => [
+    { id: 'search', type: 'search', placeholder: 'Rechercher par nom, matricule, paroisse…' },
+    { id: 'role', type: 'toggle', options: [
+      { value: ROLE_ALL, label: 'Tous' },
+      { value: 'GUIDE', label: 'Guide' },
+      { value: 'SENTINELLE', label: 'Sentinelle' },
+      { value: 'REGION', label: 'Région' },
+    ]},
+    {
+      id: 'districtId',
+      type: 'select',
+      placeholder: 'Tous les districts',
+      options: districts.map(d => ({ value: d.id, label: d.nom })),
+      resetOnChange: ['parishId'],
+    },
+    {
+      id: 'parishId',
+      type: 'select',
+      placeholder: 'Toutes les paroisses',
+      options: visibleParishes.map(p => ({ value: p.id, label: p.nom })),
+      disabled: visibleParishes.length === 0,
+    },
+    { id: 'statut', type: 'select', placeholder: 'Tous les statuts', options: STATUT_OPTIONS },
+    { id: 'adhesion', type: 'select', placeholder: 'Toutes adhésions', options: ADHESION_OPTIONS },
+  ], [districts, visibleParishes]);
 
   useEffect(() => {
     (async () => {
       try {
-        const [g, s, d, p] = await Promise.all([
+        const [g, s, r, d, p] = await Promise.all([
           usersApi.list({ role: 'GUIDE' }),
           usersApi.list({ role: 'SENTINELLE' }),
+          usersApi.list({ role: 'REGION' }),
           territoriesApi.districts(),
           territoriesApi.parishes(),
         ]);
-        setGuides([...g.data, ...s.data]);
+        setGuides([...g.data, ...s.data, ...r.data]);
         setDistricts(d.data);
         setParishes(p.data);
       } catch { /* ignore */ }
@@ -81,57 +118,20 @@ function GuidesContent() {
     })();
   }, []);
 
-  // Map parishId → districtId pour filtrer les guides par district
-  const parishDistrictMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of parishes) map.set(p.id, p.district.id);
-    return map;
-  }, [parishes]);
-
-  // Paroisses visibles dans le filtre (restreintes au district sélectionné)
-  const visibleParishes = useMemo(
-    () => districtId ? parishes.filter(p => p.district.id === districtId) : parishes,
-    [parishes, districtId],
+  const filtered = useMemo(
+    () => filterUsers(guides, values, { parishDistrictMap, roleAllValue: ROLE_ALL }),
+    [guides, values, parishDistrictMap],
   );
 
-
-  const filtered = useMemo(() => guides.filter(u => {
-    if (roleFilter !== 'TOUS' && u.role !== roleFilter) return false;
-
-    if (districtId) {
-      const userDistrict = u.district?.id
-        ?? (u.parish?.id ? parishDistrictMap.get(u.parish.id) : undefined);
-      if (userDistrict !== districtId) return false;
-    }
-
-    if (parishId && u.parish?.id !== parishId) return false;
-
-    const q = search.toLowerCase();
-    if (!q) return true;
-    return (
-      `${u.prenoms ?? ''} ${u.nom ?? ''}`.toLowerCase().includes(q) ||
-      (u.matricule ?? '').toLowerCase().includes(q) ||
-      (u.parish?.nom ?? '').toLowerCase().includes(q) ||
-      (u.district?.nom ?? '').toLowerCase().includes(q)
-    );
-  }), [guides, roleFilter, districtId, parishId, search, parishDistrictMap]);
-
-  const handleCreated = (newUser: User) => {
-    if (newUser.role === 'GUIDE' || newUser.role === 'SENTINELLE') {
-      setGuides(prev => [newUser, ...prev]);
-    }
-  };
-
-  const handleExport = () => {
-    const headers = ['Rôle', 'Prénoms', 'Nom', 'Matricule', 'Email', 'Téléphone', 'Territoire', 'District', 'Région', 'Adhésion', 'Statut'];
-    const rows = filtered.map(u => [
-      u.role, u.prenoms, u.nom, u.matricule ?? '',
-      u.email ?? '', u.telephone ?? '',
-      u.parish?.nom ?? u.district?.nom ?? '',
-      u.district?.nom ?? '', u.region?.nom ?? '',
-      u.adhesions?.[0]?.statut ?? '', u.statutProfil,
-    ]);
-    downloadCsv(`encadrants-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  const handlePromouvoir = async (targetRole: 'GUIDE' | 'SENTINELLE' | 'REGION') => {
+    if (!promoting) return;
+    setPromoteLoading(true);
+    try {
+      const { data } = await usersApi.promouvoir(promoting.id, targetRole);
+      setGuides(prev => prev.map(u => u.id === promoting.id ? { ...u, role: (data as User).role } : u));
+      setPromoting(null);
+    } catch { /* ignore */ }
+    finally { setPromoteLoading(false); }
   };
 
   const handleStatut = async (user: User, newStatut: 'SUSPENDU' | 'ACTIF') => {
@@ -144,31 +144,59 @@ function GuidesContent() {
     finally { setActionLoading(null); }
   };
 
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const columns = useMemo(
+    () => createGuideColumns({
+      onSuspend: u => handleStatut(u, 'SUSPENDU'),
+      onReactivate: u => handleStatut(u, 'ACTIF'),
+      onPromote: u => setPromoting(u),
+      pendingSuspend,
+      setPendingSuspend,
+      actionLoading,
+    }),
+    [actionLoading, pendingSuspend],
+  );
 
-  const nbGuides      = guides.filter(u => u.role === 'GUIDE').length;
+  const { table } = useDataTable({
+    data: filtered,
+    columns,
+    pageSize: PER_PAGE,
+    page,
+    onPageChange: setPage,
+  });
+
+  const { exportExcel, exportPdf, exportCsv, disabled: exportDisabled } = useTableExport({
+    data: filtered,
+    columns,
+    options: { filename: 'encadrants', title: 'Liste des encadrants' },
+  });
+
+  const paginatedRows = table.getRowModel().rows;
+
+  const nbGuides = guides.filter(u => u.role === 'GUIDE').length;
   const nbSentinelles = guides.filter(u => u.role === 'SENTINELLE').length;
-  const nbActifs      = guides.filter(u => u.statutProfil === 'ACTIF').length;
-  const nbSuspendus   = guides.filter(u => u.statutProfil === 'SUSPENDU').length;
-  const nbAdhAJour    = guides.filter(u => u.adhesions?.[0]?.statut === 'A_JOUR').length;
+  const nbRegion = guides.filter(u => u.role === 'REGION').length;
+  const nbActifs = guides.filter(u => u.statutProfil === 'ACTIF').length;
+  const nbSuspendus = guides.filter(u => u.statutProfil === 'SUSPENDU').length;
+  const nbAdhAJour = guides.filter(u => u.adhesions?.[0]?.statut === 'A_JOUR').length;
   const nbAdhNonAJour = guides.filter(u => u.adhesions?.[0]?.statut === 'NON_A_JOUR').length;
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
-
-      {/* En-tête */}
+      {/* ── Header ── */}
       <div className="flex justify-between items-center mb-5 border-b border-[#ececf0] pb-4">
         <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">📖 Encadrants</h1>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-[#6b6b78]">{guides.length} encadrant{guides.length > 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-sm text-[#6b6b78] hidden sm:inline">{guides.length} encadrant{guides.length > 1 ? 's' : ''}</span>
+          <div className="hidden lg:flex items-center gap-2">
+            <DataTableExportButtons
+              onExportExcel={exportExcel}
+              onExportPdf={exportPdf}
+              onExportCsv={exportCsv}
+              disabled={exportDisabled}
+            />
+          </div>
           <button
-            onClick={handleExport}
-            disabled={filtered.length === 0}
-            className="bg-white border border-[#e0e0e8] text-[#1F1B2E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#f6f6fa] transition-colors disabled:opacity-40"
-          >
-            📥 Exporter
-          </button>
-          <button
+            type="button"
             onClick={() => setCreateOpen(true)}
             className="bg-[#1F1B2E] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#2d2640] transition-colors"
           >
@@ -177,84 +205,100 @@ function GuidesContent() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
+      {/* ── KPIs : scroll horizontal sur mobile, grille sur desktop ── */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-5 -mx-4 px-4 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible lg:pb-0">
         {[
-          { label: 'Guides',        value: nbGuides,       color: '#6A1B9A' },
-          { label: 'Sentinelles',   value: nbSentinelles,  color: '#D9A441' },
-          { label: 'Actifs',        value: nbActifs,       color: '#2E7D32' },
-          { label: 'Suspendus',     value: nbSuspendus,    color: '#C62828' },
-          { label: 'Adhés. à jour', value: nbAdhAJour,     color: '#2E7D32' },
-          { label: 'Non à jour',    value: nbAdhNonAJour,  color: '#C62828' },
+          { label: 'Guides', value: nbGuides, color: '#6A1B9A' },
+          { label: 'Sentinelles', value: nbSentinelles, color: '#D9A441' },
+          { label: 'Région', value: nbRegion, color: '#1F1B2E' },
+          { label: 'Actifs', value: nbActifs, color: '#2E7D32' },
+          { label: 'Suspendus', value: nbSuspendus, color: '#E55A35' },
+          { label: 'À jour', value: nbAdhAJour, color: '#2E7D32' },
+          { label: 'Non à jour', value: nbAdhNonAJour, color: '#E55A35' },
         ].map(kpi => (
-          <div key={kpi.label} className="bg-white border border-[#ececf0] rounded-xl p-3">
+          <div key={kpi.label} className="flex-shrink-0 min-w-[76px] lg:min-w-0 bg-white border border-[#ececf0] rounded-xl p-3">
             <div className="text-xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
             <div className="text-[10px] text-[#6b6b78] uppercase tracking-wide mt-0.5 leading-tight">{kpi.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Filtres */}
-      <div className="flex flex-col gap-3 mb-5">
-        {/* Ligne 1 : recherche + rôle */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 min-w-0"
-            placeholder="🔍 Rechercher par nom, matricule, paroisse…"
-          />
-          <div className="flex gap-1.5 flex-shrink-0">
-            {(['TOUS', 'GUIDE', 'SENTINELLE'] as RoleFilter[]).map(r => (
-              <button
-                key={r}
-                onClick={() => { setRoleFilter(r); setPage(1); }}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                  roleFilter === r
-                    ? 'bg-[#1F1B2E] text-white'
-                    : 'bg-white border border-[#e0e0e8] text-[#6b6b78] hover:border-[#1F1B2E] hover:text-[#1F1B2E]'
-                }`}
-              >
-                {r === 'TOUS' ? 'Tous' : ROLE_LABEL[r]}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* ── Filtres desktop ── */}
+      <div className="hidden lg:block mb-5">
+        <DataTableFilters
+          configs={filterConfigs}
+          values={values}
+          onChange={setFilter}
+          onReset={resetFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
+      </div>
 
-        {/* Ligne 2 : district + paroisse */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <select
-            value={districtId}
-            onChange={e => { setDistrictId(e.target.value); setParishId(''); setPage(1); }}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E]"
-          >
-            <option value="">Tous les districts</option>
-            {districts.map(d => (
-              <option key={d.id} value={d.id}>{d.nom}</option>
-            ))}
-          </select>
-
-          <select
-            value={parishId}
-            onChange={e => { setParishId(e.target.value); setPage(1); }}
-            disabled={visibleParishes.length === 0}
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none flex-1 text-[#1F1B2E] disabled:opacity-50"
-          >
-            <option value="">Toutes les paroisses</option>
-            {visibleParishes.map(p => (
-              <option key={p.id} value={p.id}>{p.nom}</option>
-            ))}
-          </select>
-
-          {(districtId || parishId || search || roleFilter !== 'TOUS') && (
-            <button
-              onClick={() => { setDistrictId(''); setParishId(''); setSearch(''); setRoleFilter('TOUS'); setPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#f6f6fa] text-[#6b6b78] hover:bg-[#ececf0] transition-colors flex-shrink-0"
-            >
-              ✕ Effacer
+      {/* ── Filtres mobile : recherche + toggle + avancés repliables ── */}
+      <div className="lg:hidden mb-5 flex flex-col gap-2">
+        <input
+          type="text"
+          value={(values.search as string) ?? ''}
+          onChange={e => setFilter('search', e.target.value)}
+          placeholder="Rechercher par nom, matricule, paroisse…"
+          className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] placeholder:text-[#b0b0bc]"
+        />
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {[
+            { value: ROLE_ALL, label: 'Tous' },
+            { value: 'GUIDE', label: 'Guide' },
+            { value: 'SENTINELLE', label: 'Sentinelle' },
+            { value: 'REGION', label: 'Région' },
+          ].map(opt => (
+            <button key={opt.value} type="button"
+              onClick={() => setFilter('role', opt.value)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                ((values.role as string) ?? ROLE_ALL) === opt.value
+                  ? 'bg-[#1F1B2E] text-white'
+                  : 'bg-[#f0f0f4] text-[#6b6b78]'
+              }`}>
+              {opt.label}
             </button>
-          )}
+          ))}
         </div>
+        <button type="button" onClick={() => setMobileFiltersOpen(v => !v)}
+          className={`flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+            hasActiveFilters ? 'border-[#1F1B2E]/30 bg-[#f0f0f4] text-[#1F1B2E]' : 'border-[#e6e6ea] bg-white text-[#6b6b78]'
+          }`}>
+          <span>Filtres avancés{hasActiveFilters ? ' ·' : ''}</span>
+          <span className={`transition-transform duration-200 text-xs ${mobileFiltersOpen ? 'rotate-180' : ''}`}>▾</span>
+        </button>
+        {mobileFiltersOpen && (
+          <div className="flex flex-col gap-2 pt-1">
+            <select value={(values.districtId as string) ?? ''} onChange={e => setFilter('districtId', e.target.value)}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+              <option value="">Tous les districts</option>
+              {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
+            </select>
+            <select value={(values.parishId as string) ?? ''} onChange={e => setFilter('parishId', e.target.value)}
+              disabled={visibleParishes.length === 0}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] disabled:opacity-40">
+              <option value="">Toutes les paroisses</option>
+              {visibleParishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+            </select>
+            <select value={(values.statut as string) ?? ''} onChange={e => setFilter('statut', e.target.value)}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+              <option value="">Tous les statuts</option>
+              {STATUT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select value={(values.adhesion as string) ?? ''} onChange={e => setFilter('adhesion', e.target.value)}
+              className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
+              <option value="">Toutes adhésions</option>
+              {ADHESION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            {hasActiveFilters && (
+              <button type="button" onClick={resetFilters}
+                className="text-xs font-semibold text-[#E55A35] text-center py-1">
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -271,9 +315,8 @@ function GuidesContent() {
 
       {!loading && filtered.length > 0 && (
         <>
-          {/* Mobile : cartes */}
           <div className="lg:hidden flex flex-col gap-2">
-            {paginated.map(u => {
+            {paginatedRows.map(({ original: u }) => {
               const isLoading = actionLoading === u.id;
               const isPending = pendingSuspend === u.id;
               const canSuspend = u.statutProfil === 'ACTIF';
@@ -286,20 +329,18 @@ function GuidesContent() {
                       avatarUrl={u.avatarUrl}
                       initials={`${u.nom[0]}${u.prenoms[0]}`}
                       sizeClass="w-10 h-10"
-                      bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : 'bg-[#D9A441]'}
+                      bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : u.role === 'REGION' ? 'bg-[#1F1B2E]' : 'bg-[#D9A441]'}
                       textClass="text-xs font-bold text-white"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-[#1F1B2E] truncate">
-                        {u.prenoms} {u.nom}
-                      </div>
+                      <div className="font-semibold text-sm text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</div>
                       <div className="text-[11px] text-[#6b6b78] truncate">
                         {u.matricule ?? '—'} · {u.parish?.nom ?? u.district?.nom ?? '—'}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Pill variant={ROLE_PILL[u.role as 'GUIDE' | 'SENTINELLE']} className="text-[10px]">
-                        {ROLE_LABEL[u.role as 'GUIDE' | 'SENTINELLE']}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Pill variant={ROLE_PILL[u.role as 'GUIDE' | 'SENTINELLE' | 'REGION']} className="text-[10px]">
+                        {ROLE_LABEL[u.role as 'GUIDE' | 'SENTINELLE' | 'REGION']}
                       </Pill>
                       <Pill variant={STATUT_PILL[u.statutProfil] ?? 'gris'} className="text-[10px]">
                         {STATUT_LABEL[u.statutProfil] ?? u.statutProfil}
@@ -311,41 +352,34 @@ function GuidesContent() {
                       )}
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  {(canSuspend || canReactivate) && (
-                    <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4]">
+                  {((canSuspend || canReactivate) || (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION')) && (
+                    <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4] flex flex-col gap-1.5">
+                      {!isPending && (
+                        <button type="button" onClick={() => setPromoting(u)} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] transition-colors disabled:opacity-50">
+                          Changer le rôle
+                        </button>
+                      )}
                       {canReactivate && (
-                        <button
-                          onClick={() => handleStatut(u, 'ACTIF')}
-                          disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
-                        >
+                        <button type="button" onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
                           {isLoading ? '…' : '✓ Réactiver le compte'}
                         </button>
                       )}
                       {canSuspend && !isPending && (
-                        <button
-                          onClick={() => setPendingSuspend(u.id)}
-                          disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
-                        >
+                        <button type="button" onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50">
                           Suspendre le compte
                         </button>
                       )}
                       {canSuspend && isPending && (
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => setPendingSuspend(null)}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#f6f6fa] text-[#6b6b78] hover:bg-[#ececf0] transition-colors"
-                          >
+                          <button type="button" onClick={() => setPendingSuspend(null)}
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#f6f6fa] text-[#6b6b78] hover:bg-[#ececf0] transition-colors">
                             Annuler
                           </button>
-                          <button
-                            onClick={() => handleStatut(u, 'SUSPENDU')}
-                            disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50"
-                          >
+                          <button type="button" onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#E55A35] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </div>
@@ -357,131 +391,14 @@ function GuidesContent() {
             })}
           </div>
 
-          {/* Desktop : table */}
-          <div className="hidden lg:block bg-white border border-[#ececf0] rounded-2xl overflow-hidden">
-            <table className="w-full text-xs border-collapse table-fixed">
-              <colgroup>
-                <col className="w-[23%]" />
-                <col className="w-[11%]" />
-                <col className="w-[9%]" />
-                <col className="w-[20%]" />
-                <col className="w-[11%]" />
-                <col className="w-[11%]" />
-                <col className="w-[15%]" />
-              </colgroup>
-              <thead>
-                <tr className="bg-[#f9f9fc] text-[#6b6b78] uppercase tracking-wide">
-                  {['Encadrant', 'Matricule', 'Rôle', 'Paroisse / District', 'Adhésion', 'Statut', 'Action'].map(h => (
-                    <th key={h} className="text-left px-3 py-3 font-semibold border-b border-[#ececf0]">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map(u => {
-                  const isLoading = actionLoading === u.id;
-                  const isPending = pendingSuspend === u.id;
-                  const canSuspend = u.statutProfil === 'ACTIF';
-                  const canReactivate = u.statutProfil === 'SUSPENDU';
-
-                  return (
-                    <tr key={u.id} className="border-b border-[#f0f0f4] hover:bg-[#fafafc]">
-                      {/* Encadrant */}
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <UserAvatar
-                            avatarUrl={u.avatarUrl}
-                            initials={`${u.nom[0]}${u.prenoms[0]}`}
-                            sizeClass="w-7 h-7 flex-shrink-0"
-                            bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : 'bg-[#D9A441]'}
-                            textClass="text-[10px] font-bold text-white"
-                          />
-                          <span className="font-semibold text-[#1F1B2E] truncate">
-                            {u.prenoms} {u.nom}
-                          </span>
-                        </div>
-                      </td>
-                      {/* Matricule */}
-                      <td className="px-3 py-2.5 font-mono text-[#6b6b78] truncate">
-                        {u.matricule ?? '—'}
-                      </td>
-                      {/* Rôle */}
-                      <td className="px-3 py-2.5">
-                        <Pill variant={ROLE_PILL[u.role as 'GUIDE' | 'SENTINELLE']}>
-                          {ROLE_LABEL[u.role as 'GUIDE' | 'SENTINELLE']}
-                        </Pill>
-                      </td>
-                      {/* Paroisse / District */}
-                      <td className="px-3 py-2.5">
-                        <div className="font-medium text-[#1F1B2E] truncate">
-                          {u.parish?.nom ?? u.district?.nom ?? '—'}
-                        </div>
-                        {u.parish && u.district && (
-                          <div className="text-[10px] text-[#6b6b78] truncate">{u.district.nom}</div>
-                        )}
-                      </td>
-                      {/* Adhésion */}
-                      <td className="px-3 py-2.5">
-                        {u.adhesions?.[0] ? (
-                          <Pill variant={ADHESION_PILL[u.adhesions[0].statut] ?? 'gris'}>
-                            {ADHESION_LABEL[u.adhesions[0].statut] ?? u.adhesions[0].statut}
-                          </Pill>
-                        ) : (
-                          <span className="text-[10px] text-[#b0b0bc]">—</span>
-                        )}
-                      </td>
-                      {/* Statut compte */}
-                      <td className="px-3 py-2.5">
-                        <Pill variant={STATUT_PILL[u.statutProfil] ?? 'gris'}>
-                          {STATUT_LABEL[u.statutProfil] ?? u.statutProfil}
-                        </Pill>
-                      </td>
-                      {/* Action */}
-                      <td className="px-3 py-2.5">
-                        {canReactivate && (
-                          <button
-                            onClick={() => handleStatut(u, 'ACTIF')}
-                            disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
-                          >
-                            {isLoading ? '…' : '✓ Réactiver'}
-                          </button>
-                        )}
-                        {canSuspend && !isPending && (
-                          <button
-                            onClick={() => setPendingSuspend(u.id)}
-                            disabled={isLoading}
-                            className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
-                          >
-                            Suspendre
-                          </button>
-                        )}
-                        {canSuspend && isPending && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleStatut(u, 'SUSPENDU')}
-                              disabled={isLoading}
-                              className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50"
-                            >
-                              {isLoading ? '…' : 'Oui'}
-                            </button>
-                            <button
-                              onClick={() => setPendingSuspend(null)}
-                              className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-[#f0f0f4] text-[#6b6b78] hover:bg-[#e4e4ea] transition-colors"
-                            >
-                              Non
-                            </button>
-                          </div>
-                        )}
-                        {!canSuspend && !canReactivate && (
-                          <span className="text-[10px] text-[#b0b0bc]">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            table={table}
+            page={page}
+            perPage={PER_PAGE}
+            onPageChange={setPage}
+            totalItems={filtered.length}
+            hidePagination
+          />
           <Pagination
             page={page}
             totalItems={filtered.length}
@@ -494,10 +411,78 @@ function GuidesContent() {
       <CreateUserModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={handleCreated}
+        onCreated={u => {
+          if (u.role === 'GUIDE') setGuides(prev => [u, ...prev]);
+        }}
         defaultRole="GUIDE"
-        allowedRoles={['GUIDE', 'SENTINELLE']}
+        allowedRoles={['GUIDE']}
       />
+
+      {/* ── Modal promotion ── */}
+      {promoting && (() => {
+        const role = promoting.role as 'GUIDE' | 'SENTINELLE' | 'REGION';
+        const ROLES = {
+          GUIDE:      { icon: '📖', label: 'Guide',         desc: 'Responsable d\'une paroisse', bg: 'bg-[#f5eeff]', border: 'border-[#6A1B9A]/20', iconBg: 'bg-[#6A1B9A]' },
+          SENTINELLE: { icon: '🛡️', label: 'Sentinelle',   desc: 'Responsable d\'un district',  bg: 'bg-[#fdf8ec]', border: 'border-[#D9A441]/30', iconBg: 'bg-[#D9A441]' },
+          REGION:     { icon: '🌍', label: 'Membre Région', desc: 'Conseil régional',             bg: 'bg-[#f0f0f4]', border: 'border-[#1F1B2E]/10', iconBg: 'bg-[#1F1B2E]' },
+        };
+        const promotions   = role === 'GUIDE' ? (['SENTINELLE', 'REGION'] as const)  : role === 'SENTINELLE' ? (['REGION'] as const) : [];
+        const retrogrades  = role === 'REGION' ? (['SENTINELLE', 'GUIDE'] as const) : role === 'SENTINELLE' ? (['GUIDE'] as const)  : [];
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-end z-[60]" onClick={() => !promoteLoading && setPromoting(null)}>
+            <div className="bg-white rounded-t-2xl w-full max-w-lg mx-auto shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="px-5 pt-4 pb-3 border-b border-[#f0f0f4]">
+                <p className="text-[11px] text-[#9b9ba8] mb-0.5">{promoting.prenoms} {promoting.nom}</p>
+                <p className="text-sm font-bold text-[#1F1B2E]">Changer le rôle · actuellement <span className="text-[#6A1B9A]">{ROLES[role].label}</span></p>
+              </div>
+              <div className="flex flex-col p-3 gap-2">
+                {promotions.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1">Promouvoir</p>
+                    {promotions.map(target => {
+                      const r = ROLES[target];
+                      return (
+                        <button key={target} onClick={() => handlePromouvoir(target)} disabled={promoteLoading}
+                          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl ${r.bg} border ${r.border} active:opacity-80 text-left disabled:opacity-60`}>
+                          <span className={`w-9 h-9 rounded-full ${r.iconBg} flex items-center justify-center text-base flex-shrink-0`}>{r.icon}</span>
+                          <div>
+                            <div className="font-semibold text-sm text-[#1F1B2E]">{r.label}</div>
+                            <div className="text-xs text-[#9b9ba8]">{r.desc}</div>
+                          </div>
+                          <span className="ml-auto text-xs text-[#9b9ba8]">↑</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+                {retrogrades.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1 mt-1">Rétrograder</p>
+                    {retrogrades.map(target => {
+                      const r = ROLES[target];
+                      return (
+                        <button key={target} onClick={() => handlePromouvoir(target)} disabled={promoteLoading}
+                          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white border border-[#e6e6ea] active:bg-[#f9f9fc] text-left disabled:opacity-60">
+                          <span className={`w-9 h-9 rounded-full ${r.iconBg} flex items-center justify-center text-base flex-shrink-0 opacity-70`}>{r.icon}</span>
+                          <div>
+                            <div className="font-semibold text-sm text-[#6b6b78]">{r.label}</div>
+                            <div className="text-xs text-[#b0b0bc]">{r.desc}</div>
+                          </div>
+                          <span className="ml-auto text-xs text-[#b0b0bc]">↓</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+                <button onClick={() => setPromoting(null)} disabled={promoteLoading}
+                  className="w-full py-3 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78] mt-1">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

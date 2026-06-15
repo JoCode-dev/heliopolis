@@ -10,10 +10,8 @@ interface NavItem { href: string; icon: string; label: string; }
 // ─── Configurations ───────────────────────────────────────────────────────────
 
 const GUEST_ITEMS: NavItem[] = [
-  { href: '/', icon: '🏠', label: 'Accueil' },
-  { href: '/camps', icon: '⛺', label: 'Camps' },
-  { href: '/codex', icon: '🪶', label: 'Codex' },
-  { href: '/rejoindre', icon: '✨', label: 'Rejoindre' },
+  { href: '/',          icon: '🏠', label: 'Accueil'  },
+  { href: '/activation',icon: '🛡️', label: 'S\'inscrire' },
 ];
 
 const GARDIEN_ITEMS: NavItem[] = [
@@ -94,7 +92,7 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
           return (
             <Link key={item.href} href={item.href}
               className={`flex flex-col items-center gap-0.5 py-2 flex-1 text-[10px] font-medium transition-colors ${
-                active ? 'text-[#C62828]' : 'text-[#6b6b78]'
+                active ? 'text-[#E55A35]' : 'text-[#6b6b78]'
               }`}>
               <span className="text-[20px] leading-none">{item.icon}</span>
               {item.label}
@@ -107,7 +105,7 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
           <button
             onClick={() => setMoreOpen(v => !v)}
             className={`flex flex-col items-center gap-0.5 py-2 flex-1 text-[10px] font-medium transition-colors ${
-              overflowActive ? 'text-[#C62828]' : moreOpen ? 'text-[#6A1B9A]' : 'text-[#6b6b78]'
+              overflowActive ? 'text-[#E55A35]' : moreOpen ? 'text-[#6A1B9A]' : 'text-[#6b6b78]'
             }`}>
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
               moreOpen ? 'bg-[#6A1B9A] text-white rotate-45' : 'bg-[#f3f3f5] text-[#6b6b78]'
@@ -130,7 +128,7 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
           {/* Panel */}
           <div className="fixed bottom-[57px] left-0 right-0 z-50 bg-white border-t border-[#e6e6ea] shadow-[0_-4px_24px_rgba(0,0,0,0.12)] rounded-t-2xl pb-safe">
             <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#f0f0f0]">
-              <span className="text-xs font-bold text-[#6b6b78] uppercase tracking-wider">Plus d'onglets</span>
+              <span className="text-xs font-bold text-[#6b6b78] uppercase tracking-wider">Plus d&apos;onglets</span>
               <button onClick={() => setMoreOpen(false)}
                 className="w-6 h-6 rounded-full bg-[#f3f3f5] flex items-center justify-center text-[#6b6b78] text-xs">
                 ✕
@@ -143,12 +141,12 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
                   <Link key={item.href} href={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={`flex flex-col items-center gap-1 py-3.5 px-2 text-[11px] font-medium transition-colors ${
-                      active ? 'text-[#C62828] bg-[#fff5f5]' : 'text-[#6b6b78] hover:bg-[#f7f7fa]'
+                      active ? 'text-[#E55A35] bg-[#fff8f3]' : 'text-[#6b6b78] hover:bg-[#f7f7fa]'
                     }`}>
                     <span className="text-[22px] leading-none">{item.icon}</span>
                     {item.label}
                     {active && (
-                      <span className="w-1 h-1 rounded-full bg-[#C62828]" />
+                      <span className="w-1 h-1 rounded-full bg-[#E55A35]" />
                     )}
                   </Link>
                 );

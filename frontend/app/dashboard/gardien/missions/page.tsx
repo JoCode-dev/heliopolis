@@ -1,19 +1,21 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { challengesApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { Pill, Progress } from '@/components/ui';
 import type { Challenge, ChallengeCategory, Submission } from '@/types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const CAT: Record<ChallengeCategory, { border: string; pill: 'rouge' | 'vert' | 'violet' | 'or'; accent: string }> = {
-  PERSONNEL:     { border: 'border-l-[#C62828]', pill: 'rouge',  accent: '#C62828' },
+  PERSONNEL:     { border: 'border-l-[#E55A35]', pill: 'rouge',  accent: '#E55A35' },
   COMMUNAUTAIRE: { border: 'border-l-[#2E7D32]', pill: 'vert',   accent: '#2E7D32' },
   SPIRITUEL:     { border: 'border-l-[#6A1B9A]', pill: 'violet', accent: '#6A1B9A' },
   LONG:          { border: 'border-l-[#D9A441]', pill: 'or',     accent: '#D9A441' },
 };
 const CAT_LABEL: Record<ChallengeCategory, string> = {
-  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Défi long',
+  PERSONNEL: 'Personnel', COMMUNAUTAIRE: 'Communautaire', SPIRITUEL: 'Spirituel', LONG: 'Quête longue',
 };
 const CAT_EMOJI: Record<ChallengeCategory, string> = {
   PERSONNEL: '🌿', COMMUNAUTAIRE: '🤝', SPIRITUEL: '🔥', LONG: '🏔️',
@@ -62,11 +64,11 @@ export default function MissionsPage() {
     .reduce((acc, s) => acc + (s.challenge?.points ?? 0), 0);
 
   // Persistance des onglets et des missions démarrées
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     const savedTab = localStorage.getItem(TAB_KEY) as Tab;
     if (['defis', 'en-cours', 'accomplies'].includes(savedTab)) setTab(savedTab);
     setStartedIds(loadStarted());
-  }, []);
+  }), []);
 
   const changeTab = (t: Tab) => { setTab(t); localStorage.setItem(TAB_KEY, t); };
 
@@ -76,14 +78,14 @@ export default function MissionsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Soumissions par défi (ordre chronologique)
+  // Soumissions par quête (ordre chronologique)
   const subsByChallenge = new Map<string, Submission[]>();
   for (const s of submissions) {
     const arr = subsByChallenge.get(s.challengeId) ?? [];
@@ -100,7 +102,7 @@ export default function MissionsPage() {
   const isInProgress = (c: Challenge) =>
     !isComplete(c) && (startedIds.has(c.id) || getSubs(c.id).length > 0);
 
-  // Partitions des défis
+  // Partitions des quêtes
   const completedSet  = challenges.filter(c => isComplete(c));
   const inProgressSet = challenges.filter(c => isInProgress(c));
   const availableSet  = challenges.filter(c => !isComplete(c) && !isInProgress(c));
@@ -134,17 +136,17 @@ export default function MissionsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xl ${toast.ok ? 'bg-[#2E7D32]' : 'bg-[#C62828]'}`}>
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xl ${toast.ok ? 'bg-[#2E7D32]' : 'bg-[#E55A35]'}`}>
           {toast.msg}
         </div>
       )}
 
       {/* ── Header avec onglets ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
         <div className="flex items-end gap-3 px-4 pt-3 pb-0">
           <div>
             <h1 className="text-[18px] font-black text-white tracking-tight">Missions</h1>
-            <p className="text-[11px] text-white/50 mt-0.5 pb-2">{challenges.length} défis disponibles</p>
+            <p className="text-[11px] text-white/50 mt-0.5 pb-2">{challenges.length} quêtes disponibles</p>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-3 pb-2">
@@ -165,7 +167,7 @@ export default function MissionsPage() {
 
         <div className="flex border-t border-white/10">
           {([
-            { key: 'defis',      label: 'Défis',     count: availableSet.length },
+            { key: 'defis',      label: 'Quêtes',     count: availableSet.length },
             { key: 'en-cours',   label: 'En cours',  count: inProgressSet.length },
             { key: 'accomplies', label: 'Accomplis',  count: completedSet.length },
           ] as { key: Tab; label: string; count: number }[]).map(t => (
@@ -219,7 +221,7 @@ export default function MissionsPage() {
   );
 }
 
-// ─── Onglet 1 : Défis disponibles (cartes + bouton "Voir les détails") ────────
+// ─── Onglet 1 : Quêtes disponibles (cartes + bouton "Voir les détails") ────────
 
 function DefisTab({ challenges, loading, totalPoints, onOpen }: {
   challenges: Challenge[];
@@ -245,8 +247,8 @@ function DefisTab({ challenges, loading, totalPoints, onOpen }: {
 
       {loading && <EmptyState icon="⚔️" title="Chargement…" sub="" pulse />}
       {!loading && filtered.length === 0 && (
-        <EmptyState icon="🎯" title="Aucun défi disponible"
-          sub="Tous les défis sont en cours ou accomplis." />
+        <EmptyState icon="🎯" title="Aucun quête disponible"
+          sub="Tous les quêtes sont en cours ou accomplis." />
       )}
 
       <div className="p-3 grid gap-3 sm:grid-cols-2">
@@ -258,7 +260,7 @@ function DefisTab({ challenges, loading, totalPoints, onOpen }: {
   );
 }
 
-// ─── Carte défi ───────────────────────────────────────────────────────────────
+// ─── Carte quête ───────────────────────────────────────────────────────────────
 
 function DefiCard({ challenge: c, totalPoints, onOpen }: {
   challenge: Challenge;
@@ -311,7 +313,7 @@ function DefiCard({ challenge: c, totalPoints, onOpen }: {
         }`}
         style={{ color: locked ? undefined : style.accent }}
       >
-        {locked ? '🔒 Défi verrouillé' : 'Voir les détails →'}
+        {locked ? '🔒 Quête verrouillé' : 'Voir les détails →'}
       </button>
     </div>
   );
@@ -332,7 +334,7 @@ function EnCoursTab({ challenges, loading, subsByChallenge, getValidCount, submi
       {loading && <EmptyState icon="⏳" title="Chargement…" sub="" pulse />}
       {!loading && challenges.length === 0 && (
         <EmptyState icon="🎯" title="Aucune mission en cours"
-          sub="Va dans l'onglet Défis, choisis une mission et clique sur « Commencer »." />
+          sub="Va dans l'onglet Quêtes, choisis une mission et clique sur « Commencer »." />
       )}
       {!loading && challenges.length > 0 && (
         <>
@@ -445,12 +447,12 @@ function ChallengeRow({ challenge: c, subs, validCount, todayDone, onClick }: {
           <Pill variant={style.pill}>{CAT_LABEL[cat]}</Pill>
           {isDuration
             ? todayDone
-              ? <span className="text-[12px] text-[#D9A441] font-semibold ml-auto">⏳ Soumis aujourd'hui</span>
+              ? <span className="text-[12px] text-[#D9A441] font-semibold ml-auto">⏳ Soumis aujourd&apos;hui</span>
               : subs.length > 0
-                ? <span className="text-[12px] text-[#C62828] font-semibold ml-auto">● Jour {subs.length + 1} à soumettre</span>
+                ? <span className="text-[12px] text-[#E55A35] font-semibold ml-auto">● Jour {subs.length + 1} à soumettre</span>
                 : <span className="text-[12px] text-[#9b9ba8] ml-auto">Pas encore soumis</span>
             : lastSub
-              ? <span className={`text-[12px] font-semibold ml-auto ${lastSub.statut === 'EN_ATTENTE' ? 'text-[#D9A441]' : 'text-[#C62828]'}`}>
+              ? <span className={`text-[12px] font-semibold ml-auto ${lastSub.statut === 'EN_ATTENTE' ? 'text-[#D9A441]' : 'text-[#E55A35]'}`}>
                   {lastSub.statut === 'EN_ATTENTE' ? '⏳ En attente' : '✕ À corriger'}
                 </span>
               : <span className="text-[12px] text-[#9b9ba8] ml-auto">Prêt à soumettre</span>
@@ -626,7 +628,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                           className={`w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-bold border ${
                             status === 'valide'  ? 'bg-[#2E7D32] text-white border-[#2E7D32]' :
                             status === 'attente' ? 'bg-[#fff8e6] text-[#9c7218] border-[#D9A441]' :
-                            status === 'rejete'  ? 'bg-[#fff0f0] text-[#C62828] border-[#C62828]' :
+                            status === 'rejete'  ? 'bg-[#fff8f3] text-[#E55A35] border-[#E55A35]' :
                             'bg-[#f3f3f5] text-[#c0c0c8] border-[#ececf0]'
                           }`}>
                           {status === 'valide' ? '✓' : status === 'attente' ? '⏳' : status === 'rejete' ? '✕' : i + 1}
@@ -637,12 +639,12 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                   <div className="flex gap-3 mt-2 text-[10px] text-[#9b9ba8]">
                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#2E7D32] inline-block" />Validé</span>
                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#D9A441] inline-block" />En attente</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#C62828] inline-block" />Rejeté</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#E55A35] inline-block" />Rejeté</span>
                   </div>
                 </div>
               )}
 
-              {/* Soumission en attente (défi simple) avec bouton Annuler */}
+              {/* Soumission en attente (quête simple) avec bouton Annuler */}
               {!isDuration && lastSub?.statut === 'EN_ATTENTE' && (
                 <div className="bg-[#fff8e6] rounded-xl px-3.5 py-3.5 border border-[#f0d88a]">
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -650,7 +652,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                     <button
                       onClick={() => handleRetract(lastSub.id)}
                       disabled={retracting === lastSub.id}
-                      className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition disabled:opacity-50">
+                      className="text-[10px] font-bold text-[#E55A35] bg-white border border-[#f5c6c6] px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-[#fff8f3] transition disabled:opacity-60">
                       {retracting === lastSub.id ? '…' : '✕ Annuler'}
                     </button>
                   </div>
@@ -662,14 +664,14 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
               {/* Soumission rejetée / correction */}
               {!isDuration && lastSub && ['REJETE', 'CORRECTION_DEMANDEE'].includes(lastSub.statut) && (
                 <div className="bg-[#fff5f5] rounded-xl px-3.5 py-3 border border-[#f5c6c6]">
-                  <p className="text-[10px] font-bold text-[#C62828] uppercase tracking-wider mb-1">
+                  <p className="text-[10px] font-bold text-[#E55A35] uppercase tracking-wider mb-1">
                     {lastSub.statut === 'REJETE' ? 'Soumission rejetée' : 'Correction demandée'}
                   </p>
-                  {lastSub.texte && <p className="text-sm text-[#7a1717] italic">« {lastSub.texte} »</p>}
+                  {lastSub.texte && <p className="text-sm text-[#7A2820] italic">« {lastSub.texte} »</p>}
                 </div>
               )}
 
-              {/* Défi à durée : déjà soumis aujourd'hui */}
+              {/* Quête à durée : déjà soumis aujourd'hui */}
               {isDuration && submittedToday && !isComplete && (
                 <>
                   {/* Annuler la soumission du jour */}
@@ -682,7 +684,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                       <button
                         onClick={() => handleRetract(lastSub.id)}
                         disabled={retracting === lastSub.id}
-                        className="text-[10px] font-bold text-[#C62828] bg-white border border-[#f5c6c6] px-2.5 py-1.5 rounded-full flex-shrink-0 hover:bg-[#fff0f0] transition ml-3 disabled:opacity-50">
+                        className="text-[10px] font-bold text-[#E55A35] bg-white border border-[#f5c6c6] px-2.5 py-1.5 rounded-full flex-shrink-0 hover:bg-[#fff8f3] transition ml-3 disabled:opacity-60">
                         {retracting === lastSub.id ? '…' : '✕ Annuler'}
                       </button>
                     </div>
@@ -712,7 +714,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
                   <div className="mt-2">
                     {photoPreview ? (
                       <div className="relative rounded-xl overflow-hidden border border-[#ececf0]">
-                        <img src={photoPreview} alt="Aperçu" className="w-full max-h-48 object-cover" />
+                        <Image src={photoPreview} width={800} height={400} unoptimized alt="Aperçu" className="w-full max-h-48 object-cover" style={{ height: 'auto', maxHeight: '12rem' }} />
                         <button
                           onClick={removePhoto}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-xs font-bold hover:bg-black/80 transition">
@@ -741,7 +743,7 @@ function DetailPanel({ challenge: c, subs, submittedToday, isComplete, isInProgr
 
                   <button onClick={handleSubmit}
                     disabled={submitting || (!proofText.trim() && !photo)}
-                    className="w-full mt-3 py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-40 active:scale-95 transition"
+                    className="w-full mt-3 py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-60 active:scale-95 transition"
                     style={{ background: style.accent }}>
                     {submitting ? 'Envoi en cours…'
                       : isDuration ? `Soumettre — Jour ${nextDay} sur ${c.duree}`

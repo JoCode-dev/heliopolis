@@ -20,7 +20,6 @@ const DRAWER_SECTIONS = [
       { href: '/dashboard/admin/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/admin/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/admin/guides',       icon: '📖', label: 'Encadrants' },
-      { href: '/dashboard/admin/region',       icon: '🌍', label: 'Membres rég.' },
     ],
   },
   {
@@ -28,14 +27,16 @@ const DRAWER_SECTIONS = [
     items: [
       { href: '/dashboard/admin/districts',  icon: '🛡️', label: 'Districts' },
       { href: '/dashboard/admin/paroisses', icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/admin/defis',     icon: '🎯', label: 'Défis' },
+      { href: '/dashboard/admin/defis',     icon: '🎯', label: 'Quêtes' },
       { href: '/dashboard/admin/codex',     icon: '🪶', label: 'Codex' },
     ],
   },
   {
     group: 'Administration',
     items: [
+      { href: '/dashboard/admin/annonces',       icon: '📣', label: 'Annonces' },
       { href: '/dashboard/admin/export',        icon: '📤', label: 'Exports' },
+      { href: '/dashboard/admin/import',        icon: '📥', label: 'Import' },
       { href: '/dashboard/admin/camps/nouveau', icon: '➕', label: 'Nouveau camp' },
       { href: '/dashboard/admin/parametres',    icon: '⚙️', label: 'Paramètres' },
     ],

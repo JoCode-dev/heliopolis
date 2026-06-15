@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
-import { Input, Select, Toggle, Button } from '@/components/ui';
+import { Input, Toggle, Button } from '@/components/ui';
+import { useAuthStore } from '@/store/auth';
+import { getHomeForRole } from '@/lib/roles';
 
 const TYPES: { value: string; label: string; icon: string; desc: string }[] = [
   { value: 'REGIONAL', label: 'Régional',  icon: '🗺️', desc: 'Camp organisé au niveau de la région' },
@@ -40,6 +42,7 @@ function getErrorMessage(error: unknown) {
 
 export default function NouveauCampPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<CreateCampForm>({
     nom: '', theme: '', type: 'REGIONAL', description: '',
@@ -55,7 +58,7 @@ export default function NouveauCampPage() {
     setSaving(true); setError('');
     try {
       await campsApi.create(form);
-      router.push('/dashboard/admin');
+      router.push(getHomeForRole(user?.role));
     } catch (e: unknown) {
       setError(getErrorMessage(e));
     } finally { setSaving(false); }
@@ -63,7 +66,7 @@ export default function NouveauCampPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <button onClick={() => router.back()} className="text-sm opacity-80 mb-2">‹ Retour</button>
         <h1 className="text-xl font-bold">Nouveau camp</h1>
         <p className="text-xs opacity-85 mt-0.5">Étape {step} / 2</p>
@@ -73,7 +76,7 @@ export default function NouveauCampPage() {
         <div className="lg:max-w-2xl lg:mx-auto">
         <div className="flex gap-1.5 mb-5">
           {[1, 2].map(n => (
-            <div key={n} className={`flex-1 h-1.5 rounded-full ${n <= step ? 'bg-[#C62828]' : 'bg-[#e6e6ea]'}`} />
+            <div key={n} className={`flex-1 h-1.5 rounded-full ${n <= step ? 'bg-[#E55A35]' : 'bg-[#e6e6ea]'}`} />
           ))}
         </div>
 

@@ -4,6 +4,7 @@ import { campsApi } from '@/lib/api';
 import type { Camp, CampType, CampStatus } from '@/types';
 import { Pill, Card, SectionTitle } from '@/components/ui';
 import { CampAuthCTA } from '@/components/camps/CampAuthCTA';
+import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
 
@@ -211,6 +212,9 @@ export default async function CampDetailPage({
 
         {/* CTA adaptatif selon le rôle */}
         <CampAuthCTA campId={camp.id} campNom={camp.nom} />
+
+        {/* Galerie photos du camp */}
+        <CampPhotosSection campId={camp.id} />
       </div>
     </div>
   );

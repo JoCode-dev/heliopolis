@@ -1,10 +1,11 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { Pill } from '@/components/ui';
 import { Pagination } from '@/components/ui/Pagination';
-import { UserAvatar } from '@/components/profile/UserAvatar';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import type { User } from '@/types';
 
@@ -25,7 +26,7 @@ const STATUT_LABEL: Record<string, string> = {
 
 // Couleur de gradient par index pour les avatars
 const GRAD = [
-  'from-[#C62828] to-[#8e1a1a]',
+  'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
   'from-[#6A1B9A] to-[#4a1370]',
   'from-[#2E7D32] to-[#1a5021]',
   'from-[#1F1B2E] to-[#3a1d4d]',
@@ -72,7 +73,7 @@ export default function GuideMembresPage() {
     finally { setLoading(false); }
   }, [actor, isSentinelle]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => deferEffect(reload), [reload]);
 
   const handleCreated = (u: User) => setMembres(prev => [u, ...prev]);
 
@@ -97,14 +98,8 @@ export default function GuideMembresPage() {
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // Stats
-  const nbActifs  = activeList.filter(m => m.statutProfil === 'ACTIF').length;
   const nbAJour   = activeList.filter(m => m.adhesions?.[0]?.statut === 'A_JOUR').length;
   const nbNonAJour = activeList.filter(m => m.adhesions?.[0]?.statut !== 'A_JOUR').length;
-
-  // Sentinelle : gardiens d'un guide spécifique
-  const guideGardiens = expandedGuide
-    ? gardiens.filter(g => g.parish?.id === membres.find(m => m.id === expandedGuide)?.parish?.id)
-    : [];
 
   const changeTab = (t: SentinelleTab) => {
     setSentTab(t);
@@ -118,7 +113,7 @@ export default function GuideMembresPage() {
 
       {/* ── Header avec onglets (Sentinelle) ── */}
       {isSentinelle ? (
-        <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] flex-shrink-0">
+        <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
           <div className="px-4 pt-3 pb-0">
             <h1 className="text-[18px] font-black text-white tracking-tight">Membres</h1>
             <p className="text-[11px] text-white/50 mt-0.5 pb-2">
@@ -144,7 +139,7 @@ export default function GuideMembresPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0 flex items-center justify-between">
+        <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0 flex items-center justify-between">
           <div>
             <h1 className="text-[18px] font-black">Mes Gardiens</h1>
             <p className="text-[11px] opacity-75 mt-0.5">{actor?.parish?.nom ?? 'Ma paroisse'}</p>
@@ -171,9 +166,9 @@ export default function GuideMembresPage() {
               <div className="text-lg font-black text-[#2E7D32]">{nbAJour}</div>
               <div className="text-[9px] text-[#2E7D32] uppercase tracking-wide">À jour</div>
             </div>
-            <div className="bg-[#fff0f0] rounded-xl p-2.5 text-center border border-[#ef9a9a]">
-              <div className="text-lg font-black text-[#C62828]">{nbNonAJour}</div>
-              <div className="text-[9px] text-[#C62828] uppercase tracking-wide">Non à jour</div>
+            <div className="bg-[#fff8f3] rounded-xl p-2.5 text-center border border-[#ef9a9a]">
+              <div className="text-lg font-black text-[#E55A35]">{nbNonAJour}</div>
+              <div className="text-[9px] text-[#E55A35] uppercase tracking-wide">Non à jour</div>
             </div>
           </div>
 
@@ -233,9 +228,9 @@ export default function GuideMembresPage() {
                     <div key={guide.id}>
                       <button onClick={() => setExpandedGuide(isExpanded ? null : guide.id)}
                         className="flex items-center w-full px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors text-left">
-                        <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
+                        <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative">
                           {guide.avatarUrl
-                            ? <img src={guide.avatarUrl} className="w-full h-full object-cover" alt="" />
+                            ? <Image src={guide.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
                             : `${guide.nom[0]}${guide.prenoms[0]}`}
                         </div>
                         <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
@@ -277,9 +272,9 @@ export default function GuideMembresPage() {
                               const color = GRAD[idx % GRAD.length];
                               return (
                                 <div key={g.id} className="flex items-center px-6 py-2.5 border-b border-[#ececf0] last:border-0">
-                                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden`}>
+                                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden relative`}>
                                     {g.avatarUrl
-                                      ? <img src={g.avatarUrl} className="w-full h-full object-cover" alt="" />
+                                      ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
                                       : `${g.nom[0]}${g.prenoms[0]}`}
                                   </div>
                                   <div className="flex-1 min-w-0 ml-2.5">
@@ -314,9 +309,9 @@ export default function GuideMembresPage() {
                   const color = GRAD[idx % GRAD.length];
                   return (
                     <div key={m.id} className="flex items-center px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors">
-                      <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden`}>
+                      <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative`}>
                         {m.avatarUrl
-                          ? <img src={m.avatarUrl} className="w-full h-full object-cover" alt="" />
+                          ? <Image src={m.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
                           : `${m.nom[0]}${m.prenoms[0]}`}
                       </div>
                       <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">

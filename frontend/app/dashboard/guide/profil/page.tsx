@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi } from '@/lib/api';
@@ -10,7 +11,7 @@ import type { User } from '@/types';
 const ADH_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   A_JOUR:     { label: 'À jour',     bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', icon: '✅' },
   EN_ATTENTE: { label: 'En attente', bg: 'bg-[#fff8e6]', text: 'text-[#9c7218]', icon: '⏳' },
-  NON_A_JOUR: { label: 'Non à jour', bg: 'bg-[#fff0f0]', text: 'text-[#C62828]', icon: '❌' },
+  NON_A_JOUR: { label: 'Non à jour', bg: 'bg-[#fff8f3]', text: 'text-[#E55A35]', icon: '❌' },
 };
 
 export default function GuideProfilPage() {
@@ -45,10 +46,10 @@ export default function GuideProfilPage() {
     <div className="flex-1 overflow-y-auto bg-[#f7f7fa]">
 
       {/* ── Hero ── */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-8 pb-10 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full bg-white/20 border-3 border-white/40 flex items-center justify-center text-2xl font-black overflow-hidden mb-3">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-8 pb-10 flex flex-col items-center">
+        <div className="w-20 h-20 rounded-full bg-white/20 border-3 border-white/40 flex items-center justify-center text-2xl font-black overflow-hidden mb-3 relative">
           {user?.avatarUrl
-            ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
+            ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="80px" />
             : initials}
         </div>
         <h1 className="text-xl font-black text-center">{user?.prenoms} {user?.nom}</h1>
@@ -133,7 +134,7 @@ export default function GuideProfilPage() {
         <div className="bg-white rounded-2xl border border-[#ececf0] shadow-sm overflow-hidden">
           <LogoutButton
             confirm
-            className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-[#fff0f0] transition text-[#C62828]"
+            className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-[#fff8f3] transition text-[#E55A35]"
           >
             <span className="text-xl">🚪</span>
             <div>

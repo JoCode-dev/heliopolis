@@ -1,7 +1,9 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { usersApi, authApi } from '@/lib/api';
+import { usersApi, authApi, notificationsApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { usePastoralYear } from '@/store/pastoralYear';
 
 interface ProfileModalProps {
@@ -23,9 +25,12 @@ function AvatarDisplay({
   const dim = size === 'lg' ? 'w-16 h-16 text-lg' : 'w-9 h-9 text-xs';
   if (avatarUrl) {
     const src = avatarUrl.startsWith('http') ? avatarUrl : `${API_BASE}${avatarUrl}`;
+    const px = size === 'lg' ? 64 : 36;
     return (
-      <img
+      <Image
         src={src}
+        width={px}
+        height={px}
         alt="Avatar"
         className={`${dim} rounded-full object-cover flex-shrink-0`}
       />
@@ -74,13 +79,16 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [notifPush, setNotifPush] = useState(true);
+  const [notifLoading, setNotifLoading] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     if (isOpen && user) {
       setNom(user.nom);
       setPrenoms(user.prenoms);
       setEmail(user.email ?? '');
       setTelephone(user.telephone ?? '');
+      setNotifPush(user.notifPush !== false);
       setError('');
       setSuccess('');
       setAvatarFile(null);
@@ -92,12 +100,27 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setPreuveFile(null);
       setTab('info');
     }
-  }, [isOpen, user]);
+  }), [isOpen, user]);
 
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     setError('');
     setSuccess('');
-  }, [tab]);
+  }), [tab]);
+
+  const handleNotifPushToggle = async () => {
+    if (!user) return;
+    const next = !notifPush;
+    setNotifLoading(true);
+    try {
+      const { data } = await notificationsApi.updatePreferences({ notifPush: next });
+      setNotifPush(data.notifPush);
+      setUser({ ...user, notifPush: data.notifPush });
+    } catch {
+      setError('Impossible de mettre à jour les notifications push.');
+    } finally {
+      setNotifLoading(false);
+    }
+  };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -227,10 +250,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
               {displayAvatar ? (
-                <img
+                <Image
                   src={displayAvatar.startsWith('http') || displayAvatar.startsWith('blob:')
                     ? displayAvatar
                     : `${API_BASE}${displayAvatar}`}
+                  width={48}
+                  height={48}
                   alt="Avatar"
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -290,12 +315,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <div className="flex items-center gap-4">
                     <div className="relative flex-shrink-0">
                       {(avatarPreview ?? user?.avatarUrl) ? (
-                        <img
+                        <Image
                           src={avatarPreview
                             ? avatarPreview
                             : (user?.avatarUrl?.startsWith('http')
                               ? user.avatarUrl
-                              : `${API_BASE}${user?.avatarUrl}`)}
+                              : `${API_BASE}${user?.avatarUrl}`) as string}
+                          width={64}
+                          height={64}
+                          unoptimized
                           alt="Aperçu"
                           className="w-16 h-16 rounded-full object-cover"
                         />
@@ -341,7 +369,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     <button
                       onClick={handleAvatarUpload}
                       disabled={avatarLoading}
-                      className="mt-3 w-full bg-[#1F1B2E] text-white py-2 rounded-xl text-xs font-semibold hover:bg-[#2d2640] transition-colors disabled:opacity-50"
+                      className="mt-3 w-full bg-[#1F1B2E] text-white py-2 rounded-xl text-xs font-semibold hover:bg-[#2d2640] transition-colors disabled:opacity-60"
                     >
                       {avatarLoading ? 'Envoi en cours…' : 'Enregistrer la photo'}
                     </button>
@@ -380,6 +408,34 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   )}
                 </div>
 
+                {/* Notifications push */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Notifications push</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Recevoir une alerte pour les nouveaux messages quand l&apos;app est fermée.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={notifPush}
+                      disabled={notifLoading}
+                      onClick={handleNotifPushToggle}
+                      className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
+                        notifPush ? 'bg-[#C62828]' : 'bg-gray-300'
+                      } disabled:opacity-60`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                          notifPush ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Section adhésion */}
                 {(() => {
                   const annee = anneeP;
@@ -411,21 +467,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                             <button
                               onClick={() => handleUpdateAdhesion('A_JOUR')}
                               disabled={adhLoading || adhesion?.statut === 'A_JOUR'}
-                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-40 transition-colors"
+                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60 transition-colors"
                             >
                               {adhLoading ? '…' : '✓ À jour'}
                             </button>
                             <button
                               onClick={() => handleUpdateAdhesion('EN_ATTENTE')}
                               disabled={adhLoading || adhesion?.statut === 'EN_ATTENTE'}
-                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-40 transition-colors"
+                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-60 transition-colors"
                             >
                               En attente
                             </button>
                             <button
                               onClick={() => handleUpdateAdhesion('NON_A_JOUR')}
                               disabled={adhLoading || adhesion?.statut === 'NON_A_JOUR'}
-                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 transition-colors"
+                              className="flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60 transition-colors"
                             >
                               Non à jour
                             </button>
@@ -527,7 +583,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <button
                   onClick={handleSaveInfo}
                   disabled={loading || !nom.trim() || !prenoms.trim()}
-                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Enregistrement…' : 'Enregistrer les modifications'}
                 </button>
@@ -581,7 +637,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <button
                   onClick={handleChangePassword}
                   disabled={loading || !ancienMdp || !nouveauMdp || !confirmMdp}
-                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#C62828] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#a82020] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Modification…' : 'Modifier le mot de passe'}
                 </button>

@@ -39,16 +39,19 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
     : '🤝 Accueil';
 
   return (
-    <AuthGuard roles={['GARDIEN']}>
-      <div className="flex h-screen overflow-hidden bg-[#fafafa]">
+    <AuthGuard roles={['GARDIEN', 'PHOTOGRAPHE']}>
+      <div className="flex h-screen overflow-hidden bg-[#fdf6f0]">
 
         {/* ── Sidebar desktop ── */}
-        <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#C62828] to-[#8e1a1a] text-white flex-shrink-0">
+        <aside
+          className="hidden lg:flex lg:flex-col w-56 text-white flex-shrink-0"
+          style={{ background: 'linear-gradient(180deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)', textShadow: '0 1px 3px rgba(0,0,0,0.35)' }}
+        >
           <div className="p-4 border-b border-white/20 flex-shrink-0 flex items-center gap-2.5">
-            <Image src="/logo.jpeg" alt="Logo" width={36} height={36} className="object-contain rounded flex-shrink-0" loading="eager" preload />
+            <Image src="/logo.jpeg" alt="Logo" width={52} height={52} className="object-contain rounded flex-shrink-0" loading="eager" preload />
             <div>
-              <div className="text-base font-bold">Gardien</div>
-              <div className="text-[11px] opacity-75 mt-0.5">{user?.parish?.nom ?? 'Ma paroisse'}</div>
+              <div className="text-base font-bold">{user?.role === 'PHOTOGRAPHE' ? 'Photographe' : 'Gardien'}</div>
+              <div className="text-[11px] opacity-90 mt-0.5">{user?.parish?.nom ?? 'Ma paroisse'}</div>
             </div>
           </div>
 
@@ -60,7 +63,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
               return (
                 <Link key={item.href} href={item.href}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors ${
-                    active ? 'bg-white/20 font-semibold text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'
+                    active ? 'bg-white/20 font-semibold text-white' : 'text-white/90 hover:bg-white/15 hover:text-white'
                   }`}>
                   <span className="text-base w-5 text-center">{item.icon}</span>
                   {item.label}
@@ -84,10 +87,10 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold truncate">{user?.prenoms} {user?.nom}</div>
-                  <div className="text-[10px] opacity-60">{user?.matricule}</div>
+                  <div className="text-[10px] opacity-80">{user?.role === 'PHOTOGRAPHE' ? 'Photographe' : user?.matricule}</div>
                 </div>
               </button>
-              <LogoutButton confirm className="text-white/60 hover:text-white transition-colors flex-shrink-0 text-lg p-1" />
+              <LogoutButton confirm className="text-white/80 hover:text-white transition-colors flex-shrink-0 text-lg p-1" />
             </div>
           </div>
         </aside>
@@ -96,7 +99,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
           {/* ── Top bar mobile ── */}
-          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
+          <div className="lg:hidden text-white px-3 py-2.5 flex items-center gap-2 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)' }}>
 
             {/* Bouton retour — masqué sur l'accueil */}
             {isHome ? (
@@ -110,7 +113,7 @@ export default function GardienLayout({ children }: { children: React.ReactNode 
 
             {/* Titre centré */}
             <div className="flex-1 text-center">
-              <div className="text-[10px] opacity-60 uppercase tracking-wider leading-none mb-0.5">Gardien</div>
+              <div className="text-[10px] opacity-85 uppercase tracking-wider leading-none mb-0.5">Gardien</div>
               <div className="text-sm font-bold leading-tight">{sectionLabel}</div>
             </div>
 

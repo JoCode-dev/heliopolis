@@ -1,18 +1,19 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import type { Submission } from '@/types';
 import { codexApi } from '@/lib/api';
 import { useAuthHydrated, useAuthStore } from '@/store/auth';
 import { CodexItem } from '@/components/codex/CodexItem';
+import { useCodexReactions } from '@/hooks/useCodexReactions';
 
 type Cat = 'TOUS' | 'PERSONNEL' | 'COMMUNAUTAIRE' | 'SPIRITUEL' | 'LONG';
 
 const FILTERS: { key: Cat; label: string; icon: string; color: string }[] = [
   { key: 'TOUS',          label: 'Tous',          icon: '📜', color: 'bg-[#1F1B2E] text-white' },
-  { key: 'PERSONNEL',     label: 'Personnel',     icon: '🔥', color: 'bg-[#C62828] text-white' },
+  { key: 'PERSONNEL',     label: 'Personnel',     icon: '🔥', color: 'bg-[#E55A35] text-white' },
   { key: 'COMMUNAUTAIRE', label: 'Communauté',   icon: '🌿', color: 'bg-[#2E7D32] text-white' },
   { key: 'SPIRITUEL',     label: 'Spirituel',     icon: '✨', color: 'bg-[#6A1B9A] text-white' },
-  { key: 'LONG',          label: 'Défi long',     icon: '🏔️', color: 'bg-[#D9A441] text-white' },
+  { key: 'LONG',          label: 'Quête longue',     icon: '🏔️', color: 'bg-[#D9A441] text-white' },
 ];
 
 interface CodexWallProps {
@@ -23,6 +24,7 @@ interface CodexWallProps {
 export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
   const hydrated = useAuthHydrated();
   const { user: storedUser } = useAuthStore();
+  const currentUserId = storedUser?.id;
   const canReact = hydrated && !!storedUser;
 
   const [filter, setFilter]         = useState<Cat>('TOUS');
@@ -31,14 +33,20 @@ export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
   const [page, setPage]             = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [reactions, setReactions] = useState<Record<string, number>>(() => {
-    const m: Record<string, number> = {};
-    for (const p of initialPosts) m[p.id] = p._count?.reactions ?? p.reactions?.length ?? 0;
-    return m;
-  });
-  const [reacted, setReacted] = useState<Set<string>>(new Set());
+  const {
+    reactions,
+    reacted,
+    reactionPending,
+    syncSubmissions,
+    handleReact,
+    handleUnreact,
+  } = useCodexReactions(currentUserId, initialPosts);
 
   const hasMore = posts.length < total;
+
+  useEffect(() => {
+    syncSubmissions(posts);
+  }, [posts, syncSubmissions]);
 
   const loadMore = async () => {
     setLoadingMore(true);
@@ -48,37 +56,10 @@ export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
       setPosts(prev => [...prev, ...newItems]);
       setTotal((data as { items: Submission[]; total: number }).total);
       setPage(p => p + 1);
-      setReactions(prev => {
-        const m = { ...prev };
-        for (const p of newItems) m[p.id] = p._count?.reactions ?? p.reactions?.length ?? 0;
-        return m;
-      });
     } catch { /* ignore */ } finally {
       setLoadingMore(false);
     }
   };
-
-  const handleReact = useCallback(async (id: string) => {
-    setReacted(prev => new Set(prev).add(id));
-    setReactions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-    try {
-      await codexApi.react(id);
-    } catch {
-      setReacted(prev => { const s = new Set(prev); s.delete(id); return s; });
-      setReactions(prev => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 1) - 1) }));
-    }
-  }, []);
-
-  const handleUnreact = useCallback(async (id: string) => {
-    setReacted(prev => { const s = new Set(prev); s.delete(id); return s; });
-    setReactions(prev => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 1) - 1) }));
-    try {
-      await codexApi.unreact(id);
-    } catch {
-      setReacted(prev => new Set(prev).add(id));
-      setReactions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-    }
-  }, []);
 
   const filtered = filter === 'TOUS'
     ? posts
@@ -109,11 +90,12 @@ export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
       ) : (
         <div className="lg:columns-2 lg:gap-4">
           {filtered.map((sub, i) => (
-            <div key={sub.id} className="lg:break-inside-avoid">
+            <div key={sub.id} className="break-inside-avoid mb-3.5">
               <CodexItem
                 submission={sub}
                 reactCount={reactions[sub.id] ?? 0}
                 hasReacted={reacted.has(sub.id)}
+                isReacting={reactionPending.has(sub.id)}
                 priority={i === 0}
                 canReact={canReact}
                 onReact={handleReact}
@@ -133,7 +115,7 @@ export function CodexWall({ initialPosts, initialTotal }: CodexWallProps) {
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="px-6 py-2.5 rounded-full bg-[#1F1B2E] text-white text-sm font-bold hover:bg-[#2c2840] disabled:opacity-50 transition-all"
+            className="px-6 py-2.5 rounded-full bg-[#1F1B2E] text-white text-sm font-bold hover:bg-[#2c2840] disabled:opacity-60 transition-all"
           >
             {loadingMore ? 'Chargement…' : 'Charger plus'}
           </button>

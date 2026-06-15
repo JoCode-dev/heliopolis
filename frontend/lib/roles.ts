@@ -1,19 +1,21 @@
 import type { User, UserRole } from '@/types';
 
 export const ROLE_HOME: Record<UserRole, string> = {
-  ADMIN:  '/dashboard/admin',
-  REGION: '/dashboard/region',
-  SENTINELLE: '/dashboard/guide',
-  GUIDE: '/dashboard/guide',
-  GARDIEN: '/dashboard/gardien',
+  ADMIN:       '/dashboard/admin',
+  REGION:      '/dashboard/region',
+  SENTINELLE:  '/dashboard/guide',
+  GUIDE:       '/dashboard/guide',
+  GARDIEN:     '/dashboard/gardien',
+  PHOTOGRAPHE: '/dashboard/gardien',
 };
 
 export const ROLE_LABEL: Record<UserRole, string> = {
-  ADMIN: 'Grand Archiviste',
-  REGION: 'Conseil regional',
-  SENTINELLE: 'Sentinelle',
-  GUIDE: 'Guide',
-  GARDIEN: 'Gardien',
+  ADMIN:       'Grand Archiviste',
+  REGION:      'Conseil régional',
+  SENTINELLE:  'Sentinelle',
+  GUIDE:       'Guide',
+  GARDIEN:     'Gardien',
+  PHOTOGRAPHE: 'Photographe',
 };
 
 export const MANAGEMENT_ROLES: UserRole[] = [

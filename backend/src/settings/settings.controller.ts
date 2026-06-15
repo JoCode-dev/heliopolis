@@ -4,13 +4,17 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { UserRole } from '../../generated/prisma/enums.js';
+import { AuditAction, UserRole } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 
 @Controller('settings')
 @UseGuards(JwtAuthGuard)
 export class SettingsController {
-  constructor(private settings: SettingsService) {}
+  constructor(
+    private settings: SettingsService,
+    private actionLog: ActionLogService,
+  ) {}
 
   @Get('annee-pastorale')
   async get() {
@@ -22,14 +26,23 @@ export class SettingsController {
   @Roles(UserRole.ADMIN, UserRole.REGION)
   async set(@Body() body: { annee: number }, @CurrentUser() user: AuthUser) {
     const nouvelleAnnee = Number(body.annee);
+    const actuelle = await this.settings.getAnneePastorale();
     if (user.role === UserRole.REGION) {
-      const actuelle = await this.settings.getAnneePastorale();
       if (nouvelleAnnee < actuelle) {
         throw new ForbiddenException(
           'Le régional ne peut pas réduire l\'année pastorale.',
         );
       }
     }
-    return this.settings.setAnneePastorale(nouvelleAnnee);
+    const result = await this.settings.setAnneePastorale(nouvelleAnnee);
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'settings',
+      summary: `Année pastorale modifiée : ${actuelle} → ${nouvelleAnnee}`,
+      actor: user,
+      target: { entityType: 'SystemConfig', entityId: 'annee-pastorale' },
+      metadata: { before: actuelle, after: nouvelleAnnee },
+    });
+    return result;
   }
 }

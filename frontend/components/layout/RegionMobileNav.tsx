@@ -9,7 +9,7 @@ const PRIMARY = [
   { href: '/dashboard/region',             icon: '🏠', label: 'Accueil',  prefetch: true,  exact: true  },
   { href: '/dashboard/region/camps',       icon: '⛺', label: 'Camps',    prefetch: true,  exact: false },
   { href: '/dashboard/region/messages',    icon: '💬', label: 'Messages', prefetch: false, exact: false },
-  { href: '/dashboard/region/defis',       icon: '🎯', label: 'Défis',    prefetch: true,  exact: false },
+  { href: '/dashboard/region/defis',       icon: '🎯', label: 'Quêtes',    prefetch: true,  exact: false },
 ];
 
 const DRAWER_SECTIONS = [
@@ -18,13 +18,13 @@ const DRAWER_SECTIONS = [
     items: [
       { href: '/dashboard/region/gardiens',  icon: '🤝', label: 'Gardiens',   prefetch: true },
       { href: '/dashboard/region/guides',    icon: '📖', label: 'Encadrants', prefetch: true },
-      { href: '/dashboard/region/region',    icon: '🌍', label: 'Membres rég.', prefetch: true },
       { href: '/dashboard/region/districts',  icon: '🛡️', label: 'Districts',  prefetch: true },
     ],
   },
   {
     group: 'Contenu & Outils',
     items: [
+      { href: '/dashboard/region/annonces',   icon: '📣', label: 'Annonces',   prefetch: true },
       { href: '/dashboard/region/conseils',  icon: '🏛️', label: 'Conseils',   prefetch: true },
       { href: '/dashboard/region/paroisses', icon: '⛪', label: 'Paroisses',  prefetch: true },
       { href: '/dashboard/region/codex',     icon: '🪶', label: 'Modération', prefetch: true },

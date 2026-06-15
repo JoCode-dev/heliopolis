@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
+import { AuditAction } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ActionLogService } from '../logs/action-log.service.js';
+import type { AuthUser } from '../common/types/auth-user.js';
 
 type BadgeConditionMeta =
   | { type: 'challenges_validated';    count: number }
@@ -31,20 +34,40 @@ function isBadgeConditionMeta(value: unknown): value is BadgeConditionMeta {
 
 @Injectable()
 export class BadgesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private actionLog: ActionLogService,
+  ) {}
 
   async findAll() {
     return this.prisma.badge.findMany({ orderBy: { niveau: 'asc' } });
   }
 
-  async create(dto: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }) {
+  async create(
+    dto: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown },
+    actor: AuthUser,
+  ) {
     const { conditionMeta, ...rest } = dto;
-    return this.prisma.badge.create({ data: { ...rest, niveau: dto.niveau as any, conditionMeta: conditionMeta as Prisma.InputJsonValue } });
+    const badge = await this.prisma.badge.create({
+      data: { ...rest, niveau: dto.niveau as any, conditionMeta: conditionMeta as Prisma.InputJsonValue },
+    });
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'badge',
+      summary: `Création de l'artefact « ${badge.nom} »`,
+      actor: actor,
+      target: { entityType: 'Badge', entityId: badge.id },
+    });
+    return badge;
   }
 
-  async update(id: string, dto: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>) {
+  async update(
+    id: string,
+    dto: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>,
+    actor: AuthUser,
+  ) {
     const { conditionMeta, ...rest } = dto;
-    return this.prisma.badge.update({
+    const badge = await this.prisma.badge.update({
       where: { id },
       data: {
         ...rest,
@@ -52,11 +75,30 @@ export class BadgesService {
         ...(conditionMeta !== undefined ? { conditionMeta: conditionMeta as Prisma.InputJsonValue } : {}),
       },
     });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'badge',
+      summary: `Modification de l'artefact « ${badge.nom} »`,
+      actor: actor,
+      target: { entityType: 'Badge', entityId: id },
+    });
+    return badge;
   }
 
-  async remove(id: string) {
+  async remove(id: string, actor: AuthUser) {
+    const badge = await this.prisma.badge.findUnique({ where: { id } });
     await this.prisma.userBadge.deleteMany({ where: { badgeId: id } });
-    return this.prisma.badge.delete({ where: { id } });
+    await this.prisma.badge.delete({ where: { id } });
+    if (badge) {
+      this.actionLog.record({
+        action: AuditAction.DELETE,
+        category: 'badge',
+        summary: `Suppression de l'artefact « ${badge.nom} »`,
+        actor: actor,
+        target: { entityType: 'Badge', entityId: id },
+      });
+    }
+    return { success: true };
   }
 
   async getMyBadges(userId: string) {

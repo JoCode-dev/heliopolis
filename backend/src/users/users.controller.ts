@@ -13,25 +13,30 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { randomUUID } from 'crypto';
 import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto.js';
+import { PreEnregistrerDto } from './dto/pre-enregistrer.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AdhesionStatus, ProfileStatus, UserRole } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { R2StorageService } from '../storage/r2-storage.service.js';
+import {
+  ADHESION_MIME_TYPES,
+  AVATAR_MIME_TYPES,
+  memoryFileOptions,
+} from '../storage/multer-options.js';
 
 interface FindUsersQuery {
   role?: UserRole;
   parishId?: string;
   districtId?: string;
   search?: string;
+  statutProfil?: ProfileStatus;
 }
 
 interface UpdateAdhesionBody {
@@ -42,7 +47,10 @@ interface UpdateAdhesionBody {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private storage: R2StorageService,
+  ) {}
 
   @Patch('me')
   updateMe(@Body() dto: UpdateMyProfileDto, @CurrentUser() user: AuthUser) {
@@ -50,24 +58,66 @@ export class UsersController {
   }
 
   @Patch('me/avatar')
-  @UseInterceptors(FileInterceptor('avatar', {
-    storage: diskStorage({
-      destination: join(process.cwd(), 'uploads', 'avatars'),
-      filename: (req, file, cb) => {
-        cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase() || '.jpg'}`);
-      },
-    }),
-    fileFilter: (req, file, cb) => {
-      cb(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype));
-    },
-    limits: { fileSize: 5 * 1024 * 1024 },
-  }))
+  @UseInterceptors(
+    FileInterceptor(
+      'avatar',
+      memoryFileOptions(AVATAR_MIME_TYPES, 5 * 1024 * 1024),
+    ),
+  )
   async updateAvatar(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: AuthUser,
   ) {
-    if (!file) throw new BadRequestException('Fichier image manquant ou format non supporté (JPEG, PNG, WebP)');
-    return this.usersService.updateAvatar(user.id, file.filename);
+    if (!file) {
+      throw new BadRequestException(
+        'Fichier image manquant ou format non supporté (JPEG, PNG, WebP)',
+      );
+    }
+    const avatarUrl = await this.storage.upload('avatars', file);
+    return this.usersService.updateAvatar(user.id, avatarUrl);
+  }
+
+  /** Pré-enregistrement d'un seul matricule (ADMIN) */
+  @Roles(UserRole.ADMIN)
+  @Post('pre-enregistrer')
+  preEnregistrer(
+    @Body() dto: PreEnregistrerDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.preEnregistrer(dto, user);
+  }
+
+  /** Import en masse depuis un fichier CSV ou Excel (ADMIN) */
+  @Roles(UserRole.ADMIN)
+  @Post('importer')
+  @UseInterceptors(
+    FileInterceptor(
+      'fichier',
+      memoryFileOptions(
+        ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'],
+        5 * 1024 * 1024,
+      ),
+    ),
+  )
+  async importerMatricules(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: AuthUser,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Fichier CSV ou Excel manquant');
+    }
+    return this.usersService.importerMatricules(file.buffer, user);
+  }
+
+  /** Promotion d'un membre : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION (ADMIN) */
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/promouvoir')
+  promouvoir(
+    @Param('id') id: string,
+    @Body() body: { role: UserRole },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.promouvoir(id, body.role, user);
   }
 
   @Get()
@@ -80,7 +130,8 @@ export class UsersController {
     return this.usersService.findOne(id, user);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
+  /** Création manuelle réservée à l'ADMIN (cas exceptionnels) */
+  @Roles(UserRole.ADMIN)
   @Post()
   create(@Body() dto: CreateUserDto, @CurrentUser() user: AuthUser) {
     return this.usersService.create(dto, user);
@@ -114,26 +165,22 @@ export class UsersController {
 
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Patch(':id/adhesion')
-  @UseInterceptors(FileInterceptor('preuve', {
-    storage: diskStorage({
-      destination: join(process.cwd(), 'uploads', 'adhesions'),
-      filename: (req, file, cb) => {
-        cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase() || '.bin'}`);
-      },
-    }),
-    fileFilter: (req, file, cb) => {
-      cb(null, ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.mimetype));
-    },
-    limits: { fileSize: 10 * 1024 * 1024 },
-  }))
-  updateAdhesion(
+  @UseInterceptors(
+    FileInterceptor(
+      'preuve',
+      memoryFileOptions(ADHESION_MIME_TYPES, 10 * 1024 * 1024),
+    ),
+  )
+  async updateAdhesion(
     @Param('id') id: string,
     @Body() body: UpdateAdhesionBody,
     @CurrentUser() user: AuthUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const annee = Number(body.annee);
-    const preuveUrl = file ? `/uploads/adhesions/${file.filename}` : undefined;
+    const preuveUrl = file
+      ? await this.storage.upload('adhesions', file)
+      : undefined;
     return this.usersService.updateAdhesion(
       id,
       annee,

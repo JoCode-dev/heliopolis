@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { deferEffect } from '@/lib/effects';
 import type { User } from '@/types';
 
 interface AuthState {
@@ -72,15 +73,19 @@ export function useAuthHydrated() {
     const unsubscribe = persistApi.onFinishHydration(() => {
       if (mounted) setHydrated(true);
     });
+    let deferredCleanup: (() => void) | undefined;
 
     if (persistApi.hasHydrated()) {
-      setHydrated(true);
+      deferredCleanup = deferEffect(() => {
+        if (mounted) setHydrated(true);
+      });
     } else {
       ensureAuthRehydrated();
     }
 
     return () => {
       mounted = false;
+      deferredCleanup?.();
       unsubscribe();
     };
   }, []);

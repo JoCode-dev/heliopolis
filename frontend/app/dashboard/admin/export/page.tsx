@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { campsApi, exportApi } from '@/lib/api';
+import { deferEffect } from '@/lib/effects';
 import { usePastoralYear } from '@/store/pastoralYear';
 import { Select } from '@/components/ui';
 import type { Camp, CampParticipant, AdhesionStatus, ParticipationStatus } from '@/types';
@@ -49,7 +50,7 @@ export default function ExportPage() {
   const [cotisationCampId, setCotisationCampId] = useState('');
   const [cotisationAnnee, setCotisationAnnee]   = useState<number>(new Date().getFullYear());
 
-  useEffect(() => { setCotisationAnnee(annee); }, [annee]);
+  useEffect(() => deferEffect(() => setCotisationAnnee(annee)), [annee]);
 
   useEffect(() => {
     campsApi.list().then(r => {
@@ -61,19 +62,22 @@ export default function ExportPage() {
   useEffect(() => {
     if (!campId) return;
     let cancelled = false;
-    setLoadingParts(true);
-    campsApi.participants(campId)
-      .then(r => {
-        if (cancelled) return;
-        setParticipants(r.data);
-        setParticipantsCampId(campId);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setParticipants([]);
-        setParticipantsCampId(campId);
-      })
-      .finally(() => { if (!cancelled) setLoadingParts(false); });
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoadingParts(true);
+      campsApi.participants(campId)
+        .then(r => {
+          if (cancelled) return;
+          setParticipants(r.data);
+          setParticipantsCampId(campId);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setParticipants([]);
+          setParticipantsCampId(campId);
+        })
+        .finally(() => { if (!cancelled) setLoadingParts(false); });
+    });
     return () => { cancelled = true; };
   }, [campId]);
 
@@ -149,7 +153,7 @@ export default function ExportPage() {
                 max={2100}
                 value={cotisationAnnee}
                 onChange={e => setCotisationAnnee(parseInt(e.target.value, 10) || annee)}
-                className="w-full border border-[#ddd] rounded-xl px-3 py-2.5 text-sm font-bold text-[#1a1a2e] focus:outline-none focus:ring-2 focus:ring-[#C62828]/30 focus:border-[#C62828]"
+                className="w-full border border-[#ddd] rounded-xl px-3 py-2.5 text-sm font-bold text-[#1a1a2e] focus:outline-none focus:ring-2 focus:ring-[#E55A35]/30 focus:border-[#E55A35]"
               />
             </div>
 
@@ -179,7 +183,7 @@ export default function ExportPage() {
             type="button"
             onClick={handleDownloadAdhesions}
             disabled={dlAdhesions || !cotisationAnnee}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white font-bold text-sm py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white font-bold text-sm py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {dlAdhesions ? (
               <>
@@ -216,7 +220,7 @@ export default function ExportPage() {
               {[
                 { label: 'Total participants', value: preview.length, color: '#1F1B2E' },
                 { label: 'Adhésions à jour', value: preview.filter(p => p.adhesionStatusSnapshot === 'A_JOUR').length, color: '#2E7D32' },
-                { label: 'Non à jour', value: preview.filter(p => p.adhesionStatusSnapshot === 'NON_A_JOUR').length, color: '#C62828' },
+                { label: 'Non à jour', value: preview.filter(p => p.adhesionStatusSnapshot === 'NON_A_JOUR').length, color: '#E55A35' },
               ].map(s => (
                 <div key={s.label} className="flex justify-between items-center text-xs">
                   <span className="text-[#6b6b78]">{s.label}</span>
@@ -239,7 +243,7 @@ export default function ExportPage() {
             type="button"
             onClick={handleDownload}
             disabled={!campId || downloading || !previewReady}
-            className="w-full flex items-center justify-center gap-2 bg-[#1F1B2E] text-white font-bold text-sm py-3 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-[#1F1B2E] text-white font-bold text-sm py-3 rounded-xl hover:bg-[#2d2640] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {downloading ? (
               <>
@@ -277,7 +281,7 @@ export default function ExportPage() {
                 {!previewReady && (
                   <tr>
                     <td colSpan={7} className="px-4 py-10 text-center text-[#6b6b78]">
-                      <div className="inline-block w-5 h-5 border-2 border-[#ececf0] border-t-[#C62828] rounded-full animate-spin" />
+                      <div className="inline-block w-5 h-5 border-2 border-[#ececf0] border-t-[#E55A35] rounded-full animate-spin" />
                     </td>
                   </tr>
                 )}

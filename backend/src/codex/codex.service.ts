@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditAction } from '../../generated/prisma/enums.js';
+import { ActionLogService } from '../logs/action-log.service.js';
 
 @Injectable()
 export class CodexService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private actionLog: ActionLogService,
+  ) {}
 
   async getWall(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
@@ -37,18 +42,43 @@ export class CodexService {
     return { items, total };
   }
 
-  async react(submissionId: string, userId: string, emoji = '❤️') {
-    return this.prisma.codexReaction.upsert({
-      where: { submissionId_userId_emoji: { submissionId, userId, emoji } },
-      create: { submissionId, userId, emoji },
+  async react(submissionId: string, userId: string, emoji?: string) {
+    const reactionEmoji = emoji || '❤️';
+
+    await this.prisma.codexReaction.upsert({
+      where: { submissionId_userId_emoji: { submissionId, userId, emoji: reactionEmoji } },
+      create: { submissionId, userId, emoji: reactionEmoji },
       update: {},
     });
+
+    return this.getReactionState(submissionId, userId, reactionEmoji);
   }
 
-  async unreact(submissionId: string, userId: string, emoji = '❤️') {
-    return this.prisma.codexReaction.deleteMany({
-      where: { submissionId, userId, emoji },
+  async unreact(submissionId: string, userId: string, emoji?: string) {
+    const reactionEmoji = emoji || '❤️';
+
+    await this.prisma.codexReaction.deleteMany({
+      where: { submissionId, userId, emoji: reactionEmoji },
     });
+
+    return this.getReactionState(submissionId, userId, reactionEmoji);
+  }
+
+  private async getReactionState(submissionId: string, userId: string, emoji: string) {
+    const [count, existing] = await Promise.all([
+      this.prisma.codexReaction.count({ where: { submissionId } }),
+      this.prisma.codexReaction.findUnique({
+        where: { submissionId_userId_emoji: { submissionId, userId, emoji } },
+        select: { id: true },
+      }),
+    ]);
+
+    return {
+      submissionId,
+      emoji,
+      count,
+      reacted: !!existing,
+    };
   }
 
   async getPendingModeration(actor?: { role: string; parishId?: string; districtId?: string; regionId?: string }) {
@@ -80,6 +110,10 @@ export class CodexService {
   }
 
   async approvePublication(submissionId: string, moderatorId: string) {
+    const moderator = await this.prisma.user.findUnique({
+      where: { id: moderatorId },
+      select: { id: true, nom: true, prenoms: true, role: true },
+    });
     const [sub] = await Promise.all([
       this.prisma.submission.update({
         where: { id: submissionId },
@@ -94,6 +128,15 @@ export class CodexService {
         },
       }),
     ]);
+    if (moderator) {
+      this.actionLog.record({
+        action: AuditAction.VALIDATE,
+        category: 'codex',
+        summary: `Publication approuvée sur le Mur du Codex par ${moderator.prenoms} ${moderator.nom}`,
+        actor: moderator,
+        target: { entityType: 'Submission', entityId: submissionId },
+      });
+    }
     return sub;
   }
 
@@ -102,6 +145,10 @@ export class CodexService {
     moderatorId: string,
     reason?: string,
   ) {
+    const moderator = await this.prisma.user.findUnique({
+      where: { id: moderatorId },
+      select: { id: true, nom: true, prenoms: true, role: true },
+    });
     const [sub] = await Promise.all([
       this.prisma.submission.update({
         where: { id: submissionId },
@@ -117,6 +164,16 @@ export class CodexService {
         },
       }),
     ]);
+    if (moderator) {
+      this.actionLog.record({
+        action: AuditAction.REJECT,
+        category: 'codex',
+        summary: `Publication rejetée sur le Mur du Codex par ${moderator.prenoms} ${moderator.nom}`,
+        actor: moderator,
+        target: { entityType: 'Submission', entityId: submissionId },
+        metadata: reason ? { reason } : undefined,
+      });
+    }
     return sub;
   }
 }

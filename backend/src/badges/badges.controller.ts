@@ -25,21 +25,28 @@ export class BadgesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION)
   @Post()
-  create(@Body() body: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }) {
-    return this.badgesService.create(body);
+  create(
+    @Body() body: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.badgesService.create(body, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>) {
-    return this.badgesService.update(id, body);
+  update(
+    @Param('id') id: string,
+    @Body() body: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.badgesService.update(id, body, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.badgesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.badgesService.remove(id, user);
   }
 }

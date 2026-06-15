@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
 
@@ -20,8 +21,10 @@ export function UserAvatar({
   if (avatarUrl) {
     const src = avatarUrl.startsWith('http') ? avatarUrl : `${API_BASE}${avatarUrl}`;
     return (
-      <img
+      <Image
         src={src}
+        width={64}
+        height={64}
         alt="Avatar"
         className={`${sizeClass} rounded-full object-cover flex-shrink-0`}
       />

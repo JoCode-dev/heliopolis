@@ -1,9 +1,11 @@
 /**
- * Seed — Le Codex des Gardiens
- * Route en Joie 2026 · Région d'Abidjan
+ * Seed — Héliopolis · Route en Joie 2026 · Région d'Abidjan
+ *
+ * SEED_STRUCTURE=CLASSIQUE     → 21 Districts Scouts officiels · Route en Joie 2026 (défaut)
+ * SEED_STRUCTURE=MYTHOLOGIQUE  → 5 Règnes · 21 Districts · 42 Sanctuaires (structure de démo)
  *
  * Exécuter : npx prisma db seed
- * (configure dans package.json → "prisma": { "seed": "tsx prisma/seed.ts" })
+ *            SEED_STRUCTURE=CLASSIQUE npx prisma db seed
  */
 
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -16,45 +18,416 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function hash(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DistrictInput {
+  nom: string;
+  code: string;
+  parishes: string[];
+}
+
+
+interface SeedStructureData {
+  label: string;
+  communityDistrict: string;
+  communityParish: string;
+  districts: DistrictInput[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Structure MYTHOLOGIQUE — 5 Règnes · 21 Districts · 42 Sanctuaires
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MYTHOLOGIQUE: SeedStructureData = {
+  label: '5 Règnes · 21 Districts · 42 Sanctuaires',
+  communityDistrict: 'Abay-Nehara',
+  communityParish: 'Sanctuaire Alpha',
+  districts: [
+    // Règne de l'Eau – Domaine de Noun
+    {
+      nom: 'Abay-Nehara',
+      code: 'NOU-ABN',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Tefnut-Ka',
+      code: 'NOU-TEF',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Meru-Nil',
+      code: 'NOU-MRN',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Sobek-Ra',
+      code: 'NOU-SBR',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Sobek-Khara',
+      code: 'NOU-SBK',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    // Règne de la Terre – Domaine de Kemet
+    {
+      nom: 'Kemet-Ur',
+      code: 'KEM-KMU',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Napata-Seth',
+      code: 'KEM-NAP',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Meroë-Ka',
+      code: 'KEM-MRK',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Axoum-Ra',
+      code: 'KEM-AXO',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Djenne-Maat',
+      code: 'KEM-DJN',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    // Règne du Souffle – Domaine de Shou
+    {
+      nom: 'Anemos-Ka',
+      code: 'SHO-ANK',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Zephyra-Ra',
+      code: 'SHO-ZPH',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Kush-Atem',
+      code: 'SHO-KSH',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Maât-Shou',
+      code: 'SHO-MAT',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    // Règne du Vivant – Domaine de Kheper
+    {
+      nom: 'Kheper-Ankh',
+      code: 'KHP-KAN',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Hathor-Nuru',
+      code: 'KHP-HTN',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Anub-Safra',
+      code: 'KHP-ANS',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    // Règne du Feu – Domaine de Ra
+    {
+      nom: 'Ra-Merut',
+      code: 'RAF-RMR',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Sekhmet-Ka',
+      code: 'RAF-SKH',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Imhot-Khepri',
+      code: 'RAF-IMH',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+    {
+      nom: 'Aten-Sahra',
+      code: 'RAF-ATN',
+      parishes: ['Sanctuaire Alpha', 'Sanctuaire Bêta'],
+    },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Structure CLASSIQUE — 21 Districts Scouts · Route en Joie 2026
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CLASSIQUE: SeedStructureData = {
+  label: "21 Districts Scouts · Région d'Abidjan · Route en Joie 2026",
+  communityDistrict: 'Requin Baleine',
+  communityParish: 'LES CACHALOTS',
+  districts: [
+    {
+      nom: 'Mango Taika',
+      code: 'DIST-MTA',
+      parishes: [
+        'LES KORES MOANAS',
+        'LES TOHORAS',
+        'HAPUU RERU',
+        'LES MAKIS',
+        'LES NARWHALS',
+        'LES AMPHIPIRIONS',
+        'LES AIHES',
+        'Equipe de District Mango Taika',
+      ],
+    },
+    {
+      nom: 'Requin Agbakou In Hin Gbre',
+      code: 'DIST-AIB',
+      parishes: ['Requin Bleu', 'Requin Renard', 'Requin Epineux'],
+    },
+    {
+      nom: 'Requin Baleine',
+      code: 'DIST-RBA',
+      parishes: [
+        'LES JUBARTES',
+        'LES WHALES',
+        'LES CACHALOTS',
+        'LES MYSTICETTES',
+        'LES RORQUALS',
+        'LES NARVALS',
+        'LES BELUGAS',
+      ],
+    },
+    {
+      nom: 'Requin Black Tail Shark',
+      code: 'DIST-BTS',
+      parishes: [
+        'BLACK JELLYFISH',
+        'Black Hamlet',
+        'BLACK MOLLY',
+        'Black Moray',
+        'BLACK STARFISH',
+      ],
+    },
+    {
+      nom: 'Requin Bouledogue',
+      code: 'DIST-RBO',
+      parishes: [
+        'Les Marsouins',
+        'Les Raies Mantas',
+        'Equipe de district Requin Bouledogue',
+        'Les Echinodernes',
+        'Les Orques',
+        'Les Octopus',
+        'Les Espadons Voiliers',
+      ],
+    },
+    {
+      nom: 'Requin Caraïbe',
+      code: 'DIST-RDC',
+      parishes: [
+        'Les Nitainos',
+        'Les Kalinagos',
+        'Les Naborias',
+        'Les Lucayens',
+        'les Cyboyens',
+      ],
+    },
+    {
+      nom: 'Requin Corail',
+      code: 'DIST-RCA',
+      parishes: [
+        'LES DABOUKES DE AHOUE',
+        'LES AGUILLARTS DE LAME',
+        "LES GEY SHARKS D'ATTIEKOI",
+        "LES REQUINS CITRONS D'AHOUTOUE",
+        'LES BLACKS SHARKS DE BROFODOUME',
+      ],
+    },
+    {
+      nom: 'Requin Féroces',
+      code: 'DIST-RFE',
+      parishes: ['Les Marsouins', 'Les Vaquitas', 'Les Rorquals'],
+    },
+    {
+      nom: 'Requin Griset',
+      code: 'DIST-RGR',
+      parishes: ['LES BAJAUX', 'LES MOKENS', 'LES MOWOHS'],
+    },
+    {
+      nom: 'Requin Lancette',
+      code: 'DIST-RLA',
+      parishes: [
+        'LES LANCETTES LUMINEUX',
+        'LES REQUINS LANCETTES DOCILE',
+        'LES REQUINS LANCETTES ROYAUX',
+        'LES REQUINS LANCETTES ELEGANT',
+        'LES REQUINS LANCETTES AVIATORS',
+        'LES REQUINS LANCETTES EPINEUX',
+      ],
+    },
+    {
+      nom: 'Requin Léopard',
+      code: 'DIST-RLE',
+      parishes: [
+        'CHAPELLE SAINTE TRINITE',
+        'Saint Antoine de Padoue',
+        'CHAPELLE NOTRE DAME DE LA PROVIDENCE',
+      ],
+    },
+    {
+      nom: 'Requin Maquo',
+      code: 'DIST-RMA',
+      parishes: [
+        'LES REQUINS SAUMON',
+        'LES REQUINS DU GANGE',
+        'LES REQUINS MEGALODON',
+        'LES REQUINS CUIVRE',
+        'LES REQUINS TAUPE',
+      ],
+    },
+    {
+      nom: 'Requin Marteau',
+      code: 'DIST-RMT',
+      parishes: [
+        'LES REQUINS MARTEAUX ETOILES',
+        'LES REQUINS MARTEAUX TACHETES',
+        'LES REQUINS MARTEAUX A AILES BLANCHES',
+        'LES REQUIN MARTEAUX HALICORNE',
+      ],
+    },
+    {
+      nom: 'Requin Noronhai',
+      code: 'DIST-RNO',
+      parishes: [
+        'LES REQUINS TIGRES',
+        'LES EPAULARDS',
+        'LES CUBOMEDUSES',
+        'LES ORQUES MARINIERS',
+      ],
+    },
+    {
+      nom: 'Requin Peau Bleu',
+      code: 'DIST-RPE',
+      parishes: [
+        'SEMOU (TORTUE DE MER)',
+        'QUASI PAROISSE SAINT RAPHAEL ADJIN VILLAGE',
+        'QUASI PAROISSE SAINT BERNARD DES CITES',
+        'AKOMA',
+        'GWEVOKO',
+        'ANOMA RAIE MARINE',
+      ],
+    },
+    {
+      nom: 'Requin Pélerin',
+      code: 'DIST-RPL',
+      parishes: [
+        'BALEINE À BOSSE',
+        'LES REQUINS NOURRICES',
+        'LES ESPADONS',
+        'LES SEALS',
+        'LES LAMNAS NASUS',
+        'LES DAUPHINS BURRUNANS',
+      ],
+    },
+    {
+      nom: 'Requin Pointe blanche',
+      code: 'DIST-RPB',
+      parishes: [
+        'PIEUVRE BLANCHE',
+        'TORTUE BLANCHE',
+        'STERNE BLANCHE',
+        'OTARIE BLANCHE',
+        'RAIE BLANCHE',
+        'Equipe de District Requin Pointe blanche',
+      ],
+    },
+    {
+      nom: 'Requin Pointe noire',
+      code: 'DIST-RPN',
+      parishes: [
+        'LES POISSONS CHATS',
+        'Les Etoiles de Mer',
+        'LES HYPPOCAMPES',
+        'LES RAIES MANTAS',
+        'LES PIRANHAS TACHETÉS',
+      ],
+    },
+    {
+      nom: 'Requin Scie',
+      code: 'DIST-RSC',
+      parishes: ['ANGE DE MER', 'LION DE MER', 'LES ELEPHANT DE MER'],
+    },
+    {
+      nom: 'Requin Taureau',
+      code: 'DIST-RTA',
+      parishes: [
+        'LES LONGIMANES',
+        'LES SQUALES BOUCLES',
+        'LES BABOSSES',
+        'LES REQUINS TIGRE',
+      ],
+    },
+    {
+      nom: 'Requin des sables',
+      code: 'DIST-RSA',
+      parishes: ['LES BIDJARAS', 'LES WIRADJURIS', 'LES WURUNDJERIS'],
+    },
+  ],
+};
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('🌱 Démarrage du seed — Codex des Gardiens…\n');
+  const structureKey = (process.env.SEED_STRUCTURE ?? 'CLASSIQUE') as
+    | 'MYTHOLOGIQUE'
+    | 'CLASSIQUE';
+
+  if (
+    structureKey !== undefined &&
+    structureKey !== 'MYTHOLOGIQUE' &&
+    structureKey !== 'CLASSIQUE'
+  ) {
+    throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      `SEED_STRUCTURE invalide : "${structureKey}". Valeurs acceptées : MYTHOLOGIQUE, CLASSIQUE`,
+    );
+  }
+
+  const structure = structureKey === 'CLASSIQUE' ? CLASSIQUE : MYTHOLOGIQUE;
+
+  const totalDistricts = structure.districts.length;
+  const totalParishes = structure.districts.reduce(
+    (acc, d) => acc + d.parishes.length,
+    0,
+  );
+
+  console.log('🌱 Démarrage du seed — Héliopolis\n');
+  console.log(`   Structure  : ${structureKey}`);
+  console.log(`   ${structure.label}`);
+  console.log(
+    `   ${totalDistricts} district(s) · ${totalParishes} paroisse(s)\n`,
+  );
 
   // ── 1. Région ───────────────────────────────────────────────────────────────
   const region = await prisma.region.upsert({
     where: { nom: "Région d'Abidjan" },
     update: {},
-    create: {
-      nom: "Région d'Abidjan",
-      code: 'RGN-ABJ',
-    },
+    create: { nom: "Région d'Abidjan", code: 'RGN-ABJ' },
   });
   console.log(`✔ Région : ${region.nom}`);
 
   // ── 2. Districts ────────────────────────────────────────────────────────────
-  const districtsInput = [
-    { nom: 'Treichville', code: 'DOY-TRE' },
-    { nom: 'Cocody', code: 'DOY-COC' },
-    { nom: 'Marcory', code: 'DOY-MAR' },
-    { nom: 'Plateau', code: 'DOY-PLT' },
-    { nom: 'Bingerville', code: 'DOY-BIN' },
-    { nom: 'Abobo', code: 'DOY-ABO' },
-    { nom: 'Adjame', code: 'DOY-ADJ' },
-  ];
-
   const districts: Record<string, { id: string; nom: string }> = {};
-  for (const d of districtsInput) {
+  for (const d of structure.districts) {
     const district = await prisma.district.upsert({
       where: { regionId_nom: { regionId: region.id, nom: d.nom } },
       update: {},
@@ -62,84 +435,40 @@ async function main() {
     });
     districts[d.nom] = district;
   }
-  console.log(`✔ Districts : ${Object.keys(districts).join(', ')}`);
+  console.log(`✔ Districts : ${Object.keys(districts).length} créés`);
 
   // ── 3. Paroisses ────────────────────────────────────────────────────────────
-  const parishesInput: Array<{ district: string; parishes: string[] }> = [
-    {
-      district: 'Treichville',
-      parishes: [
-        'Saint-Michel de Treichville',
-        'Sainte-Marie',
-        'Saint-François Xavier',
-        'Saint-Augustin',
-        'Notre-Dame de Lourdes',
-      ],
-    },
-    {
-      district: 'Cocody',
-      parishes: [
-        'Saint-Joseph de Cocody',
-        'Sainte-Famille',
-        'Notre-Dame des Grâces',
-        'Christ-Roi',
-      ],
-    },
-    {
-      district: 'Marcory',
-      parishes: [
-        'Sainte-Thérèse de Marcory',
-        'Saint-Antoine',
-        'Notre-Dame de Marcory',
-      ],
-    },
-    {
-      district: 'Plateau',
-      parishes: [
-        'Cathédrale Saint-Paul du Plateau',
-        'Saint-Pierre',
-        'Sacré-Cœur',
-      ],
-    },
-    {
-      district: 'Bingerville',
-      parishes: ['Saint-Jean de Bingerville', 'Sainte-Cécile'],
-    },
-    {
-      district: 'Abobo',
-      parishes: ["Saint-Luc d'Abobo", 'Saint-Marc', 'Bon Pasteur'],
-    },
-    {
-      district: 'Adjame',
-      parishes: ['Notre-Dame de la Mer', "Sainte-Croix d'Adjame"],
-    },
-  ];
-
   const parishes: Record<string, { id: string; nom: string }> = {};
-  for (const pd of parishesInput) {
-    const district = districts[pd.district];
-    for (const pnom of pd.parishes) {
+  for (const d of structure.districts) {
+    const district = districts[d.nom];
+    for (const pnom of d.parishes) {
       const parish = await prisma.parish.upsert({
         where: { districtId_nom: { districtId: district.id, nom: pnom } },
         update: {},
         create: { nom: pnom, districtId: district.id },
       });
-      parishes[pnom] = parish;
+      parishes[`${d.nom}::${pnom}`] = parish;
     }
   }
   console.log(`✔ Paroisses : ${Object.keys(parishes).length} créées`);
 
   // ── 4. Communauté Mahatma Gandhi ────────────────────────────────────────────
-  const stjoseph = parishes['Saint-Joseph de Cocody'];
+  const communityParishKey = `${structure.communityDistrict}::${structure.communityParish}`;
+  const communityParish = parishes[communityParishKey];
+  if (!communityParish) {
+    throw new Error(
+      `Paroisse communautaire introuvable : ${communityParishKey}`,
+    );
+  }
   const community = await prisma.community.upsert({
     where: {
-      parishId_nom: { parishId: stjoseph.id, nom: 'Communauté Mahatma Gandhi' },
+      parishId_nom: {
+        parishId: communityParish.id,
+        nom: 'Communauté Mahatma Gandhi',
+      },
     },
     update: {},
-    create: {
-      nom: 'Communauté Mahatma Gandhi',
-      parishId: stjoseph.id,
-    },
+    create: { nom: 'Communauté Mahatma Gandhi', parishId: communityParish.id },
   });
   console.log(`✔ Communauté : ${community.nom}`);
 
@@ -167,374 +496,21 @@ async function main() {
     `✔ ADMIN       : ${admin.prenoms} ${admin.nom}  (${admin.matricule})`,
   );
 
-  // ── 6. Hiérophante — Conseil d'Héliopolis ───────────────────────────────────
-  const regionHash = await hash('Region@2026!');
-  const hierophante = await prisma.user.upsert({
-    where: { matricule: '0000002B' },
-    update: {
-      passwordHash: regionHash,
-      statutProfil: 'ACTIF',
-      regionId: region.id,
-      districtId: districts['Cocody'].id,
-      parishId: stjoseph.id,
-    },
+
+
+  // ── 10. Adhésion 2026 — compte admin ─────────────────────────────────────
+  await prisma.adhesion.upsert({
+    where: { userId_annee: { userId: admin.id, annee: 2026 } },
+    update: {},
     create: {
-      nom: 'Gandhi',
-      prenoms: 'Hiérophante',
-      matricule: '0000002B',
-      email: 'hierophante@heliopolis.ci',
-      passwordHash: regionHash,
-      role: 'REGION',
-      statutProfil: 'ACTIF',
-      regionId: region.id,
-      districtId: districts['Cocody'].id,
-      parishId: stjoseph.id,
-      communityId: community.id,
+      userId: admin.id,
+      annee: 2026,
+      statut: 'A_JOUR',
+      validateurId: admin.id,
+      dateValidation: new Date(),
     },
   });
-
-  // Lier la Région au Hiérophante (responsable)
-  await prisma.region.updateMany({
-    where: { responsableId: hierophante.id, NOT: { id: region.id } },
-    data: { responsableId: null },
-  });
-  await prisma.region.update({
-    where: { id: region.id },
-    data: { responsableId: hierophante.id },
-  });
-  console.log(
-    `✔ REGION      : ${hierophante.prenoms} ${hierophante.nom}  (${hierophante.matricule})`,
-  );
-
-  // ── 7. Sentinelles — une par District ───────────────────────────────────────
-  const sentinellesInput = [
-    {
-      nom: 'Kouassi',
-      prenoms: 'Pierre',
-      matricule: '0526101C',
-      district: 'Treichville',
-      email: 'sentinelle.tre@heliopolis.ci',
-    },
-    {
-      nom: "N'Dri",
-      prenoms: 'Marie',
-      matricule: '0526102D',
-      district: 'Cocody',
-      email: 'sentinelle.coc@heliopolis.ci',
-    },
-    {
-      nom: 'Bamba',
-      prenoms: 'Soumaïla',
-      matricule: '0526103E',
-      district: 'Marcory',
-      email: 'sentinelle.mar@heliopolis.ci',
-    },
-    {
-      nom: 'Yao',
-      prenoms: 'Jean',
-      matricule: '0526104F',
-      district: 'Plateau',
-      email: 'sentinelle.plt@heliopolis.ci',
-    },
-    {
-      nom: 'Coulibaly',
-      prenoms: 'Djibril',
-      matricule: '0526105G',
-      district: 'Bingerville',
-      email: 'sentinelle.bin@heliopolis.ci',
-    },
-    {
-      nom: 'Ouattara',
-      prenoms: 'Roland',
-      matricule: '0526106H',
-      district: 'Abobo',
-      email: 'sentinelle.abo@heliopolis.ci',
-    },
-    {
-      nom: 'Diomandé',
-      prenoms: 'Fatou',
-      matricule: '0526107I',
-      district: 'Adjame',
-      email: 'sentinelle.adj@heliopolis.ci',
-    },
-  ];
-
-  const sentinelleHash = await hash('Sentinelle@2026!');
-  for (const s of sentinellesInput) {
-    const district = districts[s.district];
-    if (!district) {
-      throw new Error(`District introuvable pour la sentinelle ${s.matricule}`);
-    }
-    const sentinelle = await prisma.user.upsert({
-      where: { matricule: s.matricule },
-      update: {
-        passwordHash: sentinelleHash,
-        statutProfil: 'ACTIF',
-        regionId: region.id,
-        districtId: district.id,
-      },
-      create: {
-        nom: s.nom,
-        prenoms: s.prenoms,
-        matricule: s.matricule,
-        email: s.email,
-        passwordHash: sentinelleHash,
-        role: 'SENTINELLE',
-        statutProfil: 'ACTIF',
-        regionId: region.id,
-        districtId: district.id,
-      },
-    });
-    // Lier le District à sa Sentinelle
-    await prisma.district.updateMany({
-      where: { responsableId: sentinelle.id, NOT: { id: district.id } },
-      data: { responsableId: null },
-    });
-    await prisma.district.update({
-      where: { id: district.id },
-      data: { responsableId: sentinelle.id },
-    });
-  }
-  console.log(`✔ SENTINELLES : 7 créées (une par district)`);
-
-  // ── Données communes — noms ivoiriens ──────────────────────────────────────
-  const NOM_POOL = [
-    'Kouamé',
-    'Konan',
-    'Koffi',
-    'Brou',
-    'Yao',
-    'Traoré',
-    'Coulibaly',
-    'Koné',
-    'Touré',
-    'Bamba',
-    'Diallo',
-    'Ouattara',
-    "N'Guessan",
-    "N'Dri",
-    'Assi',
-    'Aka',
-    'Yapi',
-    'Diabaté',
-    'Doumbia',
-    'Okou',
-    'Ahoussou',
-    'Ehui',
-    'Bogui',
-    'Lago',
-    'Loba',
-    "N'Da",
-    "N'Goran",
-    'Aké',
-    'Attié',
-    'Boa',
-  ];
-  const PRENOM_POOL = [
-    'Emmanuel',
-    'Aminata',
-    'Kofi',
-    'Fatou',
-    'Jean-Baptiste',
-    'Charlotte',
-    'Youssouf',
-    'Esther',
-    'Franck',
-    'Bintou',
-    'Thierry',
-    'Delphine',
-    'Patrick',
-    'Grâce',
-    'Olivier',
-    'Hortense',
-    'Serge',
-    'Inès',
-    'Augustin',
-    'Joëlle',
-    'Laurent',
-    'Mariame',
-    'Marcel',
-    'Nathalie',
-    'Narcisse',
-    'Odette',
-    'Régis',
-    'Sandra',
-    'Sylvain',
-    'Tatiana',
-    'Théodore',
-    'Véronique',
-  ];
-  const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-  // ── 8. Guides — 3 par paroisse (plein · adjoint · assistant) ───────────────
-  type GuideRole = 'PLEIN' | 'ADJOINT' | 'ASSISTANT';
-  const GUIDE_FONCTIONS: Array<{ guideRole: GuideRole; typeIdx: number }> = [
-    { guideRole: 'PLEIN', typeIdx: 1 },
-    { guideRole: 'ADJOINT', typeIdx: 2 },
-    { guideRole: 'ASSISTANT', typeIdx: 3 },
-  ];
-
-  const guideHash = await hash('Guide@2026!');
-  const guidePleinIds: string[] = [];
-  let totalGuides = 0;
-
-  for (let dIdx = 0; dIdx < districtsInput.length; dIdx++) {
-    const districtName = districtsInput[dIdx].nom;
-    const district = districts[districtName];
-    const districtParishes =
-      parishesInput.find((pd) => pd.district === districtName)?.parishes ?? [];
-
-    for (let pIdx = 0; pIdx < districtParishes.length; pIdx++) {
-      const parishName = districtParishes[pIdx];
-      const parish = parishes[parishName];
-      const isSaintJoseph = parishName === 'Saint-Joseph de Cocody';
-
-      for (const { guideRole, typeIdx } of GUIDE_FONCTIONS) {
-        totalGuides++;
-        const letter = ALPHABET[(totalGuides - 1) % 26];
-        // Format : 27 + district(2) + paroisse(2) + fonction(1) + lettre → 8 chars
-        const matricule = `27${String(dIdx + 1).padStart(2, '0')}${String(pIdx + 1).padStart(2, '0')}${typeIdx}${letter}`;
-        const nom = NOM_POOL[(dIdx * 6 + pIdx * 4 + typeIdx) % NOM_POOL.length];
-        const prenom =
-          PRENOM_POOL[(dIdx * 9 + pIdx * 5 + typeIdx + 1) % PRENOM_POOL.length];
-
-        const guideUser = await prisma.user.upsert({
-          where: { matricule },
-          update: {
-            passwordHash: guideHash,
-            statutProfil: 'ACTIF',
-            regionId: region.id,
-            districtId: district.id,
-            parishId: parish.id,
-          },
-          create: {
-            nom,
-            prenoms: prenom,
-            matricule,
-            email: `${matricule.toLowerCase()}@heliopolis.ci`,
-            passwordHash: guideHash,
-            role: 'GUIDE',
-            statutProfil: 'ACTIF',
-            regionId: region.id,
-            districtId: district.id,
-            parishId: parish.id,
-            ...(isSaintJoseph && guideRole === 'PLEIN'
-              ? { communityId: community.id }
-              : {}),
-          },
-        });
-
-        // guideRole est un enum ajouté par la migration — on le pose via SQL
-        await prisma.$executeRaw`
-          UPDATE "users"
-          SET "guideRole" = ${guideRole}::"GuideRole"
-          WHERE id = ${guideUser.id}
-        `;
-
-        if (guideRole === 'PLEIN') {
-          guidePleinIds.push(guideUser.id);
-          await prisma.parish.update({
-            where: { id: parish.id },
-            data: { guideId: guideUser.id },
-          });
-        }
-      }
-    }
-  }
-  console.log(
-    `✔ GUIDES      : ${totalGuides} créés (3 par paroisse · ${Object.keys(parishes).length} paroisses · plein / adjoint / assistant)`,
-  );
-
-  // ── 9. Gardiens — 5 actifs par paroisse ────────────────────────────────────
-
-  const gardienHash = await hash('Gardien@2026!');
-  const gardienIdsAJour: string[] = [];
-  let totalGardiens = 0;
-
-  for (let dIdx = 0; dIdx < districtsInput.length; dIdx++) {
-    const districtName = districtsInput[dIdx].nom;
-    const district = districts[districtName];
-    const districtParishes =
-      parishesInput.find((pd) => pd.district === districtName)?.parishes ?? [];
-
-    for (let pIdx = 0; pIdx < districtParishes.length; pIdx++) {
-      const parishName = districtParishes[pIdx];
-      const parish = parishes[parishName];
-
-      for (let gIdx = 1; gIdx <= 5; gIdx++) {
-        totalGardiens++;
-        const letter = ALPHABET[(totalGardiens - 1) % 26];
-        // Format : 26 + district(2) + paroisse(2) + gardien(1) + lettre → 8 chars
-        const matricule = `26${String(dIdx + 1).padStart(2, '0')}${String(pIdx + 1).padStart(2, '0')}${gIdx}${letter}`;
-        const nom =
-          NOM_POOL[(dIdx * 5 + pIdx * 3 + gIdx - 1) % NOM_POOL.length];
-        const prenom =
-          PRENOM_POOL[(dIdx * 7 + pIdx * 4 + gIdx) % PRENOM_POOL.length];
-
-        const gardien = await prisma.user.upsert({
-          where: { matricule },
-          update: {
-            passwordHash: gardienHash,
-            statutProfil: 'ACTIF',
-            regionId: region.id,
-            districtId: district.id,
-            parishId: parish.id,
-          },
-          create: {
-            nom,
-            prenoms: prenom,
-            matricule,
-            email: `${matricule.toLowerCase()}@heliopolis.ci`,
-            passwordHash: gardienHash,
-            role: 'GARDIEN',
-            statutProfil: 'ACTIF',
-            regionId: region.id,
-            districtId: district.id,
-            parishId: parish.id,
-          },
-        });
-
-        // Les 3 premiers par paroisse sont à jour (les 2 derniers restent en attente)
-        if (gIdx <= 3) gardienIdsAJour.push(gardien.id);
-      }
-    }
-  }
-  console.log(
-    `✔ GARDIENS    : ${totalGardiens} créés (5 par paroisse · ${Object.keys(parishes).length} paroisses)`,
-  );
-
-  // ── 10. Adhésions 2026 ───────────────────────────────────────────────────────
-  // Encadrants à jour
-  for (const userId of [admin.id, hierophante.id, ...guidePleinIds]) {
-    await prisma.adhesion.upsert({
-      where: { userId_annee: { userId, annee: 2026 } },
-      update: {},
-      create: {
-        userId,
-        annee: 2026,
-        statut: 'A_JOUR',
-        validateurId: admin.id,
-        dateValidation: new Date(),
-      },
-    });
-  }
-  // Gardiens — 3 sur 5 à jour par paroisse, les 2 derniers en attente
-  for (const userId of gardienIdsAJour) {
-    await prisma.adhesion.upsert({
-      where: { userId_annee: { userId, annee: 2026 } },
-      update: {},
-      create: {
-        userId,
-        annee: 2026,
-        statut: 'A_JOUR',
-        validateurId: admin.id,
-        dateValidation: new Date(),
-      },
-    });
-  }
-  console.log(
-    `✔ Adhésions   : admin + hiérophante + ${guidePleinIds.length} guides pleins + ${gardienIdsAJour.length} gardiens (3/paroisse) marqués À jour`,
-  );
+  console.log(`✔ Adhésion    : admin marqué À jour`);
 
   // ── 11. Badges ──────────────────────────────────────────────────────────────
   const badgesInput = [
@@ -614,7 +590,7 @@ async function main() {
   }
   console.log(`✔ Badges      : ${badgesInput.length} créés`);
 
-  // ── 12. Défis / Challenges ───────────────────────────────────────────────────
+  // ── 12. Défis ────────────────────────────────────────────────────────────────
   const challengesInput = [
     {
       titre: '🌱 Planter une graine',
@@ -762,7 +738,6 @@ async function main() {
         members: {
           create: [
             { userId: admin.id, role: 'OWNER' },
-            { userId: hierophante.id, role: 'MODERATEUR' },
           ],
         },
       },
@@ -773,23 +748,26 @@ async function main() {
   // ─────────────────────────────────────────────────────────────────────────────
   // Résumé
   // ─────────────────────────────────────────────────────────────────────────────
+
   console.log('\n═══════════════════════════════════════════════════════════');
   console.log('  ✅  Seed terminé avec succès !');
   console.log('═══════════════════════════════════════════════════════════');
   console.log('');
-  console.log('  Comptes créés :');
+  console.log(`  Structure : ${structureKey} — ${structure.label}`);
+  console.log(
+    `  Districts : ${totalDistricts}  ·  Paroisses : ${totalParishes}`,
+  );
+  console.log('');
+  console.log('  Comptes fixes :');
   console.log('  ┌─────────────────┬──────────────┬──────────────────────┐');
   console.log('  │ Rôle            │ Matricule    │ Mot de passe         │');
   console.log('  ├─────────────────┼──────────────┼──────────────────────┤');
   console.log('  │ ADMIN           │ 0000001A     │ Admin@2026!          │');
-  console.log('  │ REGION          │ 0000002B     │ Region@2026!         │');
-  console.log('  │ SENTINELLE      │ 0526101C     │ Sentinelle@2026!     │');
-  console.log('  │ GUIDE (plein)   │ 2702011P *   │ Guide@2026!          │');
-  console.log('  │ GUIDE (adjoint) │ 2702012Q *   │ Guide@2026!          │');
-  console.log('  │ GUIDE (asst.)   │ 2702013R *   │ Guide@2026!          │');
-  console.log('  │ GARDIEN         │ 2601011A *   │ Gardien@2026!        │');
   console.log('  └─────────────────┴──────────────┴──────────────────────┘');
-  console.log('  * exemples — Saint-Joseph de Cocody / Treichville p.1');
+  console.log('');
+  console.log('  Pour changer de structure :');
+  console.log('  SEED_STRUCTURE=MYTHOLOGIQUE  npx prisma db seed  (structure de démo)');
+  console.log('  SEED_STRUCTURE=CLASSIQUE     npx prisma db seed  (défaut — districts officiels)');
   console.log('');
   console.log('  URL API  : http://localhost:4000/api');
   console.log('  URL App  : http://localhost:3000');

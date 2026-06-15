@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { usePastoralYear } from '@/store/pastoralYear';
 import { useAuthStore } from '@/store/auth';
+import { deferEffect } from '@/lib/effects';
 
 export default function AdminParametresPage() {
   const { annee, load, update } = usePastoralYear();
@@ -15,8 +16,8 @@ export default function AdminParametresPage() {
   const [confirm, setConfirm] = useState(false);
   const [membresCount, setMembresCount] = useState<number | null>(null);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { setInput(String(annee)); }, [annee]);
+  useEffect(() => deferEffect(load), [load]);
+  useEffect(() => deferEffect(() => setInput(String(annee))), [annee]);
 
   const newVal = parseInt(input, 10);
   const isDecreasing = !isNaN(newVal) && newVal < annee;
@@ -49,7 +50,7 @@ export default function AdminParametresPage() {
   return (
     <div className="flex flex-col h-full bg-[#f7f7fa]">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white px-4 pt-4 pb-4 flex-shrink-0">
+      <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0">
         <h1 className="text-lg font-bold leading-tight">Paramètres</h1>
         <p className="text-white/70 text-xs mt-0.5">Configuration du système</p>
       </div>
@@ -64,7 +65,7 @@ export default function AdminParametresPage() {
             {/* Valeur actuelle */}
             <div className="flex items-center justify-between bg-[#f7f7fa] rounded-xl px-4 py-3">
               <span className="text-xs text-[#9b9ba8] font-medium">Année active</span>
-              <span className="text-lg font-bold text-[#C62828]">{annee}</span>
+              <span className="text-lg font-bold text-[#E55A35]">{annee}</span>
             </div>
 
             {/* Avertissement */}
@@ -96,26 +97,26 @@ export default function AdminParametresPage() {
                       max={2100}
                       value={input}
                       onChange={e => { setInput(e.target.value); setError(''); setSuccess(''); setMembresCount(null); }}
-                      className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold text-[#1a1a2e] focus:outline-none focus:ring-2 focus:ring-[#C62828]/30 focus:border-[#C62828] ${isRegion && isDecreasing ? 'border-[#C62828] bg-red-50' : 'border-[#ddd]'}`}
+                      className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold text-[#1a1a2e] focus:outline-none focus:ring-2 focus:ring-[#E55A35]/30 focus:border-[#E55A35] ${isRegion && isDecreasing ? 'border-[#E55A35] bg-red-50' : 'border-[#ddd]'}`}
                     />
                   </div>
                   <button
                     onClick={handleSave}
                     disabled={saving || !isChanging}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white text-sm font-bold disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white text-sm font-bold disabled:opacity-60 hover:opacity-90 transition-opacity"
                   >
                     Modifier
                   </button>
                 </div>
                 {isRegion && isDecreasing && (
-                  <p className="text-xs font-semibold text-[#C62828]">
+                  <p className="text-xs font-semibold text-[#E55A35]">
                     Vous ne pouvez pas réduire l&apos;année pastorale. Contactez un administrateur.
                   </p>
                 )}
               </div>
             ) : (
-              <div className="border border-[#C62828]/30 bg-[#fff5f5] rounded-xl px-4 py-4 space-y-3">
-                <p className="text-sm font-bold text-[#C62828]">
+              <div className="border border-[#E55A35]/30 bg-[#fff5f5] rounded-xl px-4 py-4 space-y-3">
+                <p className="text-sm font-bold text-[#E55A35]">
                   Passer à l&apos;année {input} ?
                 </p>
                 <p className="text-xs text-[#555566] leading-relaxed">
@@ -126,7 +127,7 @@ export default function AdminParametresPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex-1 py-2 rounded-xl bg-gradient-to-br from-[#C62828] to-[#8e1a1a] text-white text-sm font-bold disabled:opacity-40"
+                    className="flex-1 py-2 rounded-xl bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white text-sm font-bold disabled:opacity-60"
                   >
                     {saving ? (
                       <span className="flex items-center justify-center gap-2">
@@ -138,7 +139,7 @@ export default function AdminParametresPage() {
                   <button
                     onClick={handleCancel}
                     disabled={saving}
-                    className="flex-1 py-2 rounded-xl bg-[#f0f0f4] text-[#555566] text-sm font-semibold disabled:opacity-40"
+                    className="flex-1 py-2 rounded-xl bg-[#f0f0f4] text-[#555566] text-sm font-semibold disabled:opacity-60"
                   >
                     Annuler
                   </button>

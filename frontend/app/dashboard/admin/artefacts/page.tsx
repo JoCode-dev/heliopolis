@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { badgesApi } from '@/lib/api';
 import { BadgeFormModal } from '@/components/badges/BadgeFormModal';
+import { deferEffect } from '@/lib/effects';
 import type { Badge } from '@/types';
 
 const LEVEL_EMOJI: Record<string, string> = {
@@ -19,15 +20,15 @@ export default function AdminArtefactsPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState<{ open: boolean; badge?: Badge }>({ open: false });
 
-  const reload = () => {
+  const reload = useCallback(() => {
     setLoading(true);
     badgesApi.list()
       .then(r => setBadges(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => deferEffect(reload), [reload]);
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6 bg-[#fafafa]">
@@ -49,7 +50,7 @@ export default function AdminArtefactsPage() {
         </div>
         <button
           onClick={() => setModal({ open: true })}
-          className="bg-[#1F1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors"
+          className="bg-[#1F1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150"
         >
           + Nouvel artefact
         </button>
@@ -65,7 +66,7 @@ export default function AdminArtefactsPage() {
           <p className="font-semibold">Aucun artefact configuré</p>
           <p className="text-sm mt-1">Créez le premier artefact pour les Gardiens.</p>
           <button onClick={() => setModal({ open: true })}
-            className="mt-4 bg-[#1F1B2E] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#2d2640] transition-colors">
+            className="mt-4 bg-[#1F1B2E] text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm shadow-[#1F1B2E]/20 hover:bg-[#2c2640] hover:shadow-md hover:shadow-[#1F1B2E]/25 hover:-translate-y-px transition-all duration-150">
             + Créer un artefact
           </button>
         </div>

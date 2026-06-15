@@ -7,11 +7,12 @@ import type { AuthUser } from '../common/types/auth-user.js';
 import * as XLSX from 'xlsx';
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  ADMIN:      'Admin',
-  REGION:     'Régional',
-  SENTINELLE: 'Sentinelle',
-  GUIDE:      'Guide',
-  GARDIEN:    'Gardien',
+  ADMIN:       'Admin',
+  REGION:      'Régional',
+  SENTINELLE:  'Sentinelle',
+  GUIDE:       'Guide',
+  GARDIEN:     'Gardien',
+  PHOTOGRAPHE: 'Photographe',
 };
 
 const ADHESION_LABEL: Record<string, string> = {

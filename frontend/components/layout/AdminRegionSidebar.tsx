@@ -12,10 +12,12 @@ const ADMIN_NAV_GROUPS = [
     items: [
       { href: '/dashboard/admin',              icon: '🏠', label: 'Accueil' },
       { href: '/dashboard/admin/camps',        icon: '⛺', label: 'Gérer les camps' },
+      { href: '/dashboard/admin/annonces',    icon: '📣', label: 'Annonces' },
       { href: '/dashboard/admin/conseils',    icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/admin/codex',        icon: '🪶', label: 'Modération' },
       { href: '/dashboard/admin/messages',     icon: '💬', label: 'Messagerie' },
       { href: '/dashboard/admin/export',       icon: '📤', label: 'Exports' },
+      { href: '/dashboard/admin/import',       icon: '📥', label: 'Import membres' },
     ],
   },
   {
@@ -24,10 +26,9 @@ const ADMIN_NAV_GROUPS = [
       { href: '/dashboard/admin/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/admin/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/admin/guides',       icon: '📖', label: 'Encadrants' },
-      { href: '/dashboard/admin/region',       icon: '🌍', label: 'Membres région' },
       { href: '/dashboard/admin/districts',     icon: '🛡️', label: 'Districts' },
       { href: '/dashboard/admin/paroisses',    icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/admin/defis',        icon: '🎯', label: 'Défis & soumissions' },
+      { href: '/dashboard/admin/defis',        icon: '🎯', label: 'Quêtes & soumissions' },
       { href: '/dashboard/admin/artefacts',    icon: '🏅', label: 'Artefacts'           },
     ],
   },
@@ -35,6 +36,7 @@ const ADMIN_NAV_GROUPS = [
     label: 'Système',
     items: [
       { href: '/dashboard/admin/parametres', icon: '⚙️', label: 'Paramètres' },
+      { href: '/dashboard/admin/logs',      icon: '📋', label: 'Journal' },
     ],
   },
 ];
@@ -45,6 +47,7 @@ const REGION_NAV_GROUPS = [
     items: [
       { href: '/dashboard/region',          icon: '🏠', label: 'Accueil' },
       { href: '/dashboard/region/camps',     icon: '⛺', label: 'Camps' },
+      { href: '/dashboard/region/annonces', icon: '📣', label: 'Annonces' },
       { href: '/dashboard/region/conseils', icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/region/codex',    icon: '🪶', label: 'Modération' },
       { href: '/dashboard/region/messages', icon: '💬', label: 'Messagerie' },
@@ -57,10 +60,9 @@ const REGION_NAV_GROUPS = [
       { href: '/dashboard/region/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants' },
-      { href: '/dashboard/region/region',       icon: '🌍', label: 'Membres région' },
       { href: '/dashboard/region/districts',     icon: '🛡️', label: 'Districts' },
       { href: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/region/defis',        icon: '🎯', label: 'Défis & soumissions' },
+      { href: '/dashboard/region/defis',        icon: '🎯', label: 'Quêtes & soumissions' },
       { href: '/dashboard/region/artefacts',    icon: '🏅', label: 'Artefacts'           },
     ],
   },
@@ -82,16 +84,18 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
   const { user } = useAuthStore();
 
   const navGroups = variant === 'region' ? REGION_NAV_GROUPS : ADMIN_NAV_GROUPS;
-  const rootHref = variant === 'region' ? '/dashboard/region' : '/dashboard/admin';
 
   return (
-    <aside className="hidden lg:flex lg:flex-col w-60 bg-gradient-to-b from-[#C62828] to-[#8e1a1a] text-white flex-shrink-0">
+    <aside
+      className="hidden lg:flex lg:flex-col w-60 text-white flex-shrink-0"
+      style={{ background: 'linear-gradient(180deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)', textShadow: '0 1px 3px rgba(0,0,0,0.35)' }}
+    >
 
       {/* En-tête */}
       <div className="flex items-center gap-2.5 p-4 border-b border-white/10 flex-shrink-0">
-        <GardiensBlazon size={42} />
+        <GardiensBlazon size={56} />
         <div>
-          <div className="text-[10px] tracking-widest opacity-70 uppercase">
+          <div className="text-[10px] tracking-widest opacity-90 uppercase">
             {user?.region?.nom ?? "Région d'Abidjan"}
           </div>
           <div className="text-sm font-bold leading-tight mt-0.5">
@@ -104,7 +108,7 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
       <nav className="flex-1 p-3 overflow-y-auto">
         {navGroups.map((group, gi) => (
           <div key={group.label} className={gi > 0 ? 'mt-4' : ''}>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-3 mb-1">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/70 px-3 mb-1">
               {group.label}
             </p>
             {group.items.map(item => {
@@ -119,8 +123,8 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
                   prefetch={false}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
                     active
-                      ? 'bg-gradient-to-r from-[#F58A4B]/30 to-[#C62828]/30 font-semibold text-white'
-                      : 'text-white/70 hover:bg-white/8 hover:text-white'
+                      ? 'bg-white/20 font-semibold text-white'
+                      : 'text-white/90 hover:bg-white/15 hover:text-white'
                   }`}
                 >
                   <span className="text-sm w-5 text-center">{item.icon}</span>
@@ -147,10 +151,10 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
             />
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold truncate">{user?.prenoms} {user?.nom}</div>
-              <div className="text-[10px] opacity-60">{user?.role}</div>
+              <div className="text-[10px] opacity-80">{user?.role}</div>
             </div>
           </button>
-          <LogoutButton className="text-white/60 hover:text-white transition-colors flex-shrink-0" />
+          <LogoutButton className="text-white/80 hover:text-white transition-colors flex-shrink-0" />
         </div>
       </div>
     </aside>

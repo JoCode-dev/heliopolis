@@ -18,9 +18,10 @@ const MOBILE_NAV = [
   { icon: '🌍', label: 'Membres rég.',  href: '/dashboard/admin/region' },
   { icon: '🛡️', label: 'Districts',    href: '/dashboard/admin/districts' },
   { icon: '⛪', label: 'Paroisses',    href: '/dashboard/admin/paroisses' },
-  { icon: '🎯', label: 'Défis',        href: '/dashboard/admin/defis' },
+  { icon: '🎯', label: 'Quêtes',        href: '/dashboard/admin/defis' },
   { icon: '🪶', label: 'Codex',        href: '/dashboard/admin/codex' },
   { icon: '📤', label: 'Exports',      href: '/dashboard/admin/export' },
+  { icon: '📥', label: 'Import',       href: '/dashboard/admin/import' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -30,15 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const loadYear = usePastoralYear(s => s.load);
   useEffect(() => { loadYear(); }, [loadYear]);
 
-  const currentSection = MOBILE_NAV.find(item =>
-    item.href === '/dashboard/region'
-      ? pathname === item.href
-      : pathname.startsWith(item.href),
-  );
+  const currentSection = MOBILE_NAV.find(item => pathname.startsWith(item.href));
 
   return (
     <AuthGuard roles={['ADMIN']}>
-      <div className="flex h-screen overflow-hidden bg-[#f6f6fa]">
+      <div className="flex h-screen overflow-hidden bg-[#fdf6f0]">
 
         {/* Sidebar desktop — partagée avec région */}
         <AdminRegionSidebar onProfileClick={() => setProfileOpen(true)} />
@@ -47,16 +44,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
           {/* Top bar mobile */}
-          <div className="lg:hidden bg-gradient-to-r from-[#C62828] to-[#8e1a1a] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
-            <Link
-              href="/dashboard/admin"
-              prefetch={false}
-              className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
-            >
-              ‹
-            </Link>
+          <div className="lg:hidden text-white px-4 py-3 flex items-center gap-3 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #FFB36B 0%, #F58A4B 35%, #E55A35 65%, #7A2820 100%)' }}>
+            {pathname !== '/dashboard/admin' && (
+              <Link
+                href="/dashboard/admin"
+                prefetch={false}
+                className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm font-bold flex-shrink-0"
+              >
+                ‹
+              </Link>
+            )}
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] opacity-70 uppercase tracking-wider">Conseil d&apos;Héliopolis</div>
+              <div className="text-[10px] opacity-90 uppercase tracking-wider">Conseil d&apos;Héliopolis</div>
               <div className="text-sm font-bold truncate">
                 {currentSection
                   ? `${currentSection.icon} ${currentSection.label}`

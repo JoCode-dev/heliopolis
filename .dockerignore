@@ -1,0 +1,16 @@
+**/node_modules
+**/.next
+**/out
+**/dist
+**/generated
+**/coverage
+**/.env*
+**/.git
+**/*.md
+**/uploads
+# Runtime log output only (not backend/src/logs NestJS module)
+logs/
+backend/logs/
+**/.DS_Store
+**/.vercel
+**/*.tsbuildinfo

@@ -25,6 +25,7 @@ const PARTICIPATION_PILL: Record<ParticipationStatus, 'vert' | 'rouge' | 'or' | 
   NON_SELECTIONNE: 'gris',
   DESISTE: 'rouge',
   ABSENT: 'rouge',
+  BLOQUE: 'rouge',
 };
 const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
   SELECTIONNE: 'Sélectionné',
@@ -34,6 +35,7 @@ const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
   NON_SELECTIONNE: 'Non sélectionné',
   DESISTE: 'Désisté',
   ABSENT: 'Absent',
+  BLOQUE: 'Bloqué',
 };
 
 function ParticipantsContent() {
@@ -60,14 +62,24 @@ function ParticipantsContent() {
 
   useEffect(() => {
     if (!selectedCampId) return;
-    setLoadingParts(true);
+    let active = true;
+
     (async () => {
+      await Promise.resolve();
+      if (!active) return;
+
+      setLoadingParts(true);
       try {
         const { data } = await campsApi.participants(selectedCampId);
-        setParticipants(data);
-      } catch { setParticipants([]); }
-      finally { setLoadingParts(false); }
+        if (active) setParticipants(data);
+      } catch {
+        if (active) setParticipants([]);
+      } finally {
+        if (active) setLoadingParts(false);
+      }
     })();
+
+    return () => { active = false; };
   }, [selectedCampId]);
 
   const filtered = participants.filter(p => {
@@ -87,7 +99,7 @@ function ParticipantsContent() {
       {/* Top bar */}
       <div className="flex justify-between items-center mb-4 border-b border-[#ececf0] pb-4">
         <h1 className="text-xl lg:text-2xl font-black text-[#1F1B2E]">👥 Participants</h1>
-        <Link href="/dashboard/admin/export"
+        <Link href="/dashboard/region/export"
           className="bg-[#6A1B9A] text-white font-bold text-xs lg:text-sm px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl hover:bg-[#5a1280] transition-colors flex-shrink-0">
           📤 Export
         </Link>
