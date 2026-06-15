@@ -1,18 +1,12 @@
--- AlterEnum
-ALTER TYPE "UserRole" ADD VALUE 'PHOTOGRAPHE';
-
--- DropIndex
-DROP INDEX IF EXISTS "challenges_embedding_idx";
-
--- DropIndex
-DROP INDEX IF EXISTS "messages_embedding_idx";
+-- AlterEnum (idempotent: ADD VALUE cannot be rolled back in PostgreSQL)
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'PHOTOGRAPHE';
 
 -- AlterTable
 ALTER TABLE "users" ALTER COLUMN "nom" DROP NOT NULL,
 ALTER COLUMN "prenoms" DROP NOT NULL;
 
 -- CreateTable
-CREATE TABLE "camp_photos" (
+CREATE TABLE IF NOT EXISTS "camp_photos" (
     "id" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "caption" TEXT,
@@ -25,13 +19,21 @@ CREATE TABLE "camp_photos" (
 );
 
 -- CreateIndex
-CREATE INDEX "camp_photos_campId_idx" ON "camp_photos"("campId");
+CREATE INDEX IF NOT EXISTS "camp_photos_campId_idx" ON "camp_photos"("campId");
 
 -- CreateIndex
-CREATE INDEX "camp_photos_uploaderId_idx" ON "camp_photos"("uploaderId");
+CREATE INDEX IF NOT EXISTS "camp_photos_uploaderId_idx" ON "camp_photos"("uploaderId");
 
 -- AddForeignKey
-ALTER TABLE "camp_photos" ADD CONSTRAINT "camp_photos_campId_fkey" FOREIGN KEY ("campId") REFERENCES "camps"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "camp_photos" ADD CONSTRAINT "camp_photos_campId_fkey"
+    FOREIGN KEY ("campId") REFERENCES "camps"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "camp_photos" ADD CONSTRAINT "camp_photos_uploaderId_fkey" FOREIGN KEY ("uploaderId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "camp_photos" ADD CONSTRAINT "camp_photos_uploaderId_fkey"
+    FOREIGN KEY ("uploaderId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

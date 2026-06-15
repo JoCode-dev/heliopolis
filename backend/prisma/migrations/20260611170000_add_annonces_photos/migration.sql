@@ -1,11 +1,11 @@
--- AlterEnum: add PLANIFIE value (must run outside transaction)
-ALTER TYPE "AnnouncementStatus" ADD VALUE 'PLANIFIE';
+-- AlterEnum
+ALTER TYPE "AnnouncementStatus" ADD VALUE IF NOT EXISTS 'PLANIFIE';
 
--- AlterTable: add expiresAt to announcements
-ALTER TABLE "announcements" ADD COLUMN "expiresAt" TIMESTAMP(3);
+-- AlterTable
+ALTER TABLE "announcements" ADD COLUMN IF NOT EXISTS "expiresAt" TIMESTAMP(3);
 
--- CreateTable: announcement_photos
-CREATE TABLE "announcement_photos" (
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "announcement_photos" (
     "id" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "annonceId" TEXT NOT NULL,
@@ -16,12 +16,17 @@ CREATE TABLE "announcement_photos" (
 );
 
 -- CreateIndex
-CREATE INDEX "announcement_photos_annonceId_idx" ON "announcement_photos"("annonceId");
+CREATE INDEX IF NOT EXISTS "announcement_photos_annonceId_idx" ON "announcement_photos"("annonceId");
 
 -- AddForeignKey
-ALTER TABLE "announcement_photos" ADD CONSTRAINT "announcement_photos_annonceId_fkey"
+DO $$ BEGIN
+  ALTER TABLE "announcement_photos" ADD CONSTRAINT "announcement_photos_annonceId_fkey"
     FOREIGN KEY ("annonceId") REFERENCES "announcements"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- AddForeignKey
-ALTER TABLE "announcement_photos" ADD CONSTRAINT "announcement_photos_uploadedById_fkey"
+DO $$ BEGIN
+  ALTER TABLE "announcement_photos" ADD CONSTRAINT "announcement_photos_uploadedById_fkey"
     FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
