@@ -286,8 +286,8 @@ export const usersApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-  /** Promouvoir un membre : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION (ADMIN) */
-  promouvoir: (id: string, role: 'SENTINELLE' | 'REGION') =>
+  /** Changer le rôle d'un membre (promotion ou rétrogradation entre GUIDE, SENTINELLE, REGION) */
+  promouvoir: (id: string, role: 'GUIDE' | 'SENTINELLE' | 'REGION') =>
     api.patch(`/users/${id}/promouvoir`, { role }),
   update: (id: string, data: object) => api.patch(`/users/${id}`, data),
   updateMe: (data: { nom?: string; prenoms?: string; email?: string; telephone?: string }) =>

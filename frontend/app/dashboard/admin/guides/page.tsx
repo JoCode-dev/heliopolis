@@ -270,23 +270,23 @@ function GuidesContent() {
         </button>
         {mobileFiltersOpen && (
           <div className="flex flex-col gap-2 pt-1">
-            <select value={(values.districtId as string) ?? ''} onChange={e => setFilter('districtId', e.target.value || undefined)}
+            <select value={(values.districtId as string) ?? ''} onChange={e => setFilter('districtId', e.target.value)}
               className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
               <option value="">Tous les districts</option>
               {districts.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
             </select>
-            <select value={(values.parishId as string) ?? ''} onChange={e => setFilter('parishId', e.target.value || undefined)}
+            <select value={(values.parishId as string) ?? ''} onChange={e => setFilter('parishId', e.target.value)}
               disabled={visibleParishes.length === 0}
               className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] disabled:opacity-40">
               <option value="">Toutes les paroisses</option>
               {visibleParishes.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
             </select>
-            <select value={(values.statut as string) ?? ''} onChange={e => setFilter('statut', e.target.value || undefined)}
+            <select value={(values.statut as string) ?? ''} onChange={e => setFilter('statut', e.target.value)}
               className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
               <option value="">Tous les statuts</option>
               {STATUT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <select value={(values.adhesion as string) ?? ''} onChange={e => setFilter('adhesion', e.target.value || undefined)}
+            <select value={(values.adhesion as string) ?? ''} onChange={e => setFilter('adhesion', e.target.value)}
               className="w-full bg-white border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E]">
               <option value="">Toutes adhésions</option>
               {ADHESION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
