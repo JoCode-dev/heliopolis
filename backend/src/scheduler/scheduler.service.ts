@@ -16,42 +16,33 @@ export class SchedulerService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async updateCampStatuses() {
-    const today = startOfToday();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    try {
+      const today = startOfToday();
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [enCours, clotures, archives] = await Promise.all([
-      // OUVERT → EN_COURS
-      this.prisma.camp.updateMany({
-        where: {
-          statut: { in: ['OUVERT'] },
-          dateDebut: { lte: today },
-          dateFin: { gte: today },
-        },
-        data: { statut: 'EN_COURS' },
-      }),
-      // → CLOTURE (dateDebut dépassée ou dateFin passée)
-      this.prisma.camp.updateMany({
-        where: {
-          statut: { in: ['BROUILLON', 'OUVERT', 'EN_COURS'] },
-          dateFin: { lt: today },
-        },
-        data: { statut: 'CLOTURE' },
-      }),
-      // CLOTURE → ARCHIVE après 30 jours
-      this.prisma.camp.updateMany({
-        where: {
-          statut: 'CLOTURE',
-          dateFin: { lt: thirtyDaysAgo },
-        },
-        data: { statut: 'ARCHIVE' },
-      }),
-    ]);
+      const [enCours, clotures, archives] = await Promise.all([
+        this.prisma.camp.updateMany({
+          where: { statut: { in: ['OUVERT'] }, dateDebut: { lte: today }, dateFin: { gte: today } },
+          data: { statut: 'EN_COURS' },
+        }),
+        this.prisma.camp.updateMany({
+          where: { statut: { in: ['BROUILLON', 'OUVERT', 'EN_COURS'] }, dateFin: { lt: today } },
+          data: { statut: 'CLOTURE' },
+        }),
+        this.prisma.camp.updateMany({
+          where: { statut: 'CLOTURE', dateFin: { lt: thirtyDaysAgo } },
+          data: { statut: 'ARCHIVE' },
+        }),
+      ]);
 
-    const total = enCours.count + clotures.count + archives.count;
-    if (total > 0) {
-      this.logger.log(
-        `Camps mis à jour — EN_COURS: ${enCours.count}, CLOTURE: ${clotures.count}, ARCHIVE: ${archives.count}`,
-      );
+      const total = enCours.count + clotures.count + archives.count;
+      if (total > 0) {
+        this.logger.log(
+          `Camps mis à jour — EN_COURS: ${enCours.count}, CLOTURE: ${clotures.count}, ARCHIVE: ${archives.count}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error('Échec mise à jour statuts camps', err instanceof Error ? err.stack : String(err));
     }
   }
 
@@ -63,49 +54,45 @@ export class SchedulerService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_HOUR)
   async updateCouncilStatuses() {
-    const today      = startOfToday();
-    const tomorrow   = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    try {
+      const today    = startOfToday();
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
-    const [enCours, termines, rattrapage] = await Promise.all([
-      // PLANIFIE → EN_COURS : date = aujourd'hui
-      this.prisma.council.updateMany({
-        where: {
-          statut: 'PLANIFIE',
-          date: { gte: today, lt: tomorrow },
-        },
-        data: { statut: 'EN_COURS' },
-      }),
-      // EN_COURS → TERMINE : date avant aujourd'hui
-      this.prisma.council.updateMany({
-        where: {
-          statut: 'EN_COURS',
-          date: { lt: today },
-        },
-        data: { statut: 'TERMINE' },
-      }),
-      // PLANIFIE → TERMINE : rattrapage si date passée sans transition
-      this.prisma.council.updateMany({
-        where: {
-          statut: 'PLANIFIE',
-          date: { lt: today },
-        },
-        data: { statut: 'TERMINE' },
-      }),
-    ]);
+      const [enCours, termines, rattrapage] = await Promise.all([
+        this.prisma.council.updateMany({
+          where: { statut: 'PLANIFIE', date: { gte: today, lt: tomorrow } },
+          data: { statut: 'EN_COURS' },
+        }),
+        this.prisma.council.updateMany({
+          where: { statut: 'EN_COURS', date: { lt: today } },
+          data: { statut: 'TERMINE' },
+        }),
+        this.prisma.council.updateMany({
+          where: { statut: 'PLANIFIE', date: { lt: today } },
+          data: { statut: 'TERMINE' },
+        }),
+      ]);
 
-    const total = enCours.count + termines.count + rattrapage.count;
-    if (total > 0) {
-      this.logger.log(
-        `Conseils mis à jour — EN_COURS: ${enCours.count}, TERMINE: ${termines.count + rattrapage.count}`,
-      );
+      const total = enCours.count + termines.count + rattrapage.count;
+      if (total > 0) {
+        this.logger.log(
+          `Conseils mis à jour — EN_COURS: ${enCours.count}, TERMINE: ${termines.count + rattrapage.count}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error('Échec mise à jour statuts conseils', err instanceof Error ? err.stack : String(err));
     }
   }
 
   // Exécuté au démarrage pour synchroniser immédiatement sans attendre le prochain cron
   async onModuleInit() {
     await Promise.all([
-      this.updateCampStatuses(),
-      this.updateCouncilStatuses(),
+      this.updateCampStatuses().catch((err: unknown) =>
+        this.logger.error('Sync initiale camps échouée', err instanceof Error ? err.stack : String(err)),
+      ),
+      this.updateCouncilStatuses().catch((err: unknown) =>
+        this.logger.error('Sync initiale conseils échouée', err instanceof Error ? err.stack : String(err)),
+      ),
     ]);
   }
 }

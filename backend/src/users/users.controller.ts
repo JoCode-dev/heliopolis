@@ -18,6 +18,7 @@ import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto.js';
 import { PreEnregistrerDto } from './dto/pre-enregistrer.dto.js';
+import { UpdateAdhesionDto } from './dto/update-adhesion.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -39,10 +40,6 @@ interface FindUsersQuery {
   statutProfil?: ProfileStatus;
 }
 
-interface UpdateAdhesionBody {
-  annee: number | string;
-  statut: AdhesionStatus;
-}
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
@@ -173,11 +170,11 @@ export class UsersController {
   )
   async updateAdhesion(
     @Param('id') id: string,
-    @Body() body: UpdateAdhesionBody,
+    @Body() body: UpdateAdhesionDto,
     @CurrentUser() user: AuthUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const annee = Number(body.annee);
+    const annee = body.annee;
     const preuveUrl = file
       ? await this.storage.upload('adhesions', file)
       : undefined;

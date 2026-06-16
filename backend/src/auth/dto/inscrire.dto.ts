@@ -1,10 +1,14 @@
-import { IsString, Matches, IsDateString, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, MaxLength, MinLength, Matches } from 'class-validator';
 
 export class InscrireDto {
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
   declare nom: string;
 
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
   declare prenoms: string;
 
   @IsString()
@@ -15,6 +19,8 @@ export class InscrireDto {
   declare dateNaissance: string;
 
   @IsString()
+  @IsNotEmpty()
   @MinLength(8, { message: 'Le mot de passe doit comporter au moins 8 caractères' })
+  @MaxLength(128)
   declare password: string;
 }
