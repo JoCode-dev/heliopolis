@@ -233,7 +233,7 @@ export default function GuideAdhesionsPage() {
           >
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                {user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+                {user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}` : '?'}
               </div>
               <div className="text-left">
                 <div className="text-sm font-semibold text-[#1F1B2E]">Mon adhésion</div>
@@ -342,7 +342,7 @@ export default function GuideAdhesionsPage() {
                         style={{ background: 'linear-gradient(135deg,#6A1B9A,#3d1163)' }}>
                         {g.avatarUrl
                           ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="36px" />
-                          : `${g.nom[0]}${g.prenoms[0]}`}
+                          : `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`}
                       </div>
 
                       {/* Nom + matricule */}

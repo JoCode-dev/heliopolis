@@ -54,7 +54,7 @@ export default function GardienProfilPage() {
         <Card className="mb-4">
           <div className="flex items-center gap-3.5">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-              {user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?'}
+              {user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase() : '?'}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-bold text-base text-[#1F1B2E]">{user?.prenoms} {user?.nom}</div>

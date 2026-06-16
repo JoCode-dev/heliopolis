@@ -290,7 +290,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
           <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden relative">
             {privatePartner.avatarUrl
               ? <Image src={privatePartner.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
-              : `${privatePartner.nom[0]}${privatePartner.prenoms[0]}`}
+              : `${privatePartner.nom?.[0] ?? ''}${privatePartner.prenoms?.[0] ?? ''}`}
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -563,7 +563,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                       <button key={u.id} onClick={() => toggleAdd(u.id)} className="flex items-center w-full px-4 py-3 hover:bg-[#F5F5F5] transition-colors">
                         {u.avatarUrl
                           ? <Image src={u.avatarUrl} width={44} height={44} className="w-11 h-11 rounded-full object-cover flex-shrink-0" alt="" />
-                          : <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{u.nom[0]}{u.prenoms[0]}</div>
+                          : <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{u.nom?.[0] ?? ''}{u.prenoms?.[0] ?? ''}</div>
                         }
                         <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1 text-left">
                           <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}</p>
@@ -627,7 +627,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                       <div className="relative flex-shrink-0">
                         {u.avatarUrl
                           ? <Image src={u.avatarUrl} width={50} height={50} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
-                          : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom[0]}{u.prenoms[0]}</div>
+                          : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom?.[0] ?? ''}{u.prenoms?.[0] ?? ''}</div>
                         }
                         {m.role === 'OWNER' && (
                           <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#F58A4B] border-2 border-white flex items-center justify-center text-[10px]">👑</div>

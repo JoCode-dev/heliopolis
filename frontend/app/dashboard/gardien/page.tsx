@@ -99,7 +99,7 @@ export default function DashboardGardienPage() {
     (c.messages?.length ?? 0) > 0
   );
 
-  const initials   = user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?';
+  const initials   = user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase() : '?';
   const adhesionOk = user?.adhesions?.[0]?.statut === 'A_JOUR';
   const rang        = getRangGardien(totalPoints);
   const nextRang    = getNextRang(totalPoints);
@@ -333,7 +333,7 @@ export default function DashboardGardienPage() {
                       <Card className="mb-2.5 flex items-center gap-3 hover:border-[#E55A35]/30 transition">
                         {otherUser ? (
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1F1B2E] to-[#3a1d4d] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                            {otherUser.nom[0]}{otherUser.prenoms[0]}
+                            {otherUser.nom?.[0] ?? ''}{otherUser.prenoms?.[0] ?? ''}
                           </div>
                         ) : (
                           <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-lg flex-shrink-0`}>

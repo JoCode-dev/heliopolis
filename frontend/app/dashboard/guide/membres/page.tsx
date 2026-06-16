@@ -231,7 +231,7 @@ export default function GuideMembresPage() {
                         <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative">
                           {guide.avatarUrl
                             ? <Image src={guide.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
-                            : `${guide.nom[0]}${guide.prenoms[0]}`}
+                            : `${guide.nom?.[0] ?? ''}${guide.prenoms?.[0] ?? ''}`}
                         </div>
                         <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
                           <div className="flex justify-between items-baseline gap-2">
@@ -275,7 +275,7 @@ export default function GuideMembresPage() {
                                   <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden relative`}>
                                     {g.avatarUrl
                                       ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
-                                      : `${g.nom[0]}${g.prenoms[0]}`}
+                                      : `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`}
                                   </div>
                                   <div className="flex-1 min-w-0 ml-2.5">
                                     <p className="text-sm font-medium text-[#1F1B2E] truncate">{g.prenoms} {g.nom}</p>
@@ -312,7 +312,7 @@ export default function GuideMembresPage() {
                       <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative`}>
                         {m.avatarUrl
                           ? <Image src={m.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
-                          : `${m.nom[0]}${m.prenoms[0]}`}
+                          : `${m.nom?.[0] ?? ''}${m.prenoms?.[0] ?? ''}`}
                       </div>
                       <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
                         <div className="flex justify-between items-baseline gap-2">

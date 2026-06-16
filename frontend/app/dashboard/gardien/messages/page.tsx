@@ -64,7 +64,7 @@ export default function MessagesPage() {
     localStorage.setItem(TAB_KEY, t);
   };
 
-  const initials = user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?';
+  const initials = user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase() : '?';
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-white">
@@ -873,7 +873,7 @@ function NewConvModal({ onClose, onCreated }: {
                             width={50} height={50}
                             className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
                         : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${avatarCls} flex items-center justify-center text-sm font-bold text-white`}>
-                            {u.nom[0]}{u.prenoms[0]}
+                            {u.nom?.[0] ?? ''}{u.prenoms?.[0] ?? ''}
                           </div>
                       }
                       {mode === 'group' && isSelected && (
@@ -1127,7 +1127,7 @@ function ConvRow({ conv, myId, msgsBase, onPin, onDelete }: {
               className="w-[50px] h-[50px] rounded-full object-cover flex-shrink-0" alt="" />
           ) : otherAvatar ? (
             <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#1F1B2E] to-[#3a1d4d] flex items-center justify-center text-white font-bold flex-shrink-0">
-              {otherAvatar.nom[0]}{otherAvatar.prenoms[0]}
+              {otherAvatar.nom?.[0] ?? ''}{otherAvatar.prenoms?.[0] ?? ''}
             </div>
           ) : (
             <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-xl text-white bg-gradient-to-br ${gradient} flex-shrink-0 shadow-sm`}>
@@ -1207,7 +1207,7 @@ const ROLE_LABEL: Record<string, string> = {
 function ContactRow({ user, sub, action, onClick }: {
   user: ContactUser; sub?: string; action: React.ReactNode; onClick?: () => void;
 }) {
-  const initials  = `${user.nom[0]}${user.prenoms[0]}`.toUpperCase();
+  const initials  = `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase();
   const avatarCls = ROLE_AVATAR[user.role] ?? 'from-[#1F1B2E] to-[#3a1d4d]';
   const pillCls   = ROLE_PILL[user.role]   ?? 'bg-[#f3f3f5] text-[#6b6b78]';
   const roleLabel = ROLE_LABEL[user.role]  ?? user.role;

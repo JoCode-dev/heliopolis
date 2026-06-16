@@ -20,6 +20,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { memoryFileOptions, PREUVE_MIME_TYPES } from '../storage/multer-options.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { UserRole } from '../../generated/prisma/enums.js';
+import { CreateAnnonceDto } from './dto/create-annonce.dto.js';
+import { UpdateAnnonceDto } from './dto/update-annonce.dto.js';
 
 @Controller('annonces')
 export class AnnoncesController {
@@ -48,10 +50,10 @@ export class AnnoncesController {
   )
   create(
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: Record<string, string | undefined>,
+    @Body() dto: CreateAnnonceDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.service.create(body as Parameters<AnnoncesService['create']>[0], files, user.id);
+    return this.service.create(dto, files, user.id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -63,10 +65,10 @@ export class AnnoncesController {
   update(
     @Param('id') id: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: Record<string, string | undefined>,
+    @Body() dto: UpdateAnnonceDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.service.update(id, body as Parameters<AnnoncesService['update']>[1], files, user.id);
+    return this.service.update(id, dto, files, user.id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

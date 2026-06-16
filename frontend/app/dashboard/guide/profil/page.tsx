@@ -40,7 +40,7 @@ export default function GuideProfilPage() {
   const aJour       = gardiens.filter(g => g.adhesions?.[0]?.statut === 'A_JOUR').length;
   const adhesionPct = gardiens.length > 0 ? Math.round((aJour / gardiens.length) * 100) : 0;
 
-  const initials = user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : '?';
+  const initials = user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase() : '?';
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#f7f7fa]">

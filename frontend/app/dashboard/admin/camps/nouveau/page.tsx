@@ -57,7 +57,7 @@ export default function NouveauCampPage() {
   const handleCreate = async () => {
     setSaving(true); setError('');
     try {
-      await campsApi.create(form);
+      await campsApi.create(form as Record<string, unknown>);
       router.push(getHomeForRole(user?.role));
     } catch (e: unknown) {
       setError(getErrorMessage(e));

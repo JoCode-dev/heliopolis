@@ -327,7 +327,7 @@ function GuidesContent() {
                   <div className="flex items-center gap-3">
                     <UserAvatar
                       avatarUrl={u.avatarUrl}
-                      initials={`${u.nom[0]}${u.prenoms[0]}`}
+                      initials={`${u.nom?.[0] ?? ''}${u.prenoms?.[0] ?? ''}`}
                       sizeClass="w-10 h-10"
                       bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : u.role === 'REGION' ? 'bg-[#1F1B2E]' : 'bg-[#D9A441]'}
                       textClass="text-xs font-bold text-white"

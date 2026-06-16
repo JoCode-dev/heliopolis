@@ -2,10 +2,10 @@
  * Remet à jour passwordHash + statutProfil pour tous les comptes de démo.
  * Usage : npx tsx scripts/fix-passwords.ts
  */
-import 'dotenv/config';
-import { PrismaClient } from '../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
+import 'dotenv/config';
+import { PrismaClient } from '../generated/prisma/client.js';
 
 const adapter = new PrismaPg({ connectionString: process.env['DATABASE_URL']! });
 const prisma = new PrismaClient({ adapter } as never);

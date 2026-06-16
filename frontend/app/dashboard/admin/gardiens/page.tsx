@@ -284,7 +284,7 @@ function GardiensContent() {
                     <div className="flex items-center gap-3 px-3.5 py-3">
                       <UserAvatar
                         avatarUrl={u.avatarUrl}
-                        initials={`${u.nom[0]}${u.prenoms[0]}`}
+                        initials={`${u.nom?.[0] ?? ''}${u.prenoms?.[0] ?? ''}`}
                         sizeClass="w-10 h-10 shrink-0"
                         bgClass="bg-[#E55A35]"
                         textClass="text-xs font-bold text-white"
