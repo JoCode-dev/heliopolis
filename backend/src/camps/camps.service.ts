@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -165,6 +166,16 @@ export class CampsService {
     if (createdBy.role === UserRole.REGION && !createdBy.regionId) {
       throw new ForbiddenException('Aucune région rattachée à ce compte');
     }
+
+    const dateDebut = new Date(dto.dateDebut);
+    const dateFin = new Date(dto.dateFin);
+    if (isNaN(dateDebut.getTime()) || isNaN(dateFin.getTime())) {
+      throw new BadRequestException('Dates invalides');
+    }
+    if (dateFin <= dateDebut) {
+      throw new BadRequestException('La date de fin doit être après la date de début');
+    }
+
     if (districtIds?.length && createdBy.role === UserRole.REGION) {
       const allowedCount = await this.prisma.district.count({
         where: { id: { in: districtIds }, regionId: createdBy.regionId ?? '' },
@@ -176,8 +187,8 @@ export class CampsService {
     const camp = await this.prisma.camp.create({
       data: {
         ...rest,
-        dateDebut: new Date(dto.dateDebut),
-        dateFin: new Date(dto.dateFin),
+        dateDebut,
+        dateFin,
         createdById: createdBy.id,
         regionId: createdBy.regionId,
         ...(districtIds?.length && {

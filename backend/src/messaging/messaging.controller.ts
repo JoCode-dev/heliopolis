@@ -10,16 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MessagingService } from './messaging.service.js';
+import { SendMessageDto } from './dto/send-message.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../common/types/auth-user.js';
-import { MessageType } from '../../generated/prisma/enums.js';
-
-interface SendMessageBody {
-  contenu?: string;
-  type?: MessageType;
-  replyToId?: string;
-}
 
 @UseGuards(JwtAuthGuard)
 @Controller('messaging')
@@ -43,10 +37,10 @@ export class MessagingController {
   @Post('conversations/:id/messages')
   sendMessage(
     @Param('id') id: string,
-    @Body() body: SendMessageBody,
+    @Body() dto: SendMessageDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.messagingService.sendMessage(id, user.id, body);
+    return this.messagingService.sendMessage(id, user.id, dto);
   }
 
   @Post('conversations/:id/read')

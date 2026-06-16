@@ -13,6 +13,7 @@ import { ProfileStatus, AuditAction, UserRole } from '../../generated/prisma/enu
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { ActionLogService } from '../logs/action-log.service.js';
+import { determineRoleFromAge } from '../common/utils/role-from-age.util.js';
 
 @Injectable()
 export class AuthService {
@@ -30,27 +31,14 @@ export class AuthService {
     return age;
   }
 
-  static determineRoleFromAge(dateNaissance: Date): UserRole {
-    const today = new Date();
-    let age = today.getFullYear() - dateNaissance.getFullYear();
-    const m = today.getMonth() - dateNaissance.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dateNaissance.getDate())) age--;
-    if (age < 18) throw new BadRequestException('Âge minimum requis : 18 ans révolus');
-    if (age < 21) return UserRole.GARDIEN;
-    return UserRole.GUIDE;
-  }
-
   /** Vérifie qu'un matricule est pré-enregistré et disponible pour l'auto-inscription */
   async verifierMatricule(matricule: string) {
     const user = await this.prisma.user.findUnique({
       where: { matricule },
       select: { id: true, role: true, nom: true, prenoms: true, statutProfil: true },
     });
-    if (!user) {
-      throw new NotFoundException('Matricule non trouvé dans la base nationale');
-    }
-    if (user.statutProfil === ProfileStatus.ACTIF) {
-      throw new BadRequestException('Ce profil est déjà activé. Utilisez la connexion.');
+    if (!user || user.statutProfil === ProfileStatus.ACTIF) {
+      throw new NotFoundException('Matricule non trouvé ou déjà activé');
     }
     return {
       userId: user.id,
@@ -89,7 +77,7 @@ export class AuthService {
     }
 
     // Rôle calculé depuis l'âge réel
-    const role = AuthService.determineRoleFromAge(provided);
+    const role = determineRoleFromAge(provided);
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const updated = await this.prisma.user.update({

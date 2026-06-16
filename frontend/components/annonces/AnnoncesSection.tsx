@@ -129,8 +129,8 @@ export function AnnoncesSection() {
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E55A35] to-[#6A1B9A] flex items-center justify-center text-white text-xs font-black flex-shrink-0 overflow-hidden ring-2 ring-white">
               {a.author.avatarUrl
-                ? <Image src={a.author.avatarUrl} alt="" width={40} height={40} className="object-cover w-full h-full" />
-                : `${a.author.prenoms[0]}${a.author.nom[0]}`}
+                ? <Image src={a.author.avatarUrl} alt={`${a.author.prenoms} ${a.author.nom}`} width={40} height={40} className="object-cover w-full h-full" />
+                : `${a.author.prenoms?.[0] ?? ''}${a.author.nom?.[0] ?? ''}`}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-[#1F1B2E] leading-tight">{a.author.prenoms} {a.author.nom}</p>
@@ -166,7 +166,7 @@ export function AnnoncesSection() {
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={() => setLightbox(null)}>
           <div className="flex items-center justify-between p-4">
             <span className="text-white/60 text-sm">{lightbox.index + 1} / {lightbox.photos.length}</span>
-            <button onClick={() => setLightbox(null)} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25">✕</button>
+            <button onClick={() => setLightbox(null)} aria-label="Fermer" className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25">✕</button>
           </div>
           <div className="flex-1 flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
             <div className="relative max-w-3xl w-full max-h-[80vh]">

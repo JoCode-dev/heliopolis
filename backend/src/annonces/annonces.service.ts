@@ -59,8 +59,14 @@ export class AnnoncesService {
   ) {
     if (!body.titre?.trim()) throw new BadRequestException('Le titre est requis');
 
-    const statut = (body.statut as AnnouncementStatus) ?? AnnouncementStatus.BROUILLON;
-    const portee = (body.portee as AnnouncementScope) ?? AnnouncementScope.COMMUNAUTE;
+    const VALID_STATUTS = Object.values(AnnouncementStatus);
+    const VALID_PORTEES = Object.values(AnnouncementScope);
+    const statut = (body.statut && VALID_STATUTS.includes(body.statut as AnnouncementStatus))
+      ? (body.statut as AnnouncementStatus)
+      : AnnouncementStatus.BROUILLON;
+    const portee = (body.portee && VALID_PORTEES.includes(body.portee as AnnouncementScope))
+      ? (body.portee as AnnouncementScope)
+      : AnnouncementScope.COMMUNAUTE;
 
     let publishedAt: Date | null = null;
     if (body.publishedAt) publishedAt = new Date(body.publishedAt);
@@ -124,7 +130,11 @@ export class AnnoncesService {
       data: {
         ...(body.titre !== undefined && { titre: body.titre.trim() }),
         ...(body.contenu !== undefined && { contenu: body.contenu.trim() }),
-        ...(body.portee !== undefined && { portee: body.portee as AnnouncementScope }),
+        ...(body.portee !== undefined && {
+          portee: (body.portee && Object.values(AnnouncementScope).includes(body.portee as AnnouncementScope))
+            ? (body.portee as AnnouncementScope)
+            : AnnouncementScope.COMMUNAUTE,
+        }),
         ...(newStatut !== undefined && { statut: newStatut }),
         ...(publishedAt !== undefined && { publishedAt }),
         ...(body.expiresAt !== undefined && {

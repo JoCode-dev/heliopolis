@@ -2,6 +2,7 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
@@ -12,6 +13,7 @@ import {
   ConversationMemberRole,
   UserRole,
 } from '../../generated/prisma/enums.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 
@@ -101,26 +103,31 @@ export class MessagingService {
       orderBy: { lastMessageAt: 'desc' },
     });
 
-    // $transaction(array) cause un mismatch de paramètres avec @prisma/adapter-pg
-    // quand le nombre de requêtes est élevé — on utilise Promise.all à la place
-    const unreadCounts = await Promise.all(
-      conversations.map((conv) => {
-        const myMember = conv.members.find((m) => m.userId === userId);
-        const lastRead = myMember?.lastReadAt;
-        return this.prisma.message.count({
-          where: {
-            conversationId: conv.id,
-            authorId: { not: userId },
-            deletedAt: null,
-            ...(lastRead ? { createdAt: { gt: lastRead } } : {}),
-          },
-        });
-      }),
-    );
+    // Comptage non-lus en une seule requête groupée — remplace le N+1 query précédent
+    const unreadMap = new Map<string, number>();
+    if (conversations.length > 0) {
+      const convIds = conversations.map((c) => c.id);
+      const rows = await this.prisma.$queryRaw<{ conversationId: string; count: bigint }[]>(
+        Prisma.sql`
+          SELECT m."conversationId", COUNT(m.id)::int AS count
+          FROM messages m
+          JOIN conversation_members cm
+            ON cm."conversationId" = m."conversationId"
+            AND cm."userId"        = ${userId}
+            AND cm."leftAt"        IS NULL
+          WHERE m."conversationId" = ANY(ARRAY[${Prisma.join(convIds)}]::text[])
+            AND (m."authorId" IS NULL OR m."authorId" != ${userId})
+            AND m."deletedAt" IS NULL
+            AND (cm."lastReadAt" IS NULL OR m."createdAt" > cm."lastReadAt")
+          GROUP BY m."conversationId"
+        `,
+      );
+      rows.forEach((r) => unreadMap.set(r.conversationId, Number(r.count)));
+    }
 
-    const result = conversations.map((conv, i) => ({
+    const result = conversations.map((conv) => ({
       ...conv,
-      unreadCount: unreadCounts[i] ?? 0,
+      unreadCount: unreadMap.get(conv.id) ?? 0,
     }));
 
     await this.redis.setJson(cacheKey, result, 15);

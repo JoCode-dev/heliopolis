@@ -406,6 +406,8 @@ model User {
   @@index([districtId])
   @@index([regionId])
   @@index([nom, prenoms])
+  @@index([role, districtId])
+  @@index([role, parishId])
   @@map("users")
 }
 

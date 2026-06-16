@@ -1,9 +1,11 @@
 import {
   IsString,
+  IsNotEmpty,
   IsEnum,
   IsOptional,
   IsInt,
   IsPositive,
+  MaxLength,
   Min,
 } from 'class-validator';
 import {
@@ -14,9 +16,13 @@ import {
 
 export class CreateChallengeDto {
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
   declare titre: string;
 
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(5000)
   declare description: string;
 
   @IsEnum(ChallengeCategory)

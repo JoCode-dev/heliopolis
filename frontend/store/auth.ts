@@ -31,18 +31,14 @@ export const useAuthStore = create<AuthState>()(
         }
         set({ user });
       },
-      setTokens: (accessToken, refreshToken) => {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('access_token', accessToken);
-          localStorage.setItem('refresh_token', refreshToken);
-        }
-        set({ accessToken });
+      setTokens: (_accessToken, _refreshToken) => {
+        // Les tokens JWT sont désormais gérés via cookies httpOnly (serveur)
+        // On ne les stocke plus en localStorage (vulnérable XSS)
+        set({ accessToken: null });
       },
       setGuest: (isGuest) => set({ isGuest }),
       logout: () => {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
           document.cookie = 'user_role=; path=/; max-age=0; SameSite=Lax';
         }
         set({ user: null, accessToken: null, isGuest: false });

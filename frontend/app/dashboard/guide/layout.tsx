@@ -45,7 +45,8 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
     const mi = setInterval(() => void refreshMessages(), 30_000);
     const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
     return () => { clearInterval(mi); clearInterval(ai); };
-  }, [user?.id, refreshMessages, refreshAnnonces]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const getBadge = (href: string) => {
     if (href.endsWith('/messages')) return unreadMessages;
@@ -108,7 +109,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
               >
                 <UserAvatar
                   avatarUrl={user?.avatarUrl}
-                  initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+                  initials={user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}` : '?'}
                   sizeClass="w-7 h-7"
                   textClass="text-[11px] font-bold"
                   bgClass="bg-white/25"
@@ -159,7 +160,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
                 className="rounded-full hover:ring-2 hover:ring-white/50 transition-all">
                 <UserAvatar
                   avatarUrl={user?.avatarUrl}
-                  initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+                  initials={user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}` : '?'}
                   sizeClass="w-8 h-8"
                 />
               </button>

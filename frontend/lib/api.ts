@@ -8,33 +8,29 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Attach access token from localStorage on each request
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// On 401, tenter un refresh via cookie httpOnly puis rejouer la requête
+let _refreshing = false;
+let _refreshFailed = false;
 
-// On 401, attempt refresh then retry once
 api.interceptors.response.use(
-  (r) => r,
+  (r) => { _refreshFailed = false; return r; },
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    if (err.response?.status === 401 && !original._retry && !_refreshFailed) {
       original._retry = true;
+      if (_refreshing) return Promise.reject(err);
+      _refreshing = true;
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const { data } = await axios.post(`${BASE}/auth/refresh`, { refreshToken }, { withCredentials: true });
-        localStorage.setItem('access_token', data.accessToken);
-        if (data.refreshToken) localStorage.setItem('refresh_token', data.refreshToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        // Le cookie refresh_token (httpOnly, path=/api/auth/refresh) est envoyé automatiquement
+        await axios.post(`${BASE}/auth/refresh`, {}, { withCredentials: true });
+        _refreshing = false;
         return api(original);
       } catch {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/activation';
+        _refreshing = false;
+        _refreshFailed = true;
+        if (typeof window !== 'undefined') {
+          window.location.href = '/activation';
+        }
       }
     }
     return Promise.reject(err);
@@ -79,9 +75,9 @@ export const territoriesApi = {
 
 // ─── Camps ───────────────────────────────────────────────────────────────────
 export const campsApi = {
-  list: (params?: object) => api.get('/camps', { params }),
+  list: (params?: Record<string, unknown>) => api.get('/camps', { params }),
   get: (id: string) => api.get(`/camps/${id}`),
-  create: (data: object) => api.post('/camps', data),
+  create: (data: Record<string, unknown>) => api.post('/camps', data),
   updateStatus: (id: string, statut: string) => api.patch(`/camps/${id}/status`, { statut }),
   participants: (id: string) => api.get(`/camps/${id}/participants`),
   selectParticipant:   (campId: string, userId: string) => api.post(`/camps/${campId}/participants`, { userId }),
@@ -95,9 +91,9 @@ export const campsApi = {
 
 // ─── Challenges ───────────────────────────────────────────────────────────────
 export const challengesApi = {
-  list: (params?: object) => api.get('/challenges', { params }),
+  list: (params?: Record<string, unknown>) => api.get('/challenges', { params }),
   get: (id: string) => api.get(`/challenges/${id}`),
-  create: (data: object) => api.post('/challenges', data),
+  create: (data: Record<string, unknown>) => api.post('/challenges', data),
   mySubmissions: () => api.get('/challenges/my/submissions'),
   submit: (id: string, data: { texte?: string; preuveUrl?: string }, photo?: File | null) => {
     if (photo) {
@@ -108,7 +104,7 @@ export const challengesApi = {
     }
     return api.post(`/challenges/${id}/submit`, data);
   },
-  validate: (id: string, data: object) => api.post(`/challenges/submissions/${id}/validate`, data),
+  validate: (id: string, data: Record<string, unknown>) => api.post(`/challenges/submissions/${id}/validate`, data),
   retractSubmission: (id: string) => api.delete(`/challenges/submissions/${id}`),
   pending: () => api.get('/challenges/pending/submissions'),
 };
@@ -185,8 +181,8 @@ async function publicFetch<T>(
 export const councilsApi = {
   list:   ()                           => api.get('/councils'),
   get:    (id: string)                 => api.get(`/councils/${id}`),
-  create: (data: object)               => api.post('/councils', data),
-  update: (id: string, data: object)   => api.patch(`/councils/${id}`, data),
+  create: (data: Record<string, unknown>)               => api.post('/councils', data),
+  update: (id: string, data: Record<string, unknown>)   => api.patch(`/councils/${id}`, data),
   remove: (id: string)                 => api.delete(`/councils/${id}`),
   getParticipants: (id: string)        => api.get(`/councils/${id}/participants`),
 };
@@ -196,7 +192,7 @@ export const councilsPublicApi = {
     publicFetch(`/councils/public/${token}`),
   register: (
     token: string,
-    data: object,
+    data: Record<string, unknown>,
     accessToken?: string | null,
   ) =>
     publicFetch(`/councils/public/${token}/register`, {
@@ -205,7 +201,7 @@ export const councilsPublicApi = {
     }, accessToken),
   updateFeedback: (
     token: string,
-    data: object,
+    data: Record<string, unknown>,
     accessToken?: string | null,
   ) =>
     publicFetch(`/councils/public/${token}/feedback`, {
@@ -242,8 +238,8 @@ export const codexApi = {
 export const badgesApi = {
   list:   () => api.get('/badges'),
   mine:   () => api.get('/badges/mine'),
-  create: (body: object) => api.post('/badges', body),
-  update: (id: string, body: object) => api.patch(`/badges/${id}`, body),
+  create: (body: Record<string, unknown>) => api.post('/badges', body),
+  update: (id: string, body: Record<string, unknown>) => api.patch(`/badges/${id}`, body),
   remove: (id: string) => api.delete(`/badges/${id}`),
 };
 
@@ -270,9 +266,9 @@ export const messagingApi = {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 export const usersApi = {
-  list: (params?: object) => api.get('/users', { params }),
+  list: (params?: Record<string, unknown>) => api.get('/users', { params }),
   get: (id: string) => api.get(`/users/${id}`),
-  create: (data: object) => api.post('/users', data),
+  create: (data: Record<string, unknown>) => api.post('/users', data),
   /** Pré-enregistre un matricule (ADMIN) — détermine le rôle via l'âge */
   preEnregistrer: (data: {
     matricule: string;
@@ -294,7 +290,7 @@ export const usersApi = {
   /** Changer le rôle d'un membre (promotion ou rétrogradation entre GUIDE, SENTINELLE, REGION) */
   promouvoir: (id: string, role: 'GUIDE' | 'SENTINELLE' | 'REGION') =>
     api.patch(`/users/${id}/promouvoir`, { role }),
-  update: (id: string, data: object) => api.patch(`/users/${id}`, data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/users/${id}`, data),
   updateMe: (data: { nom?: string; prenoms?: string; email?: string; telephone?: string }) =>
     api.patch('/users/me', data),
   uploadAvatar: (file: File) => {

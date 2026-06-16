@@ -71,8 +71,10 @@ export class MessagingGateway
         client.disconnect();
         return;
       }
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) throw new Error('JWT_SECRET non configuré');
       const payload = this.jwtService.verify<JwtPayload>(token, {
-        secret: process.env.JWT_SECRET || 'codex-gardiens-secret',
+        secret: jwtSecret,
       });
       const userId = payload.sub;
 

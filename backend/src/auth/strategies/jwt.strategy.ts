@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           req.cookies?.access_token ?? null,
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'codex-gardiens-secret',
+      secretOrKey: process.env.JWT_SECRET!,
     });
   }
 

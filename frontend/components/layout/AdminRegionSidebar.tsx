@@ -162,7 +162,7 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
           >
             <UserAvatar
               avatarUrl={user?.avatarUrl}
-              initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+              initials={user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}` : '?'}
               sizeClass="w-8 h-8"
             />
             <div className="flex-1 min-w-0">

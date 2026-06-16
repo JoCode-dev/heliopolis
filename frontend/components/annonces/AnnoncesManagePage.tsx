@@ -107,7 +107,7 @@ function AnnonceModal({ initial, onClose, onSaved }: ModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#ececf0] flex-shrink-0">
           <h3 className="font-black text-[#1F1B2E] text-base">{initial ? 'Modifier l\'annonce' : 'Nouvelle annonce'}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#f3f3f5] flex items-center justify-center text-[#6b6b78] hover:bg-[#e8e8ed]">✕</button>
+          <button onClick={onClose} aria-label="Fermer" className="w-8 h-8 rounded-full bg-[#f3f3f5] flex items-center justify-center text-[#6b6b78] hover:bg-[#e8e8ed]">✕</button>
         </div>
 
         <div className="overflow-y-auto p-4 space-y-3 flex-1">
@@ -250,6 +250,7 @@ export function AnnoncesManagePage() {
   const [tab, setTab]           = useState<AnnouncementStatus | 'TOUTES'>('TOUTES');
   const [modal, setModal]       = useState<'create' | Annonce | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -271,7 +272,8 @@ export function AnnoncesManagePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette annonce ?')) return;
+    if (confirmDelete !== id) { setConfirmDelete(id); return; }
+    setConfirmDelete(null);
     setDeleting(id);
     try {
       await annoncesApi.remove(id);
@@ -387,16 +389,34 @@ export function AnnoncesManagePage() {
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button
-                      onClick={() => handleDelete(a.id)}
-                      disabled={deleting === a.id}
-                      className="w-8 h-8 rounded-full text-[#9b9ba8] hover:bg-[#fee2e2] hover:text-red-500 flex items-center justify-center transition-colors disabled:opacity-40"
-                      title="Supprimer"
-                    >
-                      {deleting === a.id
-                        ? <span className="text-xs">…</span>
-                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>}
-                    </button>
+                    {confirmDelete === a.id ? (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleDelete(a.id)}
+                          disabled={deleting === a.id}
+                          className="px-2 h-8 rounded-full bg-red-500 text-white text-[10px] font-bold hover:bg-red-600 transition-colors disabled:opacity-40"
+                        >
+                          {deleting === a.id ? '…' : 'Oui'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          className="px-2 h-8 rounded-full bg-[#f3f3f5] text-[#6b6b78] text-[10px] font-bold hover:bg-[#e8e8ed] transition-colors"
+                        >
+                          Non
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleDelete(a.id)}
+                        disabled={deleting === a.id}
+                        className="w-8 h-8 rounded-full text-[#9b9ba8] hover:bg-[#fee2e2] hover:text-red-500 flex items-center justify-center transition-colors disabled:opacity-40"
+                        title="Supprimer"
+                      >
+                        {deleting === a.id
+                          ? <span className="text-xs">…</span>
+                          : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

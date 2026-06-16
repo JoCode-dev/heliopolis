@@ -44,7 +44,8 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
     const mi = setInterval(() => void refreshMessages(), 30_000);
     const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
     return () => { clearInterval(mi); clearInterval(ai); };
-  }, [user?.id, refreshMessages, refreshAnnonces]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const isHome = pathname === HOME;
   const current = NAV_LABELS.find(n => pathname.startsWith(n.prefix));
@@ -103,7 +104,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
               >
                 <UserAvatar
                   avatarUrl={user?.avatarUrl}
-                  initials={user ? `${user.nom[0]}${user.prenoms[0]}` : '?'}
+                  initials={user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}` : '?'}
                   sizeClass="w-8 h-8"
                 />
               </button>

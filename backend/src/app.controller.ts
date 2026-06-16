@@ -21,6 +21,11 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Get('health')
+  health() {
+    return { status: 'ok' };
+  }
+
   /** Point d'entrée public — formulaire /rejoindre (aucune authentification requise) */
   @Post('contact')
   @HttpCode(201)

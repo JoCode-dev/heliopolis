@@ -26,10 +26,10 @@ export const useUnreadCounts = create<UnreadCountsState>((set) => ({
   },
 
   refreshAnnonces: async (userId?: string) => {
+    if (!userId) return;
     try {
       const { data } = await annoncesApi.list();
       const annonces = data as Annonce[];
-      if (!userId) { set({ annonces: 0 }); return; }
       const stored = typeof window !== 'undefined' ? localStorage.getItem(ANNONCES_KEY(userId)) : null;
       const lastSeen = stored ? new Date(stored) : new Date(0);
       const unseen = annonces.filter(a => new Date(a.publishedAt ?? a.createdAt) > lastSeen).length;

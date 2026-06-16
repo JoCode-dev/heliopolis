@@ -66,8 +66,7 @@ export default function DashboardGardienPage() {
 
   useEffect(() => {
     (async () => {
-      try {
-        const [subRes, badgeRes, allBadgeRes, challengeRes, campsRes, convRes] = await Promise.all([
+        const [subRes, badgeRes, allBadgeRes, challengeRes, campsRes, convRes] = await Promise.allSettled([
           challengesApi.mySubmissions(),
           badgesApi.mine(),
           badgesApi.list(),
@@ -75,13 +74,12 @@ export default function DashboardGardienPage() {
           campsApi.list({ statut: 'OUVERT' }),
           messagingApi.conversations(),
         ]);
-        setSubmissions(subRes.data);
-        setBadges((badgeRes.data as { badges: UserBadge[]; newlyAwarded: unknown[] }).badges ?? badgeRes.data);
-        setAllBadges(allBadgeRes.data);
-        setChallenges(challengeRes.data);
-        if (campsRes.data.length > 0) setCamp(campsRes.data[0]);
-        setConversations(convRes.data);
-      } catch { /* ignore */ }
+        if (subRes.status === 'fulfilled') setSubmissions(subRes.value.data);
+        if (badgeRes.status === 'fulfilled') setBadges((badgeRes.value.data as { badges: UserBadge[]; newlyAwarded: unknown[] }).badges ?? badgeRes.value.data);
+        if (allBadgeRes.status === 'fulfilled') setAllBadges(allBadgeRes.value.data);
+        if (challengeRes.status === 'fulfilled') setChallenges(challengeRes.value.data);
+        if (campsRes.status === 'fulfilled' && campsRes.value.data.length > 0) setCamp(campsRes.value.data[0]);
+        if (convRes.status === 'fulfilled') setConversations(convRes.value.data);
     })();
   }, []);
 

@@ -20,6 +20,7 @@ import type { AuthUser } from '../common/types/auth-user.js';
 import { ActionLogService } from '../logs/action-log.service.js';
 import * as bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
+import { determineRoleFromAge } from '../common/utils/role-from-age.util.js';
 
 @Injectable()
 export class UsersService {
@@ -28,16 +29,6 @@ export class UsersService {
     private actionLog: ActionLogService,
   ) {}
 
-  /** Détermine le rôle d'un membre selon son âge (18-20 = GARDIEN, 21+ = GUIDE) */
-  static determineRoleFromAge(dateNaissance: Date): UserRole {
-    const today = new Date();
-    let age = today.getFullYear() - dateNaissance.getFullYear();
-    const m = today.getMonth() - dateNaissance.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dateNaissance.getDate())) age--;
-    if (age < 18) throw new BadRequestException('Âge minimum requis : 18 ans révolus');
-    if (age < 21) return UserRole.GARDIEN;
-    return UserRole.GUIDE;
-  }
 
   private noScope(): Prisma.UserWhereInput {
     return { id: '__no_scope__' };
@@ -132,6 +123,7 @@ export class UsersService {
       where,
       select: this.userSelect,
       orderBy: { nom: 'asc' },
+      take: 500,
     });
   }
 
@@ -204,7 +196,7 @@ export class UsersService {
     if (existing) throw new ConflictException('Ce matricule est déjà enregistré');
 
     const dateNaissance = new Date(dto.dateNaissance);
-    const role = UsersService.determineRoleFromAge(dateNaissance);
+    const role = determineRoleFromAge(dateNaissance);
 
     const created = await this.prisma.user.create({
       data: {
@@ -361,7 +353,7 @@ export class UsersService {
 
       let role: UserRole;
       try {
-        role = UsersService.determineRoleFromAge(dateNaissance);
+        role = determineRoleFromAge(dateNaissance);
       } catch {
         erreurs.push({ matricule, raison: 'Âge non éligible (minimum 18 ans)' });
         continue;
@@ -380,7 +372,7 @@ export class UsersService {
         if (!existing.prenoms  && prenomsVal) updates.prenoms = prenomsVal;
         if (!existing.regionId && directRegionId) updates.regionId = directRegionId;
 
-        // District : résoudre (et créer si besoin) uniquement si manquant
+        // District : résoudre uniquement si manquant
         let mergeDistrictId = existing.districtId;
         if (!existing.districtId) {
           const resolvedDistrict = directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null);
@@ -390,24 +382,25 @@ export class UsersService {
           }
         }
 
-        // Paroisse : résoudre uniquement si manquante (on a besoin du districtId final)
+        // Paroisse : résoudre uniquement si manquante
         if (!existing.parishId && mergeDistrictId) {
           const resolvedParish = directParishId ?? (parishName ? await resolveParish(parishName, mergeDistrictId) : null);
           if (resolvedParish) updates.parishId = resolvedParish;
         }
 
-        if (Object.keys(updates).length > 0) {
-          await this.prisma.user.update({ where: { id: existing.id }, data: updates });
-          fusionnes++;
-        } else {
-          ignores++;
-        }
-        // Marquer à jour pour 2026 quel que soit le cas (fusion ou ignoré)
-        await this.prisma.adhesion.upsert({
-          where: { userId_annee: { userId: existing.id, annee: 2026 } },
-          create: { userId: existing.id, annee: 2026, statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
-          update: { statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
-        });
+        // Mise à jour + adhésion dans une transaction atomique
+        await this.prisma.$transaction([
+          ...(Object.keys(updates).length > 0
+            ? [this.prisma.user.update({ where: { id: existing.id }, data: updates })]
+            : []),
+          this.prisma.adhesion.upsert({
+            where: { userId_annee: { userId: existing.id, annee: 2026 } },
+            create: { userId: existing.id, annee: 2026, statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+            update: { statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+          }),
+        ]);
+
+        if (Object.keys(updates).length > 0) { fusionnes++; } else { ignores++; }
         continue;
       }
 
@@ -418,28 +411,32 @@ export class UsersService {
         erreurs.push({ matricule, raison: `District introuvable : "${districtName}"` });
       }
 
-      const parishId   = directParishId   ?? (parishName   ? await resolveParish(parishName, districtId) : null);
+      const parishId = directParishId ?? (parishName ? await resolveParish(parishName, districtId) : null);
 
-      const created = await this.prisma.user.create({
-        data: {
-          matricule,
-          dateNaissance,
-          role,
-          nom: nomVal,
-          prenoms: prenomsVal,
-          regionId: directRegionId,
-          districtId,
-          parishId,
-          statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION,
-        },
-        select: { id: true },
+      // Création utilisateur + adhésion dans une transaction atomique
+      const created = await this.prisma.$transaction(async (tx) => {
+        const u = await tx.user.create({
+          data: {
+            matricule,
+            dateNaissance,
+            role,
+            nom: nomVal,
+            prenoms: prenomsVal,
+            regionId: directRegionId,
+            districtId,
+            parishId,
+            statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION,
+          },
+          select: { id: true },
+        });
+        await tx.adhesion.upsert({
+          where: { userId_annee: { userId: u.id, annee: 2026 } },
+          create: { userId: u.id, annee: 2026, statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+          update: { statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
+        });
+        return u;
       });
-      // Marquer à jour pour 2026 dès la création
-      await this.prisma.adhesion.upsert({
-        where: { userId_annee: { userId: created.id, annee: 2026 } },
-        create: { userId: created.id, annee: 2026, statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
-        update: { statut: AdhesionStatus.A_JOUR, dateValidation: new Date() },
-      });
+      void created;
       importes++;
     }
 

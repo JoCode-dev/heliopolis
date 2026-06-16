@@ -1,4 +1,5 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { AuthRateLimitMiddleware } from './common/middleware/auth-rate-limit.middleware.js';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
@@ -56,5 +57,13 @@ import { UsersModule } from './users/users.module.js';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(RequestContextMiddleware).forRoutes('*');
+    consumer
+      .apply(AuthRateLimitMiddleware)
+      .forRoutes(
+        { path: 'auth/login', method: RequestMethod.POST },
+        { path: 'auth/inscrire', method: RequestMethod.POST },
+        { path: 'auth/refresh', method: RequestMethod.POST },
+        { path: 'auth/verifier-matricule', method: RequestMethod.POST },
+      );
   }
 }

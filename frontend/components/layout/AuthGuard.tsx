@@ -22,19 +22,8 @@ export function AuthGuard({ children, roles }: AuthGuardProps) {
     let cancelled = false;
 
     async function refreshUser() {
-      const token =
-        typeof window !== 'undefined'
-          ? window.localStorage.getItem('access_token')
-          : null;
-
-      if (!token) {
-        logout();
-        router.replace('/activation');
-        setChecking(false);
-        return;
-      }
-
       try {
+        // Le cookie access_token (httpOnly) est envoyé automatiquement
         const { data } = await authApi.me();
         if (!cancelled) setUser(data);
       } catch {
