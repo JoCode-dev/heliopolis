@@ -116,7 +116,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold truncate">{user?.prenoms} {user?.nom}</div>
-                  <div className="text-[10px] opacity-80">{user?.role}</div>
+                  <div className="text-[10px] opacity-80">{user ? ROLE_LABEL[user.role] : ''}</div>
                 </div>
               </button>
               <LogoutButton confirm className="text-white/80 hover:text-white transition-colors flex-shrink-0 text-lg p-1" />

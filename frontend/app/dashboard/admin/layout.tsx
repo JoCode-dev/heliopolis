@@ -16,7 +16,7 @@ const MOBILE_NAV = [
   { icon: '👥', label: 'Participants', href: '/dashboard/admin/participants' },
   { icon: '🤝', label: 'Gardiens',       href: '/dashboard/admin/gardiens' },
   { icon: '📖', label: 'Encadrants',    href: '/dashboard/admin/guides' },
-  { icon: '🌍', label: 'Membres rég.',  href: '/dashboard/admin/region' },
+  { icon: '🌍', label: 'Membres',        href: '/dashboard/admin/region' },
   { icon: '🛡️', label: 'Districts',    href: '/dashboard/admin/districts' },
   { icon: '⛪', label: 'Paroisses',    href: '/dashboard/admin/paroisses' },
   { icon: '🎯', label: 'Quêtes',        href: '/dashboard/admin/defis' },

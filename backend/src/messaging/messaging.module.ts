@@ -9,7 +9,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'codex-gardiens-secret',
+      secret: process.env.JWT_SECRET!,
     }),
     VectorModule,
     NotificationsModule,

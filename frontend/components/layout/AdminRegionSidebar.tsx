@@ -6,6 +6,7 @@ import { LogoutButton } from '@/components/auth/LogoutButton';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
 import { useUnreadCounts } from '@/store/unreadCounts';
+import { ROLE_LABEL } from '@/lib/roles';
 
 const ADMIN_NAV_GROUPS = [
   {
@@ -167,7 +168,7 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
             />
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold truncate">{user?.prenoms} {user?.nom}</div>
-              <div className="text-[10px] opacity-80">{user?.role}</div>
+              <div className="text-[10px] opacity-80">{user ? (ROLE_LABEL[user.role] ?? user.role) : ''}</div>
             </div>
           </button>
           <LogoutButton className="text-white/80 hover:text-white transition-colors flex-shrink-0" />

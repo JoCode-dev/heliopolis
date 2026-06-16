@@ -6,6 +6,8 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { UserRole } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { CreateBadgeDto } from './dto/create-badge.dto.js';
+import { UpdateBadgeDto } from './dto/update-badge.dto.js';
 
 @Controller('badges')
 export class BadgesController {
@@ -26,10 +28,10 @@ export class BadgesController {
   @Roles(UserRole.ADMIN, UserRole.REGION)
   @Post()
   create(
-    @Body() body: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown },
+    @Body() dto: CreateBadgeDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.badgesService.create(body, user);
+    return this.badgesService.create(dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -37,10 +39,10 @@ export class BadgesController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() body: Partial<{ nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown }>,
+    @Body() dto: UpdateBadgeDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.badgesService.update(id, body, user);
+    return this.badgesService.update(id, dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

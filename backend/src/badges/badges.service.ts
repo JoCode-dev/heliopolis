@@ -44,7 +44,7 @@ export class BadgesService {
   }
 
   async create(
-    dto: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta: unknown },
+    dto: { nom: string; code: string; description: string; condition: string; niveau: string; conditionMeta?: unknown },
     actor: AuthUser,
   ) {
     const { conditionMeta, ...rest } = dto;

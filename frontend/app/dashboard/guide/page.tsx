@@ -112,7 +112,7 @@ export default function DashboardGuidePage() {
           <div className="w-11 h-11 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden relative">
             {user?.avatarUrl
               ? <Image src={user.avatarUrl} fill className="object-cover" alt="" sizes="44px" />
-              : user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : 'G'}
+              : user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase() : 'G'}
           </div>
           <div className="flex-1">
             <h1 className="text-base font-bold">{user?.prenoms} {user?.nom}</h1>
@@ -295,7 +295,7 @@ export default function DashboardGuidePage() {
                     return (
                       <div key={guide.id} className="bg-white rounded-xl border border-[#ececf0] px-3 py-2.5 mb-1.5 flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                          {guide.nom[0]}{guide.prenoms[0]}
+                          {guide.nom?.[0] ?? ''}{guide.prenoms?.[0] ?? ''}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-[#1F1B2E] truncate">{guide.prenoms} {guide.nom}</p>
@@ -355,7 +355,7 @@ export default function DashboardGuidePage() {
                     .map(r => (
                       <div key={r.id} className="bg-white rounded-xl border border-[#ececf0] px-3 py-2.5 mb-1.5 flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                          {r.nom[0]}{r.prenoms[0]}
+                          {r.nom?.[0] ?? ''}{r.prenoms?.[0] ?? ''}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-[#1F1B2E] truncate">{r.prenoms} {r.nom}</p>

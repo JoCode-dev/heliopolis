@@ -13,6 +13,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ChallengesService } from './challenges.service.js';
 import { CreateChallengeDto } from './dto/create-challenge.dto.js';
+import { SubmitChallengeDto } from './dto/submit-challenge.dto.js';
+import { ValidateSubmissionDto } from './dto/validate-submission.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { OptionalJwtGuard } from '../common/guards/optional-jwt.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -36,15 +38,6 @@ interface ChallengeListQuery {
   campId?: string;
 }
 
-interface SubmitChallengeBody {
-  texte?: string;
-  preuveUrl?: string;
-}
-
-interface ValidateSubmissionBody {
-  approved: boolean;
-  comment?: string;
-}
 
 @Controller('challenges')
 export class ChallengesController {
@@ -90,7 +83,7 @@ export class ChallengesController {
   )
   async submit(
     @Param('id') id: string,
-    @Body() body: SubmitChallengeBody,
+    @Body() body: SubmitChallengeDto,
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: AuthUser,
   ) {
@@ -105,7 +98,7 @@ export class ChallengesController {
   @Post('submissions/:id/validate')
   validate(
     @Param('id') id: string,
-    @Body() body: ValidateSubmissionBody,
+    @Body() body: ValidateSubmissionDto,
     @CurrentUser() user: AuthUser,
   ) {
     return this.challengesService.validateSubmission(

@@ -88,7 +88,7 @@ export default function RegionHomePage() {
         )}
       </div>
 
-      <div className="px-4 pt-4 pb-8 lg:px-6 space-y-5">
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-8 lg:px-6 space-y-5">
 
         {/* Camps en cours / ouverts */}
         {!campsLoading && camps.length > 0 && (

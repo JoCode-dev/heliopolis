@@ -55,7 +55,8 @@ export default function AccueilPage() {
   const activeCamp = dashboard?.activeCamp;
 
   return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:p-6">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 py-4 lg:p-6">
 
       {/* Top bar */}
       <div className="flex justify-between items-center mb-5 border-b border-[#ececf0] pb-4">
@@ -66,10 +67,6 @@ export default function AccueilPage() {
           </p>
         </div>
         <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
-          <input
-            className="bg-white border border-[#e0e0e8] rounded-xl px-3 py-2 text-sm outline-none w-56"
-            placeholder="🔍 District, paroisse, camp…"
-          />
           <Link
             href="/dashboard/admin/camps/nouveau"
             className="bg-[#E55A35] text-white font-bold text-sm px-4 py-2 rounded-xl whitespace-nowrap"
@@ -77,7 +74,7 @@ export default function AccueilPage() {
             + Créer camp
           </Link>
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFB36B] to-[#7A2820] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            {user ? `${user.nom[0]}${user.prenoms[0]}`.toUpperCase() : 'HR'}
+            {user ? `${user.nom?.[0] ?? ''}${user.prenoms?.[0] ?? ''}`.toUpperCase() : 'HR'}
           </div>
         </div>
         <Link
@@ -92,7 +89,7 @@ export default function AccueilPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           {
-            label: 'Routiers',
+            label: 'Gardiens',
             value: dashboard?.overview.totalGardiens ?? '—',
             delta: 'gardiens actifs',
             icon: '🤝',
@@ -228,6 +225,7 @@ export default function AccueilPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
