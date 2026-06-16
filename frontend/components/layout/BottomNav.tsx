@@ -16,14 +16,14 @@ const GUEST_ITEMS: NavItem[] = [
 ];
 
 const GARDIEN_ITEMS: NavItem[] = [
-  { href: '/dashboard/gardien',          icon: '🤝', label: 'Accueil'  },
-  { href: '/dashboard/gardien/camps',    icon: '⛺', label: 'Camps'    },
-  { href: '/dashboard/gardien/missions', icon: '🎯', label: 'Missions' },
-  { href: '/dashboard/gardien/messages', icon: '💬', label: 'Messages' },
+  { href: '/dashboard/gardien',           icon: '🤝', label: 'Accueil'  },
+  { href: '/dashboard/gardien/annonces',  icon: '📣', label: 'Annonces' },
+  { href: '/dashboard/gardien/missions',  icon: '🎯', label: 'Missions' },
+  { href: '/dashboard/gardien/messages',  icon: '💬', label: 'Messages' },
 ];
 
 const GARDIEN_OVERFLOW: NavItem[] = [
-  { href: '/dashboard/gardien/annonces', icon: '📣', label: 'Annonces' },
+  { href: '/dashboard/gardien/camps',    icon: '⛺', label: 'Camps'    },
   { href: '/dashboard/gardien/codex',    icon: '🪶', label: 'Codex'    },
   { href: '/dashboard/gardien/artefacts',icon: '🏅', label: 'Artefacts'},
   { href: '/dashboard/gardien/profil',   icon: '👤', label: 'Profil'   },
@@ -31,7 +31,7 @@ const GARDIEN_OVERFLOW: NavItem[] = [
 
 const ADMIN_ITEMS: NavItem[] = [
   { href: '/dashboard/admin', icon: '🏠', label: 'Accueil' },
-  { href: '/dashboard/admin/camps', icon: '⛺', label: 'Camps' },
+  { href: '/dashboard/admin/annonces', icon: '📣', label: 'Annonces' },
   { href: '/dashboard/admin/codex', icon: '🪶', label: 'Codex' },
   { href: '/dashboard/admin/messages', icon: '💬', label: 'Messages' },
   { href: '/dashboard/region', icon: '📊', label: 'Vue rég.' },
@@ -40,18 +40,18 @@ const ADMIN_ITEMS: NavItem[] = [
 // Guide : 4 onglets principaux + overflow via "+"
 const GUIDE_PRIMARY: NavItem[] = [
   { href: '/dashboard/guide',           icon: '📖', label: 'Accueil'   },
+  { href: '/dashboard/guide/annonces',  icon: '📣', label: 'Annonces'  },
   { href: '/dashboard/guide/missions',  icon: '🎯', label: 'Missions'  },
-  { href: '/dashboard/guide/membres',   icon: '👥', label: 'Membres'   },
   { href: '/dashboard/guide/messages',  icon: '💬', label: 'Messages'  },
 ];
 
 const GUIDE_OVERFLOW_BASE: NavItem[] = [
-  { href: '/dashboard/guide/annonces',   icon: '📣', label: 'Annonces'   },
-  { href: '/dashboard/guide/camps',      icon: '⛺', label: 'Camps'      },
-  { href: '/dashboard/guide/adhesions',  icon: '📋', label: 'Adhésions'  },
-  { href: '/dashboard/guide/codex',      icon: '🪶', label: 'Codex'      },
-  { href: '/dashboard/guide/artefacts',  icon: '🏅', label: 'Artefacts'  },
-  { href: '/dashboard/guide/profil',     icon: '👤', label: 'Profil'     },
+  { href: '/dashboard/guide/membres',   icon: '👥', label: 'Membres'   },
+  { href: '/dashboard/guide/camps',     icon: '⛺', label: 'Camps'     },
+  { href: '/dashboard/guide/adhesions', icon: '📋', label: 'Adhésions' },
+  { href: '/dashboard/guide/codex',     icon: '🪶', label: 'Codex'     },
+  { href: '/dashboard/guide/artefacts', icon: '🏅', label: 'Artefacts' },
+  { href: '/dashboard/guide/profil',    icon: '👤', label: 'Profil'    },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────────

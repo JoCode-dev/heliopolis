@@ -24,6 +24,7 @@ const ADMIN_NAV_GROUPS = [
   {
     label: 'Région',
     items: [
+      { href: '/dashboard/admin/region',       icon: '🌍', label: 'Membres région' },
       { href: '/dashboard/admin/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/admin/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/admin/guides',       icon: '📖', label: 'Encadrants' },
@@ -58,6 +59,7 @@ const REGION_NAV_GROUPS = [
   {
     label: 'Membres',
     items: [
+      { href: '/dashboard/region/region',       icon: '🌍', label: 'Membres région' },
       { href: '/dashboard/region/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants' },
