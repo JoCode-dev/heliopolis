@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { isManagementRole } from '@/lib/roles';
 import { useAuthStore } from '@/store/auth';
+import { useUnreadCounts } from '@/store/unreadCounts';
 
 interface NavItem { href: string; icon: string; label: string; }
 
@@ -59,6 +60,14 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
   const pathname = usePathname();
   const { user } = useAuthStore();
   const [moreOpen, setMoreOpen] = useState(false);
+  const unreadMessages = useUnreadCounts(s => s.messages);
+  const unreadAnnonces = useUnreadCounts(s => s.annonces);
+
+  const getBadge = (href: string) => {
+    if (href.endsWith('/messages')) return unreadMessages;
+    if (href.endsWith('/annonces')) return unreadAnnonces;
+    return 0;
+  };
 
   const effectiveVariant =
     variant === 'gardien' && isManagementRole(user?.role) ? 'guide' : variant;
@@ -91,12 +100,20 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
       <nav className="flex-shrink-0 bg-white border-t border-[#e6e6ea] flex justify-around pb-safe">
         {primaryItems.map(item => {
           const active = isActive(item.href);
+          const badge = getBadge(item.href);
           return (
             <Link key={item.href} href={item.href}
               className={`flex flex-col items-center gap-0.5 py-2 flex-1 text-[10px] font-medium transition-colors ${
                 active ? 'text-[#E55A35]' : 'text-[#6b6b78]'
               }`}>
-              <span className="text-[20px] leading-none">{item.icon}</span>
+              <span className="relative inline-flex items-center justify-center">
+                <span className="text-[20px] leading-none">{item.icon}</span>
+                {badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#E55A35] text-white text-[9px] font-black flex items-center justify-center leading-none">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+              </span>
               {item.label}
             </Link>
           );
@@ -139,13 +156,21 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
             <div className="grid grid-cols-4 gap-0">
               {overflowItems.map(item => {
                 const active = isActive(item.href);
+                const badge = getBadge(item.href);
                 return (
                   <Link key={item.href} href={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={`flex flex-col items-center gap-1 py-3.5 px-2 text-[11px] font-medium transition-colors ${
                       active ? 'text-[#E55A35] bg-[#fff8f3]' : 'text-[#6b6b78] hover:bg-[#f7f7fa]'
                     }`}>
-                    <span className="text-[22px] leading-none">{item.icon}</span>
+                    <span className="relative inline-flex items-center justify-center">
+                      <span className="text-[22px] leading-none">{item.icon}</span>
+                      {badge > 0 && (
+                        <span className="absolute -top-1 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#E55A35] text-white text-[9px] font-black flex items-center justify-center leading-none">
+                          {badge > 9 ? '9+' : badge}
+                        </span>
+                      )}
+                    </span>
                     {item.label}
                     {active && (
                       <span className="w-1 h-1 rounded-full bg-[#E55A35]" />

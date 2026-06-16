@@ -9,6 +9,7 @@ import { UserAvatar } from '@/components/profile/UserAvatar';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { useAuthStore } from '@/store/auth';
 import { usePastoralYear } from '@/store/pastoralYear';
+import { useUnreadCounts } from '@/store/unreadCounts';
 
 const HOME = '/dashboard/region';
 
@@ -33,7 +34,17 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
   const loadYear = usePastoralYear(s => s.load);
+  const refreshMessages = useUnreadCounts(s => s.refreshMessages);
+  const refreshAnnonces = useUnreadCounts(s => s.refreshAnnonces);
   useEffect(() => { loadYear(); }, [loadYear]);
+  useEffect(() => {
+    if (!user?.id) return;
+    void refreshMessages();
+    void refreshAnnonces(user.id);
+    const mi = setInterval(() => void refreshMessages(), 30_000);
+    const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
+    return () => { clearInterval(mi); clearInterval(ai); };
+  }, [user?.id, refreshMessages, refreshAnnonces]);
 
   const isHome = pathname === HOME;
   const current = NAV_LABELS.find(n => pathname.startsWith(n.prefix));

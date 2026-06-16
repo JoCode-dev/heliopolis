@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { messagingApi, usersApi } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
+import { useUnreadCounts } from '@/store/unreadCounts';
 import type { Conversation, ConversationMember, Message, User } from '@/types';
 
 const HEADER_CONFIG: Record<string, { label: string; gradient: string }> = {
@@ -47,6 +48,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
+  const refreshMessages = useUnreadCounts(s => s.refreshMessages);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -141,7 +143,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         }
       })
       .catch(() => {});
-    messagingApi.markRead(id).catch(() => {});
+    messagingApi.markRead(id).then(() => refreshMessages()).catch(() => {});
   }, [id, loadGroupDetails]);
 
   useEffect(() => {

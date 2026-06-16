@@ -9,6 +9,7 @@ import { ProfileModal } from '@/components/profile/ProfileModal';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
 import { usePastoralYear } from '@/store/pastoralYear';
+import { useUnreadCounts } from '@/store/unreadCounts';
 
 const MOBILE_NAV = [
   { icon: '⛺', label: 'Camps',        href: '/dashboard/admin/camps' },
@@ -29,7 +30,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
   const loadYear = usePastoralYear(s => s.load);
+  const refreshMessages = useUnreadCounts(s => s.refreshMessages);
+  const refreshAnnonces = useUnreadCounts(s => s.refreshAnnonces);
   useEffect(() => { loadYear(); }, [loadYear]);
+  useEffect(() => {
+    if (!user?.id) return;
+    void refreshMessages();
+    void refreshAnnonces(user.id);
+    const mi = setInterval(() => void refreshMessages(), 30_000);
+    const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
+    return () => { clearInterval(mi); clearInterval(ai); };
+  }, [user?.id, refreshMessages, refreshAnnonces]);
 
   const currentSection = MOBILE_NAV.find(item => pathname.startsWith(item.href));
 

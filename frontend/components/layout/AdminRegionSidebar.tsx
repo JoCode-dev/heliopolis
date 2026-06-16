@@ -5,6 +5,7 @@ import { GardiensBlazon } from '@/components/layout/GardiensBlazon';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
+import { useUnreadCounts } from '@/store/unreadCounts';
 
 const ADMIN_NAV_GROUPS = [
   {
@@ -82,8 +83,16 @@ interface AdminRegionSidebarProps {
 export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminRegionSidebarProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const unreadMessages = useUnreadCounts(s => s.messages);
+  const unreadAnnonces = useUnreadCounts(s => s.annonces);
 
   const navGroups = variant === 'region' ? REGION_NAV_GROUPS : ADMIN_NAV_GROUPS;
+
+  const getBadge = (href: string) => {
+    if (href.endsWith('/messages')) return unreadMessages;
+    if (href.endsWith('/annonces')) return unreadAnnonces;
+    return 0;
+  };
 
   return (
     <aside
@@ -128,7 +137,12 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
                   }`}
                 >
                   <span className="text-sm w-5 text-center">{item.icon}</span>
-                  <span className="text-[13px]">{item.label}</span>
+                  <span className="flex-1 text-[13px]">{item.label}</span>
+                  {getBadge(item.href) > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-white/90 text-[#7A2820] text-[10px] font-black flex items-center justify-center leading-none">
+                      {getBadge(item.href) > 99 ? '99+' : getBadge(item.href)}
+                    </span>
+                  )}
                 </Link>
               );
             })}

@@ -11,6 +11,7 @@ import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
 import { ROLE_LABEL, getTerritoryLabel } from '@/lib/roles';
 import { usePastoralYear } from '@/store/pastoralYear';
+import { useUnreadCounts } from '@/store/unreadCounts';
 
 const NAV_BASE = [
   { href: '/dashboard/guide',              icon: '📖', label: 'Accueil' },
@@ -32,7 +33,25 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
   const { user } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
   const loadYear = usePastoralYear(s => s.load);
+  const refreshMessages = useUnreadCounts(s => s.refreshMessages);
+  const refreshAnnonces = useUnreadCounts(s => s.refreshAnnonces);
+  const unreadMessages = useUnreadCounts(s => s.messages);
+  const unreadAnnonces = useUnreadCounts(s => s.annonces);
   useEffect(() => { loadYear(); }, [loadYear]);
+  useEffect(() => {
+    if (!user?.id) return;
+    void refreshMessages();
+    void refreshAnnonces(user.id);
+    const mi = setInterval(() => void refreshMessages(), 30_000);
+    const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
+    return () => { clearInterval(mi); clearInterval(ai); };
+  }, [user?.id, refreshMessages, refreshAnnonces]);
+
+  const getBadge = (href: string) => {
+    if (href.endsWith('/messages')) return unreadMessages;
+    if (href.endsWith('/annonces')) return unreadAnnonces;
+    return 0;
+  };
 
   const isHome = pathname === HOME;
   const currentSection = NAV_BASE.find(item =>
@@ -70,7 +89,12 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
                     active ? 'bg-white/20 font-semibold text-white' : 'text-white/90 hover:bg-white/15 hover:text-white'
                   }`}>
                   <span className="text-base w-5 text-center">{item.icon}</span>
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {getBadge(item.href) > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-white/90 text-[#7A2820] text-[10px] font-black flex items-center justify-center leading-none">
+                      {getBadge(item.href) > 99 ? '99+' : getBadge(item.href)}
+                    </span>
+                  )}
                 </Link>
               );
             })}

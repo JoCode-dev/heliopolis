@@ -443,6 +443,7 @@ export class CampsService {
       where: { id: userId },
       include: {
         adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 },
+        parish: { select: { districtId: true } },
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -455,8 +456,8 @@ export class CampsService {
     if (existing && existing.participationStatus !== 'DESISTE')
       return existing;
 
-    const districtId = user.districtId;
     const parishId = user.parishId;
+    const districtId = user.districtId ?? user.parish?.districtId ?? null;
     if (!districtId || !parishId)
       throw new ForbiddenException('Ton compte n\'est pas encore rattaché à une paroisse. Contacte ton administrateur.');
 
