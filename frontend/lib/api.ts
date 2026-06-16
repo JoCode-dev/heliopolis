@@ -88,6 +88,9 @@ export const campsApi = {
   removeParticipant:   (campId: string, userId: string) => api.delete(`/camps/${campId}/participants/${userId}`),
   blockParticipant:    (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/block`),
   unblockParticipant:  (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/unblock`),
+  myParticipation:     (campId: string) => api.get(`/camps/${campId}/my-participation`),
+  expressInterest:     (campId: string) => api.post(`/camps/${campId}/express-interest`),
+  withdrawInterest:    (campId: string) => api.delete(`/camps/${campId}/withdraw`),
 };
 
 // ─── Challenges ───────────────────────────────────────────────────────────────

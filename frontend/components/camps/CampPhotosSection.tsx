@@ -252,9 +252,10 @@ interface CampPhotosSectionProps {
   campId: string;
   externalUploadOpen?: boolean;
   onExternalUploadClose?: () => void;
+  singleColumn?: boolean;
 }
 
-export function CampPhotosSection({ campId, externalUploadOpen, onExternalUploadClose }: CampPhotosSectionProps) {
+export function CampPhotosSection({ campId, externalUploadOpen, onExternalUploadClose, singleColumn }: CampPhotosSectionProps) {
   const { user } = useAuthStore();
   const canUpload = user ? UPLOAD_ROLES.has(user.role) : false;
   const isExternallyControlled = externalUploadOpen !== undefined;
@@ -345,7 +346,7 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+        <div className={`grid gap-4 items-start ${singleColumn ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-white border border-[#ececf0] rounded-2xl overflow-hidden animate-pulse">
               <div className="flex gap-3 p-4">
@@ -371,7 +372,7 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
         </div>
       ) : (
         <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={`grid gap-4 ${singleColumn ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
           {publications.map((pub) => (
             <div key={pub.id} className="bg-white border border-[#ececf0] rounded-2xl overflow-hidden shadow-sm flex flex-col">
 
@@ -403,7 +404,7 @@ export function CampPhotosSection({ campId, externalUploadOpen, onExternalUpload
               </div>
 
               {/* Collage photos — bord à bord */}
-              <div className="flex-1 min-h-[200px] overflow-hidden">
+              <div className="flex-1 min-h-[300px] overflow-hidden">
                 <PhotoCollage photos={pub.photos} onPhotoClick={p => openLightbox(pub.photos, p)} />
               </div>
 

@@ -99,10 +99,10 @@ export default function RegionCampDetailPage({ params }: { params: Promise<{ id:
           </button>
         </div>
 
-        {/* ── Grille info + participants ───────────────────────────────── */}
-        <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+        {/* ── Grille principale ───────────────────────────────────────── */}
+        <div className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-8 lg:items-start">
 
-          {/* Colonne gauche */}
+          {/* Colonne gauche — infos + participants */}
           <div>
             <Card className="mb-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -149,10 +149,7 @@ export default function RegionCampDetailPage({ params }: { params: Promise<{ id:
                 </span>
               </div>
             </Card>
-          </div>
 
-          {/* Colonne droite */}
-          <div>
             <div className="grid grid-cols-3 gap-2.5 mb-4">
               {[
                 { label: 'Sélectionnés', value: participants.length, color: 'text-[#6A1B9A]' },
@@ -198,15 +195,16 @@ export default function RegionCampDetailPage({ params }: { params: Promise<{ id:
               📊 Vue complète participants →
             </Link>
           </div>
-        </div>
 
-        {/* ── Section photos ───────────────────────────────────────────── */}
-        <div className="mt-6">
-          <CampPhotosSection
-            campId={id}
-            externalUploadOpen={showUploadModal}
-            onExternalUploadClose={() => setShowUploadModal(false)}
-          />
+          {/* Colonne droite — publications */}
+          <div className="mt-6 lg:mt-0">
+            <CampPhotosSection
+              campId={id}
+              singleColumn
+              externalUploadOpen={showUploadModal}
+              onExternalUploadClose={() => setShowUploadModal(false)}
+            />
+          </div>
         </div>
 
       </div>

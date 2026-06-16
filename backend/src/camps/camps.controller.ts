@@ -63,6 +63,26 @@ export class CampsController {
     return this.campsService.updateStatus(id, statut, user);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/my-participation')
+  getMyParticipation(@Param('id') campId: string, @CurrentUser() user: AuthUser) {
+    return this.campsService.getMyParticipation(campId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.GARDIEN)
+  @Post(':id/express-interest')
+  expressInterest(@Param('id') campId: string, @CurrentUser() user: AuthUser) {
+    return this.campsService.expressInterest(campId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.GARDIEN)
+  @Delete(':id/withdraw')
+  withdrawInterest(@Param('id') campId: string, @CurrentUser() user: AuthUser) {
+    return this.campsService.withdrawInterest(campId, user.id);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Get(':id/participants')

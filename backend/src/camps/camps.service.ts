@@ -425,4 +425,106 @@ export class CampsService {
       _count: { id: true },
     });
   }
+
+  async getMyParticipation(campId: string, userId: string) {
+    return this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+      select: { id: true, participationStatus: true, selectedAt: true },
+    });
+  }
+
+  async expressInterest(campId: string, userId: string) {
+    const camp = await this.prisma.camp.findUnique({ where: { id: campId } });
+    if (!camp) throw new NotFoundException('Camp introuvable');
+    if (!camp.selectionOuverte)
+      throw new ForbiddenException('La sélection est fermée pour ce camp');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 },
+      },
+    });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+
+    const existing = await this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+    });
+    if (existing?.participationStatus === 'BLOQUE')
+      throw new ForbiddenException('Ta participation à ce camp n\'est pas disponible');
+    if (existing && existing.participationStatus !== 'DESISTE')
+      return existing;
+
+    const districtId = user.districtId;
+    const parishId = user.parishId;
+    if (!districtId || !parishId)
+      throw new ForbiddenException('Ton compte n\'est pas encore rattaché à une paroisse. Contacte ton administrateur.');
+
+    const campDistricts = await this.prisma.campDistrict.findMany({
+      where: { campId },
+      select: { districtId: true },
+    });
+    if (campDistricts.length > 0 && !campDistricts.some((d) => d.districtId === districtId))
+      throw new ForbiddenException('Ce camp n\'est pas ouvert à ton district');
+
+    const adhesionStatus = user.adhesions[0]?.statut ?? AdhesionStatus.NON_A_JOUR;
+
+    const participant = await this.prisma.campParticipant.upsert({
+      where: { campId_userId: { campId, userId } },
+      create: {
+        campId, userId,
+        selectedById: userId,
+        districtId, parishId,
+        adhesionStatusSnapshot: adhesionStatus,
+        participationStatus: 'EN_ATTENTE',
+      },
+      update: { participationStatus: 'EN_ATTENTE' },
+    });
+
+    this.actionLog.record({
+      action: AuditAction.CREATE,
+      category: 'camp',
+      summary: `${user.prenoms} ${user.nom} a manifesté son intérêt pour le camp « ${camp.nom} »`,
+      actor: { id: userId, role: user.role, parishId, districtId } as AuthUser,
+      target: { entityType: 'CampParticipant', entityId: participant.id },
+      metadata: { campId, userId },
+    });
+
+    return participant;
+  }
+
+  async withdrawInterest(campId: string, userId: string) {
+    const existing = await this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+    });
+    if (!existing) return { success: true };
+
+    if (existing.participationStatus === 'EN_ATTENTE') {
+      await this.prisma.campParticipant.delete({
+        where: { campId_userId: { campId, userId } },
+      });
+    } else {
+      await this.prisma.campParticipant.update({
+        where: { campId_userId: { campId, userId } },
+        data: { participationStatus: 'DESISTE' },
+      });
+    }
+
+    const [user, camp] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId } }),
+      this.prisma.camp.findUnique({ where: { id: campId } }),
+    ]);
+    if (user && camp) {
+      this.actionLog.record({
+        action: AuditAction.STATUS_CHANGE,
+        category: 'camp',
+        summary: `${user.prenoms} ${user.nom} s'est retiré(e) du camp « ${camp.nom} »`,
+        actor: { id: userId, role: user.role } as AuthUser,
+        target: { entityType: 'CampParticipant', entityId: `${campId}:${userId}` },
+        metadata: { campId, userId },
+      });
+    }
+
+    return { success: true };
+  }
 }

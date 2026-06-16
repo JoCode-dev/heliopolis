@@ -93,64 +93,72 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8">
-        <div className="lg:max-w-3xl lg:mx-auto">
-        {/* Bannière guide */}
-        <div className="flex items-center gap-3 bg-gradient-to-r from-[#6A1B9A]/10 to-[#4a1370]/10 border border-[#6A1B9A]/30 rounded-2xl p-3.5 mb-4">
-          <span className="text-xl">📋</span>
-          <p className="text-xs text-[#4a1370] leading-relaxed flex-1">
-            Tu peux sélectionner les participants de ta paroisse pour ce camp.
-          </p>
-        </div>
+        <div className="lg:max-w-6xl lg:mx-auto">
+          <div className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-8 lg:items-start">
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 mb-4">
-          <div className="bg-white rounded-2xl p-3.5 border border-[#ececf0]">
-            <div className="text-sm font-medium text-[#1F1B2E]">📅 {dateStr}</div>
-            <div className="text-[11px] text-[#6b6b78] uppercase tracking-wide mt-0.5">Période</div>
-          </div>
-          <div className="bg-white rounded-2xl p-3.5 border border-[#ececf0]">
-            <div className="text-sm font-medium text-[#1F1B2E]">📍 {camp.lieu}</div>
-            <div className="text-[11px] text-[#6b6b78] uppercase tracking-wide mt-0.5">Lieu</div>
-          </div>
-        </div>
+            {/* Colonne gauche — infos */}
+            <div>
+              {/* Bannière guide */}
+              <div className="flex items-center gap-3 bg-gradient-to-r from-[#6A1B9A]/10 to-[#4a1370]/10 border border-[#6A1B9A]/30 rounded-2xl p-3.5 mb-4">
+                <span className="text-xl">📋</span>
+                <p className="text-xs text-[#4a1370] leading-relaxed flex-1">
+                  Tu peux sélectionner les participants de ta paroisse pour ce camp.
+                </p>
+              </div>
 
-        <InfoBanner icon="ℹ️">
-          Sélection ouverte jusqu&apos;au 30 juin. Les participants soumis sont transmis à la Sentinelle pour validation.
-        </InfoBanner>
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-2.5 mb-4">
+                <div className="bg-white rounded-2xl p-3.5 border border-[#ececf0]">
+                  <div className="text-sm font-medium text-[#1F1B2E]">📅 {dateStr}</div>
+                  <div className="text-[11px] text-[#6b6b78] uppercase tracking-wide mt-0.5">Période</div>
+                </div>
+                <div className="bg-white rounded-2xl p-3.5 border border-[#ececf0]">
+                  <div className="text-sm font-medium text-[#1F1B2E]">📍 {camp.lieu}</div>
+                  <div className="text-[11px] text-[#6b6b78] uppercase tracking-wide mt-0.5">Lieu</div>
+                </div>
+              </div>
 
-        {camp.districts && camp.districts.length > 0 && (
-          <>
-            <SectionTitle>Districts concernés</SectionTitle>
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {camp.districts.map(({ district }) => (
-                <Pill key={district.id} variant="violet">{district.nom}</Pill>
-              ))}
+              <InfoBanner icon="ℹ️">
+                Sélection ouverte jusqu&apos;au 30 juin. Les participants soumis sont transmis à la Sentinelle pour validation.
+              </InfoBanner>
+
+              {camp.districts && camp.districts.length > 0 && (
+                <>
+                  <SectionTitle>Districts concernés</SectionTitle>
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {camp.districts.map(({ district }) => (
+                      <Pill key={district.id} variant="violet">{district.nom}</Pill>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {camp.description && (
+                <>
+                  <SectionTitle>Description</SectionTitle>
+                  <p className="text-sm text-[#6b6b78] leading-relaxed mb-4">{camp.description}</p>
+                </>
+              )}
+
+              <Card className="text-center mb-4">
+                <div className="text-2xl font-black text-[#6A1B9A]">{participantCount}</div>
+                <div className="text-xs text-[#6b6b78] uppercase tracking-wide mt-0.5">Participants sélectionnés</div>
+              </Card>
+
+              <Link
+                href={`/dashboard/guide/selection/${camp.id}`}
+                className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-3.5 rounded-xl"
+              >
+                📋 Sélectionner les participants
+              </Link>
             </div>
-          </>
-        )}
 
-        {camp.description && (
-          <>
-            <SectionTitle>Description</SectionTitle>
-            <p className="text-sm text-[#6b6b78] leading-relaxed mb-4">{camp.description}</p>
-          </>
-        )}
+            {/* Colonne droite — publications */}
+            <div className="mt-6 lg:mt-0">
+              <CampPhotosSection campId={id} singleColumn />
+            </div>
 
-        <Card className="text-center mb-4">
-          <div className="text-2xl font-black text-[#6A1B9A]">{participantCount}</div>
-          <div className="text-xs text-[#6b6b78] uppercase tracking-wide mt-0.5">Participants sélectionnés</div>
-        </Card>
-
-        <Link
-          href={`/dashboard/guide/selection/${camp.id}`}
-          className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-3.5 rounded-xl"
-        >
-          📋 Sélectionner les participants
-        </Link>
-
-        <CampPhotosSection campId={id} />
-
-        <div className="h-4" />
+          </div>
         </div>
       </div>
     </div>

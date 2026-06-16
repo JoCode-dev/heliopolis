@@ -129,11 +129,11 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
 
-        {/* ── Grille info + participants ── */}
-        <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+        {/* ── Grille principale ── */}
+        <div className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-6 lg:items-start">
 
-          {/* Colonne gauche (2/3) */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Colonne gauche — infos + participants */}
+          <div className="space-y-4">
 
             {/* Infos camp */}
             <div className="bg-white border border-[#ececf0] rounded-2xl shadow-sm p-4 space-y-4">
@@ -171,10 +171,6 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
                 {camp.selectionOuverte ? '✓ Ouverte' : '✕ Fermée'}
               </span>
             </div>
-          </div>
-
-          {/* Colonne droite */}
-          <div className="mt-4 lg:mt-0 space-y-4">
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2">
@@ -229,14 +225,17 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Photos ── */}
-        <CampPhotosSection
-          campId={id}
-          externalUploadOpen={showUploadModal}
-          onExternalUploadClose={() => setShowUploadModal(false)}
-        />
+          {/* Colonne droite — publications */}
+          <div className="mt-4 lg:mt-0">
+            <CampPhotosSection
+              campId={id}
+              singleColumn
+              externalUploadOpen={showUploadModal}
+              onExternalUploadClose={() => setShowUploadModal(false)}
+            />
+          </div>
+        </div>
 
       </div>
     </div>
