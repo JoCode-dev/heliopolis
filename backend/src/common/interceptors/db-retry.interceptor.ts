@@ -14,7 +14,7 @@ export class DbRetryInterceptor implements NestInterceptor {
         delay: (error: unknown, attempt: number) => {
           const err = error as { code?: string; message?: string };
           if (err?.code === 'P1017') {
-            const wait = 300 * attempt;
+            const wait = 800 * attempt;
             DbRetryInterceptor.logger.warn(
               `P1017 ConnectionClosed — tentative ${attempt}/${MAX_RETRIES} dans ${wait}ms`,
             );

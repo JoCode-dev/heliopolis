@@ -15,12 +15,11 @@ import { useUnreadCounts } from '@/store/unreadCounts';
 
 const NAV_BASE = [
   { href: '/dashboard/guide',              icon: '📖', label: 'Accueil' },
-  { href: '/dashboard/guide/missions',     icon: '🎯', label: 'Missions' },
-  { href: '/dashboard/guide/membres',      icon: '👥', label: 'Membres' },
   { href: '/dashboard/guide/camps',        icon: '⛺', label: 'Camps' },
+  { href: '/dashboard/guide/missions',     icon: '🎯', label: 'Missions' },
   { href: '/dashboard/guide/messages',     icon: '💬', label: 'Messages' },
   { href: '/dashboard/guide/annonces',     icon: '📣', label: 'Annonces' },
-  { href: '/dashboard/guide/adhesions',    icon: '📋', label: 'Adhésions' },
+  { href: '/dashboard/guide/membres',      icon: '👥', label: 'Membres' },
   { href: '/dashboard/guide/codex',        icon: '🪶', label: 'Codex' },
   { href: '/dashboard/guide/artefacts',    icon: '🏅', label: 'Artefacts' },
   { href: '/dashboard/guide/profil',       icon: '👤', label: 'Profil' },
@@ -35,22 +34,27 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
   const loadYear = usePastoralYear(s => s.load);
   const refreshMessages = useUnreadCounts(s => s.refreshMessages);
   const refreshAnnonces = useUnreadCounts(s => s.refreshAnnonces);
+  const refreshCampRequests = useUnreadCounts(s => s.refreshCampRequests);
   const unreadMessages = useUnreadCounts(s => s.messages);
   const unreadAnnonces = useUnreadCounts(s => s.annonces);
+  const campRequests   = useUnreadCounts(s => s.campRequests);
   useEffect(() => { loadYear(); }, [loadYear]);
   useEffect(() => {
     if (!user?.id) return;
     void refreshMessages();
     void refreshAnnonces(user.id);
+    void refreshCampRequests();
     const mi = setInterval(() => void refreshMessages(), 30_000);
     const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
-    return () => { clearInterval(mi); clearInterval(ai); };
+    const ci = setInterval(() => void refreshCampRequests(), 60_000);
+    return () => { clearInterval(mi); clearInterval(ai); clearInterval(ci); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const getBadge = (href: string) => {
     if (href.endsWith('/messages')) return unreadMessages;
     if (href.endsWith('/annonces')) return unreadAnnonces;
+    if (href.endsWith('/camps'))   return campRequests;
     return 0;
   };
 

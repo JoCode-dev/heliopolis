@@ -34,7 +34,7 @@ export class CampsService {
     return { id: '__no_scope__' };
   }
 
-  private campScopeWhere(user?: AuthUser): Prisma.CampWhereInput {
+  private async campScopeWhere(user?: AuthUser): Promise<Prisma.CampWhereInput> {
     if (!user) {
       return { statut: { notIn: [CampStatus.BROUILLON, CampStatus.ARCHIVE] } };
     }
@@ -43,12 +43,20 @@ export class CampsService {
       return user.regionId ? { regionId: user.regionId } : this.noScope();
     }
     if (user.role === UserRole.SENTINELLE || user.role === UserRole.GUIDE) {
-      if (!user.districtId) return this.noScope();
+      let districtId = user.districtId;
+      if (!districtId && user.parishId) {
+        const parish = await this.prisma.parish.findUnique({
+          where: { id: user.parishId },
+          select: { districtId: true },
+        });
+        districtId = parish?.districtId ?? null;
+      }
+      if (!districtId) return this.noScope();
       return {
         statut: { notIn: [CampStatus.BROUILLON, CampStatus.ARCHIVE] },
         OR: [
           { districts: { none: {} } },
-          { districts: { some: { districtId: user.districtId } } },
+          { districts: { some: { districtId } } },
         ],
       };
     }
@@ -134,7 +142,7 @@ export class CampsService {
     user?: AuthUser,
   ) {
     const where: Prisma.CampWhereInput = {
-      AND: [this.campScopeWhere(user)],
+      AND: [await this.campScopeWhere(user)],
     };
     if (filters?.statut) where.statut = filters.statut;
     if (filters?.type) where.type = filters.type;
@@ -261,6 +269,7 @@ export class CampsService {
       where: { id: userId },
       include: {
         adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 },
+        parish: { select: { districtId: true } },
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -277,20 +286,20 @@ export class CampsService {
     if (!this.userIsInActorScope(selector, user)) {
       throw new ForbiddenException('Gardien hors périmètre');
     }
+    const districtId = user.districtId ?? user.parish?.districtId ?? null;
+    const parishId   = user.parishId;
+    if (!districtId || !parishId) {
+      throw new ForbiddenException(`Territoire introuvable pour ${user.prenoms} ${user.nom} — vérifiez que la paroisse est bien renseignée.`);
+    }
     const campDistricts = await this.prisma.campDistrict.findMany({
       where: { campId },
       select: { districtId: true },
     });
     if (
       campDistricts.length > 0 &&
-      !campDistricts.some((d) => d.districtId === user.districtId)
+      !campDistricts.some((d) => d.districtId === districtId)
     ) {
-      throw new ForbiddenException('Camp non ouvert à ce district');
-    }
-    const districtId = user.districtId;
-    const parishId = user.parishId;
-    if (!districtId || !parishId) {
-      throw new ForbiddenException('Territoire introuvable pour ce gardien');
+      throw new ForbiddenException(`${user.prenoms} ${user.nom} — ce camp n'est pas ouvert au district de cette paroisse.`);
     }
 
     // Vérifier si le participant n'est pas bloqué par un supérieur
@@ -358,7 +367,10 @@ export class CampsService {
     const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
     const target = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 } },
+      include: {
+        adhesions: { where: { annee: await this.settings.getAnneePastorale() }, take: 1 },
+        parish: { select: { districtId: true } },
+      },
     });
     if (!actor || !target) throw new NotFoundException('Utilisateur introuvable');
     if (!this.userIsInActorScope(actor, target))
@@ -384,9 +396,9 @@ export class CampsService {
       });
       return updated;
     }
-    const districtId = target.districtId;
+    const districtId = target.districtId ?? target.parish?.districtId ?? null;
     const parishId   = target.parishId;
-    if (!districtId || !parishId) throw new ForbiddenException('Territoire introuvable');
+    if (!districtId || !parishId) throw new ForbiddenException(`Territoire introuvable pour ${target.prenoms} ${target.nom}`);
     const created = await this.prisma.campParticipant.create({
       data: {
         campId, userId, selectedById: actorId,
@@ -427,6 +439,24 @@ export class CampsService {
       metadata: { campId, userId },
     });
     return { success: true };
+  }
+
+  async getPendingRequestsCount(user: AuthUser) {
+    if (user.role !== UserRole.GUIDE && user.role !== UserRole.SENTINELLE) {
+      return { total: 0, byCamp: {} as Record<string, number> };
+    }
+    const grouped = await this.prisma.campParticipant.groupBy({
+      by: ['campId'],
+      where: { participationStatus: 'EN_ATTENTE', ...this.participantScopeWhere(user) },
+      _count: { id: true },
+    });
+    const byCamp: Record<string, number> = {};
+    let total = 0;
+    for (const g of grouped) {
+      byCamp[g.campId] = g._count.id;
+      total += g._count.id;
+    }
+    return { total, byCamp };
   }
 
   async getByDistrict(campId: string) {

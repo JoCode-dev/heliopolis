@@ -1,30 +1,42 @@
 'use client';
 import Image from 'next/image';
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { usersApi } from '@/lib/api';
+import { usePastoralYear } from '@/store/pastoralYear';
 import { deferEffect } from '@/lib/effects';
-import { Pill } from '@/components/ui';
 import { Pagination } from '@/components/ui/Pagination';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
-import type { User } from '@/types';
+import type { User, AdhesionStatus, Adhesion } from '@/types';
 
 const PER_PAGE = 20;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
 
-const ADHESION_PILL: Record<string, 'vert' | 'rouge' | 'or'> = {
-  A_JOUR: 'vert', NON_A_JOUR: 'rouge', EN_ATTENTE: 'or',
-};
-const ADHESION_LABEL: Record<string, string> = {
-  A_JOUR: 'À jour', NON_A_JOUR: 'Non à jour', EN_ATTENTE: 'En attente',
-};
-const STATUT_PILL: Record<string, 'vert' | 'rouge' | 'or' | 'gris'> = {
-  ACTIF: 'vert', SUSPENDU: 'rouge', EN_ATTENTE_ACTIVATION: 'or', INACTIF: 'rouge', ARCHIVE: 'gris',
+// ─── Config statuts ───────────────────────────────────────────────────────────
+
+const STATUT_PILL: Record<string, string> = {
+  ACTIF: 'bg-[#e8f5e9] text-[#2E7D32] border-[#a5d6a7]',
+  SUSPENDU: 'bg-[#ffebee] text-[#E55A35] border-[#ef9a9a]',
+  EN_ATTENTE_ACTIVATION: 'bg-[#fff8e1] text-[#D9A441] border-[#ffe082]',
+  INACTIF: 'bg-[#ffebee] text-[#E55A35] border-[#ef9a9a]',
+  ARCHIVE: 'bg-[#f5f5f5] text-[#9b9ba8] border-[#e0e0e0]',
 };
 const STATUT_LABEL: Record<string, string> = {
   ACTIF: 'Actif', SUSPENDU: 'Suspendu', EN_ATTENTE_ACTIVATION: 'En attente', INACTIF: 'Inactif', ARCHIVE: 'Archivé',
 };
 
-// Couleur de gradient par index pour les avatars
+const ADH_CFG: Record<AdhesionStatus, { bg: string; text: string; border: string; icon: string; dot: string }> = {
+  A_JOUR:     { bg: 'bg-[#e8f5e9]', text: 'text-[#2E7D32]', border: 'border-[#a5d6a7]', icon: '✅', dot: 'bg-[#2E7D32]' },
+  NON_A_JOUR: { bg: 'bg-[#ffebee]', text: 'text-[#E55A35]', border: 'border-[#ef9a9a]', icon: '❌', dot: 'bg-[#E55A35]' },
+  EN_ATTENTE: { bg: 'bg-[#fff8e1]', text: 'text-[#D9A441]', border: 'border-[#ffe082]', icon: '⏳', dot: 'bg-[#D9A441]' },
+};
+const ADH_LABEL: Record<AdhesionStatus, string> = {
+  A_JOUR: 'À jour', NON_A_JOUR: 'Non à jour', EN_ATTENTE: 'En attente',
+};
+
+type FilterKey = 'tous' | AdhesionStatus | 'MANQUANT';
+type SentTab   = 'guides' | 'gardiens';
+
 const GRAD = [
   'from-[#F58A4B] via-[#E55A35] to-[#7A2820]',
   'from-[#6A1B9A] to-[#4a1370]',
@@ -32,99 +44,203 @@ const GRAD = [
   'from-[#1F1B2E] to-[#3a1d4d]',
 ];
 
-type SentinelleTab = 'guides' | 'gardiens';
+// ─── Sous-composants ──────────────────────────────────────────────────────────
+
+function AdhBadge({ statut }: { statut?: AdhesionStatus }) {
+  if (!statut) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f3f3f5] text-[#9b9ba8] border border-[#e6e6ea]">
+      ❓ —
+    </span>
+  );
+  const c = ADH_CFG[statut];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.bg} ${c.text} border ${c.border}`}>
+      {c.icon} {ADH_LABEL[statut]}
+    </span>
+  );
+}
+
+function StatusPicker({ value, onChange }: { value: AdhesionStatus | null; onChange: (s: AdhesionStatus) => void }) {
+  return (
+    <div className="flex gap-2">
+      {(['A_JOUR', 'EN_ATTENTE', 'NON_A_JOUR'] as AdhesionStatus[]).map(s => {
+        const c = ADH_CFG[s];
+        const active = value === s;
+        return (
+          <button key={s} type="button" onClick={() => onChange(s)}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl text-[11px] font-semibold border-2 transition-all ${
+              active ? `${c.bg} ${c.text} ${c.border} shadow-sm` : 'bg-white text-[#9b9ba8] border-[#ececf0] hover:border-[#c8c8d4]'
+            }`}>
+            <span className="text-base leading-none">{c.icon}</span>
+            <span>{ADH_LABEL[s]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+interface RowState { selectedStatut: AdhesionStatus | null; file: File | null; loading: boolean; success: boolean; error: string }
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function GuideMembresPage() {
   const { user: actor } = useAuthStore();
-  const isSentinelle = actor?.role === 'SENTINELLE';
-  const isGuide      = actor?.role === 'GUIDE';
+  const CURRENT_YEAR    = usePastoralYear(s => s.annee);
+  const isSentinelle    = actor?.role === 'SENTINELLE';
+  const isGuide         = actor?.role === 'GUIDE';
 
-  // Guide : ses gardiens / Sentinelle : ses guides
-  const [membres, setMembres]           = useState<User[]>([]);
-  // Sentinelle uniquement : tous les gardiens du district
-  const [gardiens, setGardiens]         = useState<User[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState('');
-  const [page, setPage]                 = useState(1);
-  const [createOpen, setCreateOpen]     = useState(false);
-  const [sentTab, setSentTab]           = useState<SentinelleTab>('guides');
-  // Sentinelle : guide sélectionné pour voir ses gardiens
+  const [membres, setMembres]   = useState<User[]>([]);
+  const [gardiens, setGardiens] = useState<User[]>([]); // sentinelle : gardiens du district
+  const [loading, setLoading]   = useState(true);
+
+  const [search, setSearch]               = useState('');
+  const [filter, setFilter]               = useState<FilterKey>('tous');
+  const [page, setPage]                   = useState(1);
+  const [sentTab, setSentTab]             = useState<SentTab>('guides');
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null);
+  const [createOpen, setCreateOpen]       = useState(false);
 
+  // Adhésions
+  const [adhesionCache, setAdhesionCache]   = useState<Record<string, Adhesion | undefined>>({});
+  const [activeRow, setActiveRow]           = useState<string | null>(null);
+  const [rowStates, setRowStates]           = useState<Record<string, RowState>>({});
+  const rowFileRefs                          = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Mon adhésion
+  const [myOpen, setMyOpen]       = useState(false);
+  const [myStatut, setMyStatut]   = useState<AdhesionStatus | null>(null);
+  const [myFile, setMyFile]       = useState<File | null>(null);
+  const [myLoading, setMyLoading] = useState(false);
+  const [mySuccess, setMySuccess] = useState(false);
+  const [myError, setMyError]     = useState('');
+  const myFileRef                  = useRef<HTMLInputElement>(null);
+
+  // ── Chargement ──
   const reload = useCallback(async () => {
     setLoading(true);
     try {
+      const membresParams: Record<string, string> = { role: isSentinelle ? 'GUIDE' : 'GARDIEN' };
+      if (isSentinelle && actor?.district?.id) membresParams.districtId = actor.district.id;
+      if (isGuide && actor?.parish?.id)         membresParams.parishId   = actor.parish.id;
+
+      const promises: Promise<{ data: User[] }>[] = [usersApi.list(membresParams)];
       if (isSentinelle) {
-        const params: Record<string, string> = { role: 'GUIDE' };
-        if (actor?.district?.id) params.districtId = actor.district.id;
-        const [guidesRes, gardiensRes] = await Promise.all([
-          usersApi.list(params),
-          usersApi.list({ role: 'GARDIEN', ...(actor?.district?.id ? { districtId: actor.district.id } : {}) }),
-        ]);
-        setMembres(guidesRes.data);
-        setGardiens(gardiensRes.data);
-      } else {
-        const params: Record<string, string> = { role: 'GARDIEN' };
-        if (actor?.parish?.id) params.parishId = actor.parish.id;
-        const res = await usersApi.list(params);
-        setMembres(res.data);
+        const gParams: Record<string, string> = { role: 'GARDIEN' };
+        if (actor?.district?.id) gParams.districtId = actor.district.id;
+        promises.push(usersApi.list(gParams));
       }
+      const [membresRes, gardiensRes] = await Promise.all(promises);
+      const membresData: User[] = membresRes.data;
+      const gardiensData: User[] = gardiensRes?.data ?? [];
+      setMembres(membresData);
+      setGardiens(gardiensData);
+
+      const cache: Record<string, Adhesion | undefined> = {};
+      for (const u of [...membresData, ...gardiensData]) {
+        cache[u.id] = u.adhesions?.find(a => a.annee === CURRENT_YEAR) ?? u.adhesions?.[0];
+      }
+      setAdhesionCache(cache);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, [actor, isSentinelle]);
+  }, [actor, isSentinelle, isGuide, CURRENT_YEAR]);
 
   useEffect(() => deferEffect(reload), [reload]);
 
-  const handleCreated = (u: User) => setMembres(prev => [u, ...prev]);
+  // ── Adhésions ──
+  const getRS = (id: string): RowState =>
+    rowStates[id] ?? { selectedStatut: null, file: null, loading: false, success: false, error: '' };
+  const setRS = (id: string, patch: Partial<RowState>) =>
+    setRowStates(prev => ({ ...prev, [id]: { ...getRS(id), ...patch } }));
 
-  // --- Source active selon l'onglet Sentinelle ---
-  const activeList = isSentinelle
-    ? (sentTab === 'guides' ? membres : gardiens)
-    : membres;
+  const handleRowSave = async (userId: string) => {
+    const rs = getRS(userId);
+    if (!rs.selectedStatut) return;
+    setRS(userId, { loading: true, error: '', success: false });
+    try {
+      const { data } = await usersApi.updateAdhesion(userId, CURRENT_YEAR, rs.selectedStatut, rs.file ?? undefined);
+      setAdhesionCache(prev => ({ ...prev, [userId]: data as Adhesion }));
+      setRS(userId, { loading: false, success: true, file: null });
+      setTimeout(() => { setActiveRow(null); setRS(userId, { success: false }); }, 900);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setRS(userId, { loading: false, error: err?.response?.data?.message ?? 'Erreur.' });
+    }
+  };
 
-  const filtered = activeList.filter(m => {
+  const myAdhesion = actor?.adhesions?.find(a => a.annee === CURRENT_YEAR) ?? actor?.adhesions?.[0];
+  const handleMySave = async () => {
+    if (!actor || !myStatut) return;
+    setMyLoading(true); setMyError(''); setMySuccess(false);
+    try {
+      await usersApi.updateAdhesion(actor.id, CURRENT_YEAR, myStatut, myFile ?? undefined);
+      setMySuccess(true); setMyFile(null);
+      setTimeout(() => setMyOpen(false), 1000);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setMyError(err?.response?.data?.message ?? 'Erreur lors de la mise à jour.');
+    } finally { setMyLoading(false); }
+  };
+
+  // ── Source + filtre ──
+  const activeList = isSentinelle ? (sentTab === 'guides' ? membres : gardiens) : membres;
+  const canEditAdhesion = !isSentinelle || sentTab === 'guides'; // sentinelle édite les guides, pas les gardiens
+
+  const getAdhStatut = (u: User) => adhesionCache[u.id]?.statut;
+
+  const afterSearch = activeList.filter(m => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return (
-      m.nom.toLowerCase().includes(q) ||
+    return m.nom.toLowerCase().includes(q) ||
       m.prenoms.toLowerCase().includes(q) ||
       (m.matricule ?? '').toLowerCase().includes(q) ||
       (m.email ?? '').toLowerCase().includes(q) ||
-      (m.parish?.nom ?? '').toLowerCase().includes(q)
-    );
+      (m.parish?.nom ?? '').toLowerCase().includes(q);
   });
+  const afterFilter = afterSearch.filter(m => {
+    if (filter === 'tous')     return true;
+    if (filter === 'MANQUANT') return !getAdhStatut(m);
+    return getAdhStatut(m) === filter;
+  });
+  const totalPages = Math.max(1, Math.ceil(afterFilter.length / PER_PAGE));
+  const paginated  = afterFilter.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const changeTab = (t: SentTab) => { setSentTab(t); setPage(1); setSearch(''); setFilter('tous'); setExpandedGuide(null); setActiveRow(null); };
+  const changeFilter = (f: FilterKey) => { setFilter(f); setPage(1); };
+  const changeSearch = (v: string) => { setSearch(v); setPage(1); };
 
-  // Stats
-  const nbAJour   = activeList.filter(m => m.adhesions?.[0]?.statut === 'A_JOUR').length;
-  const nbNonAJour = activeList.filter(m => m.adhesions?.[0]?.statut !== 'A_JOUR').length;
+  // ── Stats ──
+  const nbAJour    = activeList.filter(m => getAdhStatut(m) === 'A_JOUR').length;
+  const nbNonAJour = activeList.filter(m => getAdhStatut(m) === 'NON_A_JOUR').length;
+  const nbAttente  = activeList.filter(m => getAdhStatut(m) === 'EN_ATTENTE').length;
+  const nbManquant = activeList.filter(m => !getAdhStatut(m)).length;
+  const pct        = activeList.length > 0 ? Math.round((nbAJour / activeList.length) * 100) : 0;
 
-  const changeTab = (t: SentinelleTab) => {
-    setSentTab(t);
-    setPage(1);
-    setSearch('');
-    setExpandedGuide(null);
-  };
+  const FILTERS: { key: FilterKey; label: string; count: number; dot: string }[] = [
+    { key: 'tous',       label: `Tous (${activeList.length})`, count: activeList.length, dot: '' },
+    { key: 'A_JOUR',     label: `À jour (${nbAJour})`,         count: nbAJour,           dot: 'bg-[#2E7D32]' },
+    { key: 'NON_A_JOUR', label: `Non à j. (${nbNonAJour})`,   count: nbNonAJour,        dot: 'bg-[#E55A35]' },
+    { key: 'EN_ATTENTE', label: `Attente (${nbAttente})`,      count: nbAttente,         dot: 'bg-[#D9A441]' },
+    { key: 'MANQUANT',   label: `— (${nbManquant})`,           count: nbManquant,        dot: 'bg-[#9b9ba8]' },
+  ];
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
 
-      {/* ── Header avec onglets (Sentinelle) ── */}
+      {/* ── Header ── */}
       {isSentinelle ? (
         <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex-shrink-0">
           <div className="px-4 pt-3 pb-0">
             <h1 className="text-[18px] font-black text-white tracking-tight">Membres</h1>
-            <p className="text-[11px] text-white/50 mt-0.5 pb-2">
-              {actor?.district?.nom ?? 'Mon district'} · {membres.length} guide{membres.length > 1 ? 's' : ''}, {gardiens.length} gardien{gardiens.length > 1 ? 's' : ''}
+            <p className="text-[11px] text-white/60 mt-0.5 pb-2">
+              {actor?.district?.nom ?? 'Mon district'} · {membres.length} guide{membres.length !== 1 ? 's' : ''}, {gardiens.length} gardien{gardiens.length !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex border-t border-white/10">
             {([
               { key: 'guides',   label: 'Guides',   count: membres.length },
               { key: 'gardiens', label: 'Gardiens', count: gardiens.length },
-            ] as { key: SentinelleTab; label: string; count: number }[]).map(t => (
+            ] as { key: SentTab; label: string; count: number }[]).map(t => (
               <button key={t.key} onClick={() => changeTab(t.key)}
                 className={`flex-1 py-2.5 text-[12px] font-bold uppercase tracking-widest transition-colors relative flex items-center justify-center gap-1.5 ${
                   sentTab === t.key ? 'text-white' : 'text-white/40'
@@ -142,7 +258,7 @@ export default function GuideMembresPage() {
         <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white px-4 pt-4 pb-4 flex-shrink-0 flex items-center justify-between">
           <div>
             <h1 className="text-[18px] font-black">Mes Gardiens</h1>
-            <p className="text-[11px] opacity-75 mt-0.5">{actor?.parish?.nom ?? 'Ma paroisse'}</p>
+            <p className="text-[11px] opacity-70 mt-0.5">{actor?.parish?.nom ?? 'Ma paroisse'}</p>
           </div>
           <button onClick={() => setCreateOpen(true)}
             className="bg-white/20 text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-white/30 transition">
@@ -151,214 +267,337 @@ export default function GuideMembresPage() {
         </div>
       )}
 
-      {/* ── Contenu ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white">
+      {/* ── Contenu scrollable ── */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f5f5fa]">
+        <div className="max-w-2xl mx-auto px-3 py-3 lg:px-5 lg:py-4 space-y-3">
 
-        {/* Barre recherche + stats */}
-        <div className="px-4 pt-3 pb-0">
-          {/* Stats rapides */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="bg-[#f7f7fa] rounded-xl p-2.5 text-center border border-[#ececf0]">
-              <div className="text-lg font-black text-[#1F1B2E]">{activeList.length}</div>
-              <div className="text-[9px] text-[#6b6b78] uppercase tracking-wide">Total</div>
-            </div>
-            <div className="bg-[#e8f5e9] rounded-xl p-2.5 text-center border border-[#a5d6a7]">
-              <div className="text-lg font-black text-[#2E7D32]">{nbAJour}</div>
-              <div className="text-[9px] text-[#2E7D32] uppercase tracking-wide">À jour</div>
-            </div>
-            <div className="bg-[#fff8f3] rounded-xl p-2.5 text-center border border-[#ef9a9a]">
-              <div className="text-lg font-black text-[#E55A35]">{nbNonAJour}</div>
-              <div className="text-[9px] text-[#E55A35] uppercase tracking-wide">Non à jour</div>
-            </div>
-          </div>
-
-          {/* Recherche */}
-          <div className="flex items-center bg-[#F0F2F5] rounded-full px-3.5 py-2 gap-2 mb-3">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#9b9ba8]"
-              placeholder={`Rechercher${isSentinelle && sentTab === 'gardiens' ? ' par nom, matricule, paroisse…' : ' par nom ou matricule…'}`} />
-            {search && <button onClick={() => { setSearch(''); setPage(1); }} className="text-[#9b9ba8]">✕</button>}
-          </div>
-
-          {isSentinelle && (
+          {/* ── Stats + barre de progression ── */}
+          <div className="bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] rounded-2xl p-4 text-white">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#9b9ba8]">{filtered.length} résultat{filtered.length > 1 ? 's' : ''}</span>
-              <button onClick={() => setCreateOpen(true)}
-                className="text-[11px] font-bold text-[#6A1B9A] bg-[#f0e8ff] px-3 py-1 rounded-full">
-                + Ajouter {sentTab === 'guides' ? 'un guide' : 'un gardien'}
-              </button>
+              <p className="text-[11px] opacity-70">Adhésions {CURRENT_YEAR}</p>
+              <div className="text-right">
+                <span className="text-3xl font-black leading-none">{pct}</span>
+                <span className="text-base opacity-70">%</span>
+                <p className="text-[9px] opacity-60 mt-0.5">à jour</p>
+              </div>
             </div>
-          )}
-        </div>
-
-        {loading && (
-          <div className="flex items-center justify-center py-16 text-[#9b9ba8] text-sm animate-pulse">
-            <div className="text-3xl">👥</div>
+            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden mb-3">
+              <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'À jour',   value: nbAJour,    bg: 'bg-white/20' },
+                { label: 'Non à j.', value: nbNonAJour, bg: 'bg-white/10' },
+                { label: 'Attente',  value: nbAttente,  bg: 'bg-white/10' },
+                { label: '—',        value: nbManquant, bg: 'bg-white/10' },
+              ].map(s => (
+                <div key={s.label} className={`${s.bg} rounded-xl py-2 text-center`}>
+                  <div className="text-lg font-black leading-none">{s.value}</div>
+                  <div className="text-[9px] opacity-70 mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
 
-        {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-            <div className="text-4xl mb-3">{isSentinelle ? '🛡️' : '🤝'}</div>
-            <p className="text-[15px] font-bold text-[#1F1B2E]">Aucun résultat</p>
-            <p className="text-sm text-[#9b9ba8] mt-1">{search ? `Aucun membre ne correspond à « ${search} »` : 'Aucun membre enregistré'}</p>
+          {/* ── Mon adhésion ── */}
+          <div className="bg-white rounded-2xl border border-[#ececf0] overflow-hidden">
+            <button
+              onClick={() => { setMyOpen(v => !v); if (!myOpen) { setMyStatut(myAdhesion?.statut ?? null); setMySuccess(false); setMyError(''); } }}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#fafafa] transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F58A4B] to-[#7A2820] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  {actor ? `${actor.nom?.[0] ?? ''}${actor.prenoms?.[0] ?? ''}` : '?'}
+                </div>
+                <div className="text-left">
+                  <div className="text-sm font-semibold text-[#1F1B2E]">Mon adhésion</div>
+                  <div className="text-[11px] text-[#9b9ba8]">{actor?.prenoms} {actor?.nom}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <AdhBadge statut={myAdhesion?.statut} />
+                <span className={`text-[#9b9ba8] text-xs transition-transform ${myOpen ? 'rotate-180' : ''}`}>▾</span>
+              </div>
+            </button>
+
+            {myOpen && (
+              <div className="border-t border-[#f0f0f4] px-4 py-3 bg-[#fff8f3]">
+                <StatusPicker value={myStatut} onChange={s => { setMyStatut(s); setMySuccess(false); }} />
+                <div className="flex items-center gap-2 mt-2.5">
+                  <button type="button" onClick={() => myFileRef.current?.click()}
+                    className="flex items-center gap-1 text-xs font-medium text-[#E55A35]">
+                    <span>📎</span>
+                    {myFile ? <span className="truncate max-w-[150px]">{myFile.name}</span> : 'Joindre une preuve'}
+                  </button>
+                  {!myFile && myAdhesion?.preuveUrl && (
+                    <a href={`${API_BASE}${myAdhesion.preuveUrl}`} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-[#E55A35] underline">Voir</a>
+                  )}
+                  <input ref={myFileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) { setMyFile(f); setMySuccess(false); } e.target.value = ''; }} />
+                </div>
+                {mySuccess && <p className="text-xs text-[#2E7D32] font-medium mt-2">✓ Mis à jour.</p>}
+                {myError   && <p className="text-xs text-[#E55A35] mt-1.5">{myError}</p>}
+                <button onClick={handleMySave} disabled={myLoading || !myStatut}
+                  className="w-full mt-3 bg-gradient-to-r from-[#F58A4B] to-[#E55A35] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 transition-all">
+                  {myLoading ? 'Enregistrement…' : 'Enregistrer'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* ── Liste ── */}
-        {!loading && paginated.length > 0 && (
-          <>
-            {/* Sentinelle tab Guides : avec indicateur expandable */}
-            {isSentinelle && sentTab === 'guides' ? (
-              <div className="divide-y divide-[#f5f5f7]">
-                {paginated.map(guide => {
-                  const adh = guide.adhesions?.[0];
-                  const guideGardiensCount = gardiens.filter(
-                    g => g.parish?.id === guide.parish?.id
-                  ).length;
-                  const isExpanded = expandedGuide === guide.id;
-                  const guideGardiensLocal = isExpanded
-                    ? gardiens.filter(g => g.parish?.id === guide.parish?.id)
-                    : [];
+          {/* ── Liste membres ── */}
+          <div className="bg-white rounded-2xl border border-[#ececf0] overflow-hidden">
 
-                  return (
-                    <div key={guide.id}>
-                      <button onClick={() => setExpandedGuide(isExpanded ? null : guide.id)}
-                        className="flex items-center w-full px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors text-left">
-                        <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative">
-                          {guide.avatarUrl
-                            ? <Image src={guide.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
-                            : `${guide.nom?.[0] ?? ''}${guide.prenoms?.[0] ?? ''}`}
-                        </div>
-                        <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
-                          <div className="flex justify-between items-baseline gap-2">
-                            <span className="font-semibold text-[15px] text-[#1F1B2E] truncate">{guide.prenoms} {guide.nom}</span>
-                            <span className="text-[12px] text-[#9b9ba8] flex-shrink-0">{guide.matricule ?? '—'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[12px] text-[#9b9ba8] truncate">⛪ {guide.parish?.nom ?? '—'}</span>
-                            <span className="text-[11px] text-[#6b6b78] ml-auto flex-shrink-0">
-                              🤝 {guideGardiensCount} gardien{guideGardiensCount > 1 ? 's' : ''}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Pill variant={STATUT_PILL[guide.statutProfil] ?? 'gris'}>
-                              {STATUT_LABEL[guide.statutProfil] ?? guide.statutProfil}
-                            </Pill>
-                            {adh ? (
-                              <Pill variant={ADHESION_PILL[adh.statut] ?? 'gris'}>
-                                {ADHESION_LABEL[adh.statut] ?? adh.statut}
-                              </Pill>
-                            ) : <span className="text-[10px] text-[#b0b0bc]">Adhés. —</span>}
-                          </div>
-                        </div>
-                        <svg className={`w-4 h-4 text-[#c0c0cc] ml-2 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+            {/* Recherche + filtres */}
+            <div className="px-4 pt-3 pb-2 border-b border-[#f0f0f4]">
+              <div className="flex items-center justify-between mb-2.5">
+                <h2 className="text-sm font-bold text-[#1F1B2E]">
+                  {isSentinelle ? (sentTab === 'guides' ? 'Mes Guides' : 'Gardiens du district') : 'Mes Gardiens'}
+                </h2>
+                {isSentinelle && (
+                  <button onClick={() => setCreateOpen(true)}
+                    className="text-[11px] font-bold text-[#E55A35] bg-[#fff8f3] px-3 py-1 rounded-full border border-[#F58A4B]/30">
+                    + Ajouter
+                  </button>
+                )}
+              </div>
 
-                      {/* Sous-liste des gardiens */}
-                      {isExpanded && (
-                        <div className="bg-[#f7f7fa] border-t border-b border-[#ececf0]">
-                          {guideGardiensLocal.length === 0 ? (
-                            <p className="text-xs text-[#9b9ba8] text-center py-4">Aucun gardien dans cette paroisse.</p>
-                          ) : (
-                            guideGardiensLocal.map((g, idx) => {
-                              const gAdh = g.adhesions?.[0];
-                              const color = GRAD[idx % GRAD.length];
-                              return (
+              <div className="flex items-center gap-2 bg-[#f5f5fa] rounded-xl px-3 py-2 mb-2.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b9ba8" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input value={search} onChange={e => changeSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-sm outline-none text-[#1F1B2E] placeholder:text-[#b0b0bc]"
+                  placeholder="Nom, matricule, paroisse…" />
+                {search && <button onClick={() => changeSearch('')} className="text-[#b0b0bc] text-sm">✕</button>}
+              </div>
+
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+                {FILTERS.map(f => (
+                  <button key={f.key} onClick={() => changeFilter(f.key)}
+                    className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                      filter === f.key ? 'bg-[#E55A35] text-white border-[#E55A35]' : 'bg-white text-[#6b6b78] border-[#e6e6ea]'
+                    }`}>
+                    {f.dot && <span className={`w-1.5 h-1.5 rounded-full ${filter === f.key ? 'bg-white/70' : f.dot}`} />}
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Corps de liste */}
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-[#9b9ba8] animate-pulse">
+                <div className="text-3xl">👥</div>
+              </div>
+            ) : paginated.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-[#9b9ba8]">
+                <div className="text-3xl mb-2">{isSentinelle ? '🛡️' : '🤝'}</div>
+                <p className="text-sm font-medium">{search ? `Aucun résultat pour « ${search} »` : 'Aucun membre'}</p>
+              </div>
+            ) : (
+              <>
+                {/* Sentinelle onglet Guides : expandable avec leurs gardiens */}
+                {isSentinelle && sentTab === 'guides' ? (
+                  <div className="divide-y divide-[#f5f5f7]">
+                    {paginated.map(guide => {
+                      const isExpanded      = expandedGuide === guide.id;
+                      const isEditing       = activeRow === guide.id;
+                      const guideGardiens   = isExpanded ? gardiens.filter(g => g.parish?.id === guide.parish?.id) : [];
+                      const rs              = getRS(guide.id);
+                      return (
+                        <div key={guide.id}>
+                          {/* Ligne guide */}
+                          <div className={`flex items-center px-4 py-3 gap-3 transition-colors ${isEditing ? 'bg-[#fff8f3]' : 'hover:bg-[#fafafa]'}`}>
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F58A4B] to-[#7A2820] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden relative">
+                              {guide.avatarUrl ? <Image src={guide.avatarUrl} fill className="object-cover" alt="" sizes="40px" /> : `${guide.nom?.[0] ?? ''}${guide.prenoms?.[0] ?? ''}`}
+                            </div>
+                            <button onClick={() => setExpandedGuide(isExpanded ? null : guide.id)}
+                              className="flex-1 min-w-0 text-left">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-sm text-[#1F1B2E] truncate">{guide.prenoms} {guide.nom}</span>
+                                <span className="text-[10px] text-[#9b9ba8] font-mono">{guide.matricule ?? '—'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-[11px] text-[#9b9ba8]">⛪ {guide.parish?.nom ?? '—'}</span>
+                                <AdhBadge statut={getAdhStatut(guide)} />
+                              </div>
+                            </button>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                onClick={() => {
+                                  if (isEditing) setActiveRow(null);
+                                  else { setActiveRow(guide.id); setRS(guide.id, { selectedStatut: getAdhStatut(guide) ?? null, file: null, success: false, error: '' }); }
+                                }}
+                                className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+                                  isEditing ? 'bg-[#f0f0f4] text-[#9b9ba8]' : 'bg-[#fff8f3] text-[#E55A35] border border-[#F58A4B]/30 hover:bg-[#E55A35] hover:text-white'
+                                }`}>
+                                {isEditing ? 'Fermer' : 'Adhésion'}
+                              </button>
+                              <button onClick={() => setExpandedGuide(isExpanded ? null : guide.id)}
+                                className="text-[#9b9ba8] text-xs w-6 h-6 rounded-lg hover:bg-[#f3f3f5] flex items-center justify-center">
+                                <svg className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Panel adhésion inline */}
+                          {isEditing && (
+                            <div className="bg-[#fff8f3] border-t border-[#ece8f0] px-4 py-3">
+                              <p className="text-[11px] font-semibold text-[#6b6b78] mb-2 uppercase tracking-wider">Statut adhésion {CURRENT_YEAR}</p>
+                              <StatusPicker value={rs.selectedStatut} onChange={s => setRS(guide.id, { selectedStatut: s, success: false, error: '' })} />
+                              <div className="flex items-center gap-2 mt-2.5">
+                                <button type="button" onClick={() => rowFileRefs.current[guide.id]?.click()}
+                                  className="flex items-center gap-1 text-xs font-medium text-[#E55A35]">
+                                  <span>📎</span>
+                                  {rs.file ? <span className="truncate max-w-[150px]">{rs.file.name}</span> : 'Joindre une preuve'}
+                                </button>
+                                {!rs.file && adhesionCache[guide.id]?.preuveUrl && (
+                                  <a href={`${API_BASE}${adhesionCache[guide.id]!.preuveUrl}`} target="_blank" rel="noopener noreferrer"
+                                    className="text-xs text-[#E55A35] underline">Voir</a>
+                                )}
+                                <input ref={el => { rowFileRefs.current[guide.id] = el; }}
+                                  type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden"
+                                  onChange={e => { const f = e.target.files?.[0]; if (f) setRS(guide.id, { file: f, success: false }); e.target.value = ''; }} />
+                              </div>
+                              {rs.success && <p className="text-xs text-[#2E7D32] font-medium mt-2">✓ Mis à jour.</p>}
+                              {rs.error   && <p className="text-xs text-[#E55A35] mt-1.5">{rs.error}</p>}
+                              <div className="flex gap-2 mt-3">
+                                <button onClick={() => setActiveRow(null)}
+                                  className="flex-1 py-2 rounded-xl text-xs font-semibold border border-[#ececf0] text-[#6b6b78] hover:bg-[#f7f7fa] transition-colors">
+                                  Annuler
+                                </button>
+                                <button onClick={() => handleRowSave(guide.id)} disabled={rs.loading || !rs.selectedStatut}
+                                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#F58A4B] to-[#E55A35] text-white disabled:opacity-60 transition-all">
+                                  {rs.loading ? '…' : 'Enregistrer'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Sous-liste gardiens du guide */}
+                          {isExpanded && !isEditing && (
+                            <div className="bg-[#f7f7fa] border-t border-b border-[#ececf0]">
+                              {guideGardiens.length === 0 ? (
+                                <p className="text-xs text-[#9b9ba8] text-center py-3">Aucun gardien dans cette paroisse.</p>
+                              ) : guideGardiens.map((g, idx) => (
                                 <div key={g.id} className="flex items-center px-6 py-2.5 border-b border-[#ececf0] last:border-0">
-                                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden relative`}>
-                                    {g.avatarUrl
-                                      ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="32px" />
-                                      : `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`}
+                                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${GRAD[idx % GRAD.length]} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden relative`}>
+                                    {g.avatarUrl ? <Image src={g.avatarUrl} fill className="object-cover" alt="" sizes="32px" /> : `${g.nom?.[0] ?? ''}${g.prenoms?.[0] ?? ''}`}
                                   </div>
                                   <div className="flex-1 min-w-0 ml-2.5">
                                     <p className="text-sm font-medium text-[#1F1B2E] truncate">{g.prenoms} {g.nom}</p>
                                     <p className="text-[10px] text-[#9b9ba8] font-mono">{g.matricule ?? '—'}</p>
                                   </div>
-                                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-2">
-                                    <Pill variant={STATUT_PILL[g.statutProfil] ?? 'gris'}>
-                                      {STATUT_LABEL[g.statutProfil] ?? g.statutProfil}
-                                    </Pill>
-                                    {gAdh ? (
-                                      <Pill variant={ADHESION_PILL[gAdh.statut] ?? 'gris'}>
-                                        {ADHESION_LABEL[gAdh.statut]}
-                                      </Pill>
-                                    ) : <span className="text-[10px] text-[#b0b0bc]">—</span>}
-                                  </div>
+                                  <AdhBadge statut={getAdhStatut(g)} />
                                 </div>
-                              );
-                            })
+                              ))}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Gardiens (Guide ou onglet Gardiens Sentinelle) */
-              <div className="divide-y divide-[#f5f5f7]">
-                {paginated.map((m, idx) => {
-                  const adh   = m.adhesions?.[0];
-                  const color = GRAD[idx % GRAD.length];
-                  return (
-                    <div key={m.id} className="flex items-center px-4 py-3.5 hover:bg-[#F5F5F5] transition-colors">
-                      <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden relative`}>
-                        {m.avatarUrl
-                          ? <Image src={m.avatarUrl} fill className="object-cover" alt="" sizes="50px" />
-                          : `${m.nom?.[0] ?? ''}${m.prenoms?.[0] ?? ''}`}
-                      </div>
-                      <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
-                        <div className="flex justify-between items-baseline gap-2">
-                          <span className="font-semibold text-[15px] text-[#1F1B2E] truncate">{m.prenoms} {m.nom}</span>
-                          <span className="text-[12px] text-[#9b9ba8] flex-shrink-0 font-mono">{m.matricule ?? '—'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {isSentinelle && m.parish && (
-                            <span className="text-[12px] text-[#9b9ba8] truncate">⛪ {m.parish.nom}</span>
-                          )}
-                          <Pill variant={STATUT_PILL[m.statutProfil] ?? 'gris'}>
-                            {STATUT_LABEL[m.statutProfil] ?? m.statutProfil}
-                          </Pill>
-                          {adh ? (
-                            <Pill variant={ADHESION_PILL[adh.statut] ?? 'gris'}>
-                              {ADHESION_LABEL[adh.statut] ?? adh.statut}
-                            </Pill>
-                          ) : <span className="text-[10px] text-[#b0b0bc]">Adhés. —</span>}
-                          {m.telephone && (
-                            <span className="text-[11px] text-[#9b9ba8] ml-auto truncate hidden sm:block">{m.telephone}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Gardiens (Guide ou onglet Gardiens Sentinelle) */
+                  <div className="divide-y divide-[#f5f5f7]">
+                    {paginated.map((m, idx) => {
+                      const isEditing = activeRow === m.id && canEditAdhesion;
+                      const rs        = getRS(m.id);
+                      return (
+                        <div key={m.id}>
+                          <div className={`flex items-center gap-3 px-4 py-3 transition-colors ${isEditing ? 'bg-[#fff8f3]' : 'hover:bg-[#fafafa]'}`}>
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getAdhStatut(m) ? ADH_CFG[getAdhStatut(m)!].dot : 'bg-[#ddd]'}`} />
+                            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${GRAD[idx % GRAD.length]} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden relative`}>
+                              {m.avatarUrl ? <Image src={m.avatarUrl} fill className="object-cover" alt="" sizes="40px" /> : `${m.nom?.[0] ?? ''}${m.prenoms?.[0] ?? ''}`}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-semibold text-sm text-[#1F1B2E] truncate">{m.prenoms} {m.nom}</span>
+                                <span className="text-[11px] text-[#9b9ba8] font-mono flex-shrink-0">{m.matricule ?? '—'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                {isSentinelle && m.parish && <span className="text-[11px] text-[#9b9ba8]">⛪ {m.parish.nom}</span>}
+                                <span className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${STATUT_PILL[m.statutProfil] ?? 'bg-[#f5f5f5] text-[#9b9ba8] border-[#e0e0e0]'}`}>
+                                  {STATUT_LABEL[m.statutProfil] ?? m.statutProfil}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <AdhBadge statut={getAdhStatut(m)} />
+                              {canEditAdhesion && (
+                                <button
+                                  onClick={() => {
+                                    if (isEditing) setActiveRow(null);
+                                    else { setActiveRow(m.id); setRS(m.id, { selectedStatut: getAdhStatut(m) ?? null, file: null, success: false, error: '' }); }
+                                  }}
+                                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+                                    isEditing ? 'bg-[#f0f0f4] text-[#9b9ba8]' : 'bg-[#fff8f3] text-[#E55A35] border border-[#F58A4B]/30 hover:bg-[#E55A35] hover:text-white'
+                                  }`}>
+                                  {isEditing ? 'Fermer' : 'Modifier'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-4 py-4 border-t border-[#f0f0f0]">
-                <Pagination page={page} totalItems={filtered.length} perPage={PER_PAGE} onChange={p => { setPage(p); }} />
-              </div>
+                          {/* Panel inline adhésion */}
+                          {isEditing && (
+                            <div className="bg-[#fff8f3] border-t border-[#ece8f0] px-4 py-3">
+                              <p className="text-[11px] font-semibold text-[#6b6b78] mb-2 uppercase tracking-wider">Statut adhésion {CURRENT_YEAR}</p>
+                              <StatusPicker value={rs.selectedStatut} onChange={s => setRS(m.id, { selectedStatut: s, success: false, error: '' })} />
+                              <div className="flex items-center gap-2 mt-2.5">
+                                <button type="button" onClick={() => rowFileRefs.current[m.id]?.click()}
+                                  className="flex items-center gap-1 text-xs font-medium text-[#E55A35]">
+                                  <span>📎</span>
+                                  {rs.file ? <span className="truncate max-w-[150px]">{rs.file.name}</span> : 'Joindre une preuve'}
+                                </button>
+                                {!rs.file && adhesionCache[m.id]?.preuveUrl && (
+                                  <a href={`${API_BASE}${adhesionCache[m.id]!.preuveUrl}`} target="_blank" rel="noopener noreferrer"
+                                    className="text-xs text-[#E55A35] underline">Voir</a>
+                                )}
+                                <input ref={el => { rowFileRefs.current[m.id] = el; }}
+                                  type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden"
+                                  onChange={e => { const f = e.target.files?.[0]; if (f) setRS(m.id, { file: f, success: false }); e.target.value = ''; }} />
+                              </div>
+                              {rs.success && <p className="text-xs text-[#2E7D32] font-medium mt-2">✓ Adhésion mise à jour.</p>}
+                              {rs.error   && <p className="text-xs text-[#E55A35] mt-1.5">{rs.error}</p>}
+                              <div className="flex gap-2 mt-3">
+                                <button onClick={() => setActiveRow(null)}
+                                  className="flex-1 py-2 rounded-xl text-xs font-semibold border border-[#ececf0] text-[#6b6b78] hover:bg-[#f7f7fa] transition-colors">
+                                  Annuler
+                                </button>
+                                <button onClick={() => handleRowSave(m.id)} disabled={rs.loading || !rs.selectedStatut}
+                                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#F58A4B] to-[#E55A35] text-white disabled:opacity-60 transition-all">
+                                  {rs.loading ? '…' : 'Enregistrer'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {totalPages > 1 && (
+                  <div className="border-t border-[#f0f0f4] px-4 py-3">
+                    <Pagination page={page} totalItems={afterFilter.length} perPage={PER_PAGE} onChange={p => setPage(p)} />
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+
+          <div className="h-4" />
+        </div>
       </div>
 
-      {/* Guide : crée uniquement des Gardiens (rôle verrouillé)
-          Sentinelle : choisit entre Guide et Gardien (modal avec sélecteur)
-          Admin/Région : tous les rôles (géré par la matrice du modal) */}
       <CreateUserModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={handleCreated}
+        onCreated={(u: User) => setMembres(prev => [u, ...prev])}
         defaultRole={isGuide ? 'GARDIEN' : undefined}
       />
     </div>

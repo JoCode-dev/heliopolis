@@ -20,18 +20,29 @@ const TYPE_LABELS: Record<string, string> = {
   PAROISSIAL: 'Paroissial', NATIONAL: 'National', COMMUNAUTE: 'Communauté',
 };
 
-export function CampCard({ camp, href }: { camp: Camp; href?: string }) {
+interface CampCardProps {
+  camp: Camp;
+  href?: string;
+  pendingCount?: number;
+}
+
+export function CampCard({ camp, href, pendingCount = 0 }: CampCardProps) {
   const status   = STATUS_LABELS[camp.statut];
   const imageUrl = camp.imageUrl
     ? camp.imageUrl.startsWith('http') ? camp.imageUrl : `${API_BASE}${camp.imageUrl}`
     : null;
   const enCours  = camp.statut === 'EN_COURS';
+  const hasPending = pendingCount > 0;
 
   return (
     <Link
       href={href ?? `/camps/${camp.id}`}
       className={`block rounded-2xl overflow-hidden bg-white shadow-sm border mb-3.5 active:scale-[.98] transition-transform ${
-        enCours ? 'border-[#D9A441] ring-1 ring-[#D9A441]/30' : 'border-[#ececf0]'
+        hasPending
+          ? 'border-[#D9A441] ring-2 ring-[#D9A441]/40 shadow-[0_0_12px_rgba(217,164,65,0.2)]'
+          : enCours
+            ? 'border-[#D9A441] ring-1 ring-[#D9A441]/30'
+            : 'border-[#ececf0]'
       }`}
     >
       {/* Hero */}
@@ -50,6 +61,8 @@ export function CampCard({ camp, href }: { camp: Camp; href?: string }) {
             </svg>
           </>
         )}
+
+        {/* Badges statut + live */}
         <div className="absolute top-2.5 left-2.5 z-10 flex gap-1.5 flex-wrap">
           <Pill variant={status.variant} solid>{status.label}</Pill>
           {enCours && (
@@ -58,6 +71,15 @@ export function CampCard({ camp, href }: { camp: Camp; href?: string }) {
             </span>
           )}
         </div>
+
+        {/* Badge "N en attente" — visible uniquement si pendingCount > 0 */}
+        {hasPending && (
+          <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 bg-[#D9A441] text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-lg animate-pulse">
+            <span>⏳</span>
+            <span>{pendingCount} en attente</span>
+          </div>
+        )}
+
         {camp.theme && (
           <div className="absolute bottom-2 left-3.5 z-10 text-white text-[10px] uppercase tracking-wide opacity-90 font-semibold">
             {camp.theme}
@@ -67,7 +89,14 @@ export function CampCard({ camp, href }: { camp: Camp; href?: string }) {
 
       {/* Body */}
       <div className="p-3.5">
-        <h3 className="font-bold text-[15px] text-[#1F1B2E] mb-1.5">{camp.nom}</h3>
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <h3 className="font-bold text-[15px] text-[#1F1B2E] flex-1">{camp.nom}</h3>
+          {hasPending && (
+            <span className="flex-shrink-0 text-[10px] font-bold text-[#9c7218] bg-[#fff8e6] border border-[#ffe082] px-2 py-0.5 rounded-full whitespace-nowrap">
+              Action requise
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#6b6b78]">
           {camp.lieu       && <span>📍 {camp.lieu}</span>}
           {camp.dateDebut  && (

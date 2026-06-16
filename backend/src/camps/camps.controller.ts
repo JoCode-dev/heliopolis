@@ -39,6 +39,12 @@ export class CampsController {
     return this.campsService.findAll(query, user);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('requests-pending')
+  getPendingRequestsCount(@CurrentUser() user: AuthUser) {
+    return this.campsService.getPendingRequestsCount(user);
+  }
+
   @UseGuards(OptionalJwtGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user?: AuthUser) {

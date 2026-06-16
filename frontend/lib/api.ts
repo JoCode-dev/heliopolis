@@ -87,6 +87,7 @@ export const campsApi = {
   myParticipation:     (campId: string) => api.get(`/camps/${campId}/my-participation`),
   expressInterest:     (campId: string) => api.post(`/camps/${campId}/express-interest`),
   withdrawInterest:    (campId: string) => api.delete(`/camps/${campId}/withdraw`),
+  pendingRequests:     () => api.get('/camps/requests-pending'),
 };
 
 // ─── Challenges ───────────────────────────────────────────────────────────────

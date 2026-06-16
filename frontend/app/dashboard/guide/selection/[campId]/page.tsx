@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { campsApi, usersApi } from '@/lib/api';
 import { getTerritoryLabel } from '@/lib/roles';
 import { useAuthStore } from '@/store/auth';
+import { useUnreadCounts } from '@/store/unreadCounts';
 import type { User, Camp, CampParticipant } from '@/types';
 
 // ─── Shared config ────────────────────────────────────────────────────────────
@@ -93,11 +94,14 @@ function GuideView({ campId, user, toast }: {
   user: User | null;
   toast: (msg: string, ok: boolean) => void;
 }) {
+  const refreshCampRequests = useUnreadCounts(s => s.refreshCampRequests);
+
   const [camp, setCamp]             = useState<Camp | null>(null);
   const [gardiens, setGardiens]     = useState<User[]>([]);
   const [confirmed, setConfirmed]   = useState<Set<string>>(new Set());
   const [selected, setSelected]     = useState<Set<string>>(new Set());
   const [blocked, setBlocked]       = useState<Set<string>>(new Set());
+  const [waitingIds, setWaitingIds] = useState<Set<string>>(new Set());
   const [saving, setSaving]         = useState(false);
   const [blockingId, setBlockingId] = useState<string | null>(null);
   const [search, setSearch]         = useState('');
@@ -116,9 +120,11 @@ function GuideView({ campId, user, toast }: {
       setCamp(c.data);
       const parts = pp.data as CampParticipant[];
       const blockedIds = new Set<string>(parts.filter(x => x.participationStatus === 'BLOQUE').map(x => x.userId));
-      const selectedIds = new Set<string>(parts.filter(x => x.participationStatus !== 'BLOQUE').map(x => x.userId));
+      const pendingIds  = new Set<string>(parts.filter(x => x.participationStatus === 'EN_ATTENTE').map(x => x.userId));
+      const selectedIds = new Set<string>(parts.filter(x => x.participationStatus !== 'BLOQUE' && x.participationStatus !== 'EN_ATTENTE').map(x => x.userId));
       setGardiens(u.data as User[]);
       setBlocked(blockedIds);
+      setWaitingIds(pendingIds);
       setConfirmed(new Set(selectedIds));
       setSelected(new Set(selectedIds));
     }).catch(() => toast('Erreur lors du chargement.', false))
@@ -167,19 +173,43 @@ function GuideView({ campId, user, toast }: {
   const handleSave = async () => {
     if (!hasChanges) return;
     setSaving(true);
-    let addOk = 0, removeOk = 0, errors = 0;
+    let addOk = 0, removeOk = 0;
+    const firstError = { msg: '' };
     await Promise.all([
-      ...toAdd.map(id    => campsApi.selectParticipant(campId, id).then(() => addOk++).catch(() => errors++)),
-      ...toRemove.map(id => campsApi.removeParticipant(campId, id).then(() => removeOk++).catch(() => errors++)),
+      ...toAdd.map(id => campsApi.selectParticipant(campId, id)
+        .then(() => addOk++)
+        .catch((e: unknown) => {
+          const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '';
+          if (!firstError.msg && msg) firstError.msg = msg;
+        })),
+      ...toRemove.map(id => campsApi.removeParticipant(campId, id)
+        .then(() => removeOk++)
+        .catch((e: unknown) => {
+          const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '';
+          if (!firstError.msg && msg) firstError.msg = msg;
+        })),
     ]);
+    const errors = (toAdd.length - addOk) + (toRemove.length - removeOk);
     if (errors === 0) {
       const parts = [];
       if (addOk)    parts.push(`${addOk} ajouté${addOk > 1 ? 's' : ''}`);
       if (removeOk) parts.push(`${removeOk} retiré${removeOk > 1 ? 's' : ''}`);
       toast(`✓ ${parts.join(', ')}.`, true);
       setConfirmed(new Set(selected));
+      setWaitingIds(prev => {
+        const s = new Set(prev);
+        toAdd.forEach(id => s.delete(id));
+        return s;
+      });
+      void refreshCampRequests();
+    } else if (addOk > 0 || removeOk > 0) {
+      const parts = [];
+      if (addOk)    parts.push(`${addOk} ajouté${addOk > 1 ? 's' : ''}`);
+      if (removeOk) parts.push(`${removeOk} retiré${removeOk > 1 ? 's' : ''}`);
+      toast(`${parts.join(', ')} · ${errors} échoué${errors > 1 ? 's' : ''} — ${firstError.msg || 'Erreur inconnue'}`, false);
+      setConfirmed(new Set(selected));
     } else {
-      toast(`${errors} erreur(s) sur ${toAdd.length + toRemove.length} opérations.`, false);
+      toast(firstError.msg || `Impossible de sélectionner ${errors} participant${errors > 1 ? 's' : ''}.`, false);
     }
     setSaving(false);
   };
@@ -196,11 +226,11 @@ function GuideView({ campId, user, toast }: {
 
   const countByAdh = (s: string) => visibleGardiens.filter(r => (r.adhesions?.[0]?.statut ?? 'NON_A_JOUR') === s).length;
 
-  // Non-inscrits toujours en premier
+  // En attente en tête, puis non-inscrits, puis inscrits
   const sortedVisible = filteredVisible.slice().sort((a, b) => {
-    const aInscrit = confirmed.has(a.id) ? 1 : 0;
-    const bInscrit = confirmed.has(b.id) ? 1 : 0;
-    return aInscrit - bInscrit;
+    const aW = waitingIds.has(a.id) ? 0 : confirmed.has(a.id) ? 2 : 1;
+    const bW = waitingIds.has(b.id) ? 0 : confirmed.has(b.id) ? 2 : 1;
+    return aW - bW;
   });
 
   return (
@@ -218,12 +248,12 @@ function GuideView({ campId, user, toast }: {
         {!loading && (
           <div className="grid grid-cols-4 gap-2 mt-3">
             {[
-              { label: 'Total',    value: visibleGardiens.length,              color: 'bg-white/15' },
-              { label: 'À jour',   value: countByAdh('A_JOUR'),               color: 'bg-[#2E7D32]/60' },
-              { label: 'Inscrits', value: confirmed.size,                      color: 'bg-[#6A1B9A]/60' },
-              { label: 'Bloqués',  value: blockedGardiens.length,              color: blockedGardiens.length > 0 ? 'bg-[#E55A35]/60' : 'bg-white/10' },
+              { label: 'Total',     value: visibleGardiens.length,              color: 'bg-white/15' },
+              { label: 'En attente',value: waitingIds.size,                     color: waitingIds.size > 0 ? 'bg-[#D9A441]/80' : 'bg-white/10', pulse: waitingIds.size > 0 },
+              { label: 'Inscrits',  value: confirmed.size,                      color: 'bg-[#6A1B9A]/60' },
+              { label: 'Bloqués',   value: blockedGardiens.length,              color: blockedGardiens.length > 0 ? 'bg-[#E55A35]/60' : 'bg-white/10' },
             ].map(s => (
-              <div key={s.label} className={`${s.color} rounded-xl p-2 text-center`}>
+              <div key={s.label} className={`${s.color} rounded-xl p-2 text-center relative ${'pulse' in s && s.pulse ? 'ring-2 ring-white/60' : ''}`}>
                 <div className="text-base font-black">{s.value}</div>
                 <div className="text-[9px] opacity-80 uppercase tracking-wide">{s.label}</div>
               </div>
@@ -284,20 +314,27 @@ function GuideView({ campId, user, toast }: {
                   {sortedVisible.map((r, idx) => {
                     const adhStatut    = r.adhesions?.[0]?.statut ?? 'NON_A_JOUR';
                     const adh          = ADH_CFG[adhStatut] ?? ADH_CFG.NON_A_JOUR;
+                    const isWaiting    = waitingIds.has(r.id);
                     const isSelected   = selected.has(r.id);
                     const wasConfirmed = confirmed.has(r.id);
-                    const isNew        = isSelected && !wasConfirmed;
+                    const isNew        = isSelected && !wasConfirmed && !isWaiting;
                     const isRemoved    = !isSelected && wasConfirmed;
 
                     return (
-                      <div key={r.id} className={`flex items-center px-4 py-3 gap-3 transition-colors ${isSelected ? 'bg-[#f5f0ff]' : isRemoved ? 'bg-[#fff5f5]' : 'hover:bg-[#fafafa]'}`}>
+                      <div key={r.id} className={`flex items-center px-4 py-3 gap-3 transition-colors border-l-4 ${
+                        isWaiting  ? 'bg-[#fffbef] border-[#D9A441]' :
+                        isSelected ? 'bg-[#f5f0ff] border-transparent' :
+                        isRemoved  ? 'bg-[#fff5f5] border-transparent' :
+                                     'hover:bg-[#fafafa] border-transparent'
+                      }`}>
                         {/* Checkbox zone */}
                         <button onClick={() => toggle(r.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                           <Avatar user={r} idx={idx} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={`font-semibold text-sm ${isRemoved ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>{r.prenoms} {r.nom}</span>
-                              {wasConfirmed && !isRemoved && <span className="text-[10px] text-[#6A1B9A] font-bold bg-[#f0e8ff] px-1.5 py-0.5 rounded-full">Inscrit</span>}
+                              {isWaiting   && <span className="inline-flex items-center gap-1 text-[10px] text-[#9c7218] font-black bg-[#D9A441] text-white px-2 py-0.5 rounded-full animate-pulse">⏳ Demande</span>}
+                              {wasConfirmed && !isRemoved && !isWaiting && <span className="text-[10px] text-[#6A1B9A] font-bold bg-[#f0e8ff] px-1.5 py-0.5 rounded-full">Inscrit</span>}
                               {isNew       && <span className="text-[10px] text-[#2E7D32] font-bold bg-[#e8f5e9] px-1.5 py-0.5 rounded-full">+ Nouveau</span>}
                               {isRemoved   && <span className="text-[10px] text-[#E55A35] font-bold bg-[#fff8f3] px-1.5 py-0.5 rounded-full">À retirer</span>}
                             </div>
@@ -365,11 +402,11 @@ function GuideView({ campId, user, toast }: {
             )}
           </>
         )}
-        <div className="h-28" />
+        <div className="h-4" />
       </div>
 
-      {/* Bouton flottant */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-[#ececf0] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      {/* Barre d'action — flex-shrink-0 pour ne pas chevaucher la BottomNav */}
+      <div className="flex-shrink-0 p-4 bg-white border-t border-[#ececf0] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         {hasChanges && (
           <div className="flex items-center gap-2 mb-2 text-xs">
             {toAdd.length > 0    && <span className="text-[#2E7D32] font-semibold">+ {toAdd.length} à ajouter</span>}
@@ -379,7 +416,7 @@ function GuideView({ campId, user, toast }: {
         )}
         <button onClick={handleSave} disabled={saving || !hasChanges}
           className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${hasChanges ? 'bg-gradient-to-r from-[#F58A4B] via-[#E55A35] to-[#7A2820] text-white shadow-md' : 'bg-[#f3f3f5] text-[#9b9ba8] cursor-not-allowed'} disabled:opacity-60`}>
-          {saving ? '⏳ Enregistrement…'
+          {saving ? 'Enregistrement…'
             : hasChanges ? `Enregistrer (${selected.size} participant${selected.size > 1 ? 's' : ''})`
             : `Sélection enregistrée · ${selected.size} participant${selected.size > 1 ? 's' : ''}`}
         </button>

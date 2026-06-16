@@ -40,15 +40,14 @@ const ADMIN_ITEMS: NavItem[] = [
 // Guide : 4 onglets principaux + overflow via "+"
 const GUIDE_PRIMARY: NavItem[] = [
   { href: '/dashboard/guide',           icon: '📖', label: 'Accueil'   },
-  { href: '/dashboard/guide/annonces',  icon: '📣', label: 'Annonces'  },
+  { href: '/dashboard/guide/camps',     icon: '⛺', label: 'Camps'     },
   { href: '/dashboard/guide/missions',  icon: '🎯', label: 'Missions'  },
   { href: '/dashboard/guide/messages',  icon: '💬', label: 'Messages'  },
 ];
 
 const GUIDE_OVERFLOW_BASE: NavItem[] = [
+  { href: '/dashboard/guide/annonces',  icon: '📣', label: 'Annonces'  },
   { href: '/dashboard/guide/membres',   icon: '👥', label: 'Membres'   },
-  { href: '/dashboard/guide/camps',     icon: '⛺', label: 'Camps'     },
-  { href: '/dashboard/guide/adhesions', icon: '📋', label: 'Adhésions' },
   { href: '/dashboard/guide/codex',     icon: '🪶', label: 'Codex'     },
   { href: '/dashboard/guide/artefacts', icon: '🏅', label: 'Artefacts' },
   { href: '/dashboard/guide/profil',    icon: '👤', label: 'Profil'    },
@@ -62,10 +61,12 @@ export function BottomNav({ variant = 'guest' }: { variant?: 'guest' | 'gardien'
   const [moreOpen, setMoreOpen] = useState(false);
   const unreadMessages = useUnreadCounts(s => s.messages);
   const unreadAnnonces = useUnreadCounts(s => s.annonces);
+  const campRequests   = useUnreadCounts(s => s.campRequests);
 
   const getBadge = (href: string) => {
     if (href.endsWith('/messages')) return unreadMessages;
     if (href.endsWith('/annonces')) return unreadAnnonces;
+    if (href.endsWith('/camps'))   return campRequests;
     return 0;
   };
 

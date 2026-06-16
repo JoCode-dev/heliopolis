@@ -44,7 +44,7 @@ export class PrismaService
     });
 
     pool.on('error', (err) => {
-      PrismaService.logger.warn(`pg pool error (ignoré) : ${err.message}`);
+      PrismaService.logger.warn(`pg pool error : ${err.message}`);
     });
 
     const adapter = new PrismaPg(pool);
@@ -67,8 +67,9 @@ export class PrismaService
       throw error;
     }
 
-    // Ping toutes les 30 s via le pool normal — pas de connexion dédiée
-    this.heartbeat = setInterval(() => void this.ping(), 30_000);
+    // Ping toutes les 60 s — l'idleTimeoutMillis (30 s) recycle les connexions
+    // avant chaque ping, évitant qu'une même connexion survive au-delà de 90 s.
+    this.heartbeat = setInterval(() => void this.ping(), 60_000);
   }
 
   private async ping() {

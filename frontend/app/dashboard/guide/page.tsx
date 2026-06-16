@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import { usersApi, challengesApi, campsApi, messagingApi } from '@/lib/api';
 import { getTerritoryLabel, ROLE_LABEL } from '@/lib/roles';
+import { useUnreadCounts } from '@/store/unreadCounts';
 import { Progress } from '@/components/ui';
 import { CampCard } from '@/components/camps/CampCard';
 import { AnnoncesSection } from '@/components/annonces/AnnoncesSection';
@@ -33,6 +34,8 @@ function timeLabel(d?: string | null) {
 export default function DashboardGuidePage() {
   const { user } = useAuthStore();
   const isSentinelle = user?.role === 'SENTINELLE';
+  const campRequests   = useUnreadCounts(s => s.campRequests);
+  const byCampRequests = useUnreadCounts(s => s.byCampRequests);
 
   // Guide : gardiens de la paroisse / Sentinelle : guides du district
   const [directReports, setDirectReports] = useState<User[]>([]);
@@ -171,6 +174,25 @@ export default function DashboardGuidePage() {
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f7f7fa]">
 
         <AnnoncesSection />
+
+        {/* Alerte demandes de participation camp */}
+        {!loading && campRequests > 0 && (
+          <Link href="/dashboard/guide/camps"
+            className="mx-4 mt-4 flex items-center gap-3 bg-[#fffbef] border border-[#D9A441] rounded-2xl px-4 py-3 shadow-[0_0_12px_rgba(217,164,65,0.2)] active:scale-[.98] transition-transform">
+            <div className="w-10 h-10 rounded-full bg-[#D9A441] flex items-center justify-center text-xl flex-shrink-0 animate-pulse">
+              ⏳
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-[#7a5800]">
+                {campRequests} gardien{campRequests > 1 ? 's' : ''} en attente
+              </p>
+              <p className="text-[11px] text-[#9c7218] mt-0.5 truncate">
+                {campRequests > 1 ? 'Ils souhaitent' : 'Il souhaite'} participer à un camp · Appuie pour traiter
+              </p>
+            </div>
+            <span className="text-[#D9A441] text-xl font-black flex-shrink-0">›</span>
+          </Link>
+        )}
 
         {/* Stats rapides */}
         <div className={`px-4 pt-4 grid gap-2 ${isSentinelle ? 'grid-cols-4' : 'grid-cols-4'}`}>
@@ -323,15 +345,20 @@ export default function DashboardGuidePage() {
                       <Link href="/dashboard/guide/camps" className="text-xs text-[#6A1B9A] font-semibold">Tout voir →</Link>
                     )}
                   </div>
-                  {camps.slice(0, 1).map(camp => (
-                    <div key={camp.id} className="mb-3">
-                      <CampCard camp={camp} href={`/dashboard/guide/camps/${camp.id}`} />
-                      <Link href={`/dashboard/guide/selection/${camp.id}`}
-                        className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-2.5 rounded-b-2xl -mt-1 hover:bg-[#5a1280] transition">
-                        Sélectionner les participants →
-                      </Link>
-                    </div>
-                  ))}
+                  {camps.slice(0, 1).map(camp => {
+                    const pending = byCampRequests[camp.id] ?? 0;
+                    return (
+                      <div key={camp.id} className="mb-3">
+                        <CampCard camp={camp} href={`/dashboard/guide/camps/${camp.id}`} pendingCount={pending} />
+                        <Link href={`/dashboard/guide/selection/${camp.id}`}
+                          className={`block w-full text-center font-bold text-sm py-2.5 rounded-b-2xl -mt-1 transition ${
+                            pending > 0 ? 'bg-[#D9A441] text-white hover:bg-[#c49030]' : 'bg-[#6A1B9A] text-white hover:bg-[#5a1280]'
+                          }`}>
+                          {pending > 0 ? `⏳ Traiter ${pending} demande${pending > 1 ? 's' : ''} →` : 'Sélectionner les participants →'}
+                        </Link>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
