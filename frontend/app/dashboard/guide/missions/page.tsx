@@ -198,7 +198,7 @@ function SubmissionRow({ sub, status, showParish, onClick }: {
 
       {/* Avatar gardien */}
       <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-        {gardien ? `${gardien.nom?.[0]}${gardien.prenoms?.[0]}`.toUpperCase() : '?'}
+        {gardien ? `${gardien.nom?.[0] ?? ''}${gardien.prenoms?.[0] ?? ''}`.toUpperCase() : '?'}
       </div>
 
       <div className="flex-1 min-w-0 ml-3 py-1 border-b border-[#F2F2F2]">
@@ -306,7 +306,7 @@ function ValidationPanel({ sub, onClose, onValidated }: {
           {/* Profil gardien */}
           <div className="flex items-center gap-3 bg-[#f7f7fa] rounded-xl px-3.5 py-3">
             <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white font-bold flex-shrink-0">
-              {gardien ? `${gardien.nom?.[0]}${gardien.prenoms?.[0]}`.toUpperCase() : '?'}
+              {gardien ? `${gardien.nom?.[0] ?? ''}${gardien.prenoms?.[0] ?? ''}`.toUpperCase() : '?'}
             </div>
             <div>
               <p className="text-sm font-bold text-[#1F1B2E]">{gardien?.prenoms} {gardien?.nom}</p>

@@ -14,6 +14,7 @@ import { ActivateDto } from './dto/activate.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { InscrireDto } from './dto/inscrire.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
+import { VerifierMatriculeDto } from './dto/verifier-matricule.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { Response } from 'express';
@@ -32,8 +33,8 @@ export class AuthController {
 
   /** Vérifier si un matricule est pré-enregistré et disponible */
   @Post('verifier-matricule')
-  verifierMatricule(@Body() body: { matricule: string }) {
-    return this.authService.verifierMatricule(body.matricule);
+  verifierMatricule(@Body() dto: VerifierMatriculeDto) {
+    return this.authService.verifierMatricule(dto.matricule);
   }
 
   /** Auto-inscription : le gardien/guide complète son profil */

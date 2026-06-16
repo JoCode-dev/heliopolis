@@ -4,6 +4,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UserRole } from '../../generated/prisma/enums.js';
+import { CreateDistrictDto } from './dto/create-district.dto.js';
+import { RenameDistrictDto } from './dto/rename-district.dto.js';
+import { MergeDistrictsDto } from './dto/merge-districts.dto.js';
+import { CreateParishDto } from './dto/create-parish.dto.js';
 
 @Controller('territories')
 export class TerritoriesController {
@@ -39,22 +43,22 @@ export class TerritoriesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post('districts')
-  createDistrict(@Body() body: { nom: string; code?: string; regionId: string }) {
-    return this.territoriesService.createDistrict(body);
+  createDistrict(@Body() dto: CreateDistrictDto) {
+    return this.territoriesService.createDistrict(dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Patch('districts/:id/rename')
-  renameDistrict(@Param('id') id: string, @Body() body: { nom: string }) {
-    return this.territoriesService.renameDistrict(id, body.nom);
+  renameDistrict(@Param('id') id: string, @Body() dto: RenameDistrictDto) {
+    return this.territoriesService.renameDistrict(id, dto.nom);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post('districts/:id/merge')
-  mergeDistricts(@Param('id') sourceId: string, @Body() body: { targetId: string }) {
-    return this.territoriesService.mergeDistricts(sourceId, body.targetId);
+  mergeDistricts(@Param('id') sourceId: string, @Body() dto: MergeDistrictsDto) {
+    return this.territoriesService.mergeDistricts(sourceId, dto.targetId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -67,8 +71,8 @@ export class TerritoriesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post('parishes')
-  createParish(@Body() body: { nom: string; districtId: string }) {
-    return this.territoriesService.createParish(body);
+  createParish(@Body() dto: CreateParishDto) {
+    return this.territoriesService.createParish(dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

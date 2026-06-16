@@ -7,6 +7,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AuditAction, UserRole } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { ActionLogService } from '../logs/action-log.service.js';
+import { SetPastoralYearDto } from './dto/set-pastoral-year.dto.js';
 
 @Controller('settings')
 @UseGuards(JwtAuthGuard)
@@ -24,8 +25,8 @@ export class SettingsController {
   @Patch('annee-pastorale')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.REGION)
-  async set(@Body() body: { annee: number }, @CurrentUser() user: AuthUser) {
-    const nouvelleAnnee = Number(body.annee);
+  async set(@Body() dto: SetPastoralYearDto, @CurrentUser() user: AuthUser) {
+    const nouvelleAnnee = dto.annee;
     const actuelle = await this.settings.getAnneePastorale();
     if (user.role === UserRole.REGION) {
       if (nouvelleAnnee < actuelle) {

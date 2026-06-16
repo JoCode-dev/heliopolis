@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { MessagingService } from './messaging.service.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
+import { CreateGroupDto } from './dto/create-group.dto.js';
+import { EditMessageDto } from './dto/edit-message.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../common/types/auth-user.js';
@@ -83,10 +85,10 @@ export class MessagingController {
 
   @Post('conversations/group')
   createGroup(
-    @Body() body: { nom: string; memberIds: string[] },
+    @Body() dto: CreateGroupDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.messagingService.createGroupConversation(user.id, body);
+    return this.messagingService.createGroupConversation(user.id, dto);
   }
 
   @Get('conversations/channels/suggestions')
@@ -105,10 +107,10 @@ export class MessagingController {
   @Patch('messages/:messageId')
   editMessage(
     @Param('messageId') messageId: string,
-    @Body('contenu') contenu: string,
+    @Body() dto: EditMessageDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.messagingService.editMessage(messageId, user.id, contenu);
+    return this.messagingService.editMessage(messageId, user.id, dto.contenu);
   }
 
   @Delete('messages/:messageId')
