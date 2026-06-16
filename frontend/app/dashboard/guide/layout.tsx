@@ -18,6 +18,7 @@ const NAV_BASE = [
   { href: '/dashboard/guide/membres',      icon: '👥', label: 'Membres' },
   { href: '/dashboard/guide/camps',        icon: '⛺', label: 'Camps' },
   { href: '/dashboard/guide/messages',     icon: '💬', label: 'Messages' },
+  { href: '/dashboard/guide/annonces',     icon: '📣', label: 'Annonces' },
   { href: '/dashboard/guide/adhesions',    icon: '📋', label: 'Adhésions' },
   { href: '/dashboard/guide/codex',        icon: '🪶', label: 'Codex' },
   { href: '/dashboard/guide/artefacts',    icon: '🏅', label: 'Artefacts' },

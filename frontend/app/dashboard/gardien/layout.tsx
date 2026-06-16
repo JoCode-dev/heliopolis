@@ -16,6 +16,7 @@ const NAV = [
   { href: '/dashboard/gardien/camps',      icon: '⛺', label: 'Camps' },
   { href: '/dashboard/gardien/missions',   icon: '🎯', label: 'Missions' },
   { href: '/dashboard/gardien/messages',   icon: '💬', label: 'Messages' },
+  { href: '/dashboard/gardien/annonces',   icon: '📣', label: 'Annonces' },
   { href: '/dashboard/gardien/codex',      icon: '🪶', label: 'Codex' },
   { href: '/dashboard/gardien/artefacts',  icon: '🏅', label: 'Artefacts' },
   { href: '/dashboard/gardien/profil',     icon: '👤', label: 'Profil' },

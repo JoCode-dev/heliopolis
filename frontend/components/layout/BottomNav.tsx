@@ -22,6 +22,7 @@ const GARDIEN_ITEMS: NavItem[] = [
 ];
 
 const GARDIEN_OVERFLOW: NavItem[] = [
+  { href: '/dashboard/gardien/annonces', icon: '📣', label: 'Annonces' },
   { href: '/dashboard/gardien/codex',    icon: '🪶', label: 'Codex'    },
   { href: '/dashboard/gardien/artefacts',icon: '🏅', label: 'Artefacts'},
   { href: '/dashboard/gardien/profil',   icon: '👤', label: 'Profil'   },
@@ -44,6 +45,7 @@ const GUIDE_PRIMARY: NavItem[] = [
 ];
 
 const GUIDE_OVERFLOW_BASE: NavItem[] = [
+  { href: '/dashboard/guide/annonces',   icon: '📣', label: 'Annonces'   },
   { href: '/dashboard/guide/camps',      icon: '⛺', label: 'Camps'      },
   { href: '/dashboard/guide/adhesions',  icon: '📋', label: 'Adhésions'  },
   { href: '/dashboard/guide/codex',      icon: '🪶', label: 'Codex'      },
