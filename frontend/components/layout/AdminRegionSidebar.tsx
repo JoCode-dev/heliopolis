@@ -18,14 +18,14 @@ const ADMIN_NAV_GROUPS = [
       { href: '/dashboard/admin/conseils',    icon: '🏛️', label: 'Conseils' },
       { href: '/dashboard/admin/codex',        icon: '🪶', label: 'Modération' },
       { href: '/dashboard/admin/messages',     icon: '💬', label: 'Messagerie' },
-      { href: '/dashboard/admin/export',       icon: '📤', label: 'Exports' },
-      { href: '/dashboard/admin/import',       icon: '📥', label: 'Import membres' },
+      { href: '/dashboard/admin/export',              icon: '📤', label: 'Exports' },
+      { href: '/dashboard/admin/import',             icon: '📥', label: 'Import membres' },
+      { href: '/dashboard/admin/comparaison-excel',  icon: '🔍', label: 'Comparaison Excel' },
     ],
   },
   {
     label: 'Région',
     items: [
-      { href: '/dashboard/admin/region',       icon: '🌍', label: 'Membres région' },
       { href: '/dashboard/admin/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/admin/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/admin/guides',       icon: '📖', label: 'Encadrants' },
@@ -60,7 +60,6 @@ const REGION_NAV_GROUPS = [
   {
     label: 'Membres',
     items: [
-      { href: '/dashboard/region/region',       icon: '🌍', label: 'Membres région' },
       { href: '/dashboard/region/participants', icon: '👥', label: 'Participants' },
       { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens' },
       { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants' },

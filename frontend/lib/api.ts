@@ -71,6 +71,17 @@ export const territoriesApi = {
   deleteDistrict: (id: string) => api.delete(`/territories/districts/${id}`),
   createParish: (data: { nom: string; districtId: string }) => api.post('/territories/parishes', data),
   deleteParish: (id: string) => api.delete(`/territories/parishes/${id}`),
+  compareExcel: (fichier: File) => {
+    const form = new FormData();
+    form.append('fichier', fichier);
+    return api.post('/territories/compare-excel', form);
+  },
+  appliquerExcel: (fichier: File) => {
+    const form = new FormData();
+    form.append('fichier', fichier);
+    return api.post('/territories/appliquer-excel', form);
+  },
+  completerDistricts: () => api.post<{ corriges: number }>('/territories/completer-districts'),
 };
 
 // ─── Camps ───────────────────────────────────────────────────────────────────

@@ -16,13 +16,13 @@ const MOBILE_NAV = [
   { icon: '👥', label: 'Participants', href: '/dashboard/admin/participants' },
   { icon: '🤝', label: 'Gardiens',       href: '/dashboard/admin/gardiens' },
   { icon: '📖', label: 'Encadrants',    href: '/dashboard/admin/guides' },
-  { icon: '🌍', label: 'Membres',        href: '/dashboard/admin/region' },
   { icon: '🛡️', label: 'Districts',    href: '/dashboard/admin/districts' },
   { icon: '⛪', label: 'Paroisses',    href: '/dashboard/admin/paroisses' },
   { icon: '🎯', label: 'Quêtes',        href: '/dashboard/admin/defis' },
   { icon: '🪶', label: 'Codex',        href: '/dashboard/admin/codex' },
   { icon: '📤', label: 'Exports',      href: '/dashboard/admin/export' },
   { icon: '📥', label: 'Import',       href: '/dashboard/admin/import' },
+  { icon: '🔍', label: 'Comparaison',  href: '/dashboard/admin/comparaison-excel' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

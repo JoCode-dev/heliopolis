@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsDateString, MaxLength, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, MaxLength, Matches } from 'class-validator';
 
 export class PreEnregistrerDto {
   @IsString()
@@ -21,14 +21,14 @@ export class PreEnregistrerDto {
   prenoms?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   regionId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   districtId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   parishId?: string;
 }

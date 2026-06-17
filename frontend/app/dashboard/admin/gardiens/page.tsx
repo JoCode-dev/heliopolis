@@ -40,6 +40,9 @@ function GardiensContent() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [completerConfirm, setCompleterConfirm] = useState(false);
+  const [completerLoading, setCompleterLoading] = useState(false);
+  const [completerResult, setCompleterResult] = useState<{ corriges: number } | null>(null);
   const [page, setPage] = usePaginationUrl();
 
   const parishDistrictMap = useMemo(() => {
@@ -105,6 +108,20 @@ function GardiensContent() {
     [gardiens, values, parishDistrictMap],
   );
 
+  const handleCompleterDistricts = async () => {
+    setCompleterLoading(true);
+    setCompleterConfirm(false);
+    try {
+      const { data } = await territoriesApi.completerDistricts();
+      setCompleterResult(data);
+      if (data.corriges > 0) {
+        const [g] = await Promise.all([usersApi.list({ role: 'GARDIEN' })]);
+        setGardiens(g.data);
+      }
+    } catch { /* ignore */ }
+    finally { setCompleterLoading(false); }
+  };
+
   const handleStatut = async (user: User, newStatut: 'SUSPENDU' | 'ACTIF') => {
     setActionLoading(user.id);
     setPendingSuspend(null);
@@ -165,13 +182,40 @@ function GardiensContent() {
             </div>
           }
           actions={
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              className="flex items-center gap-1 bg-[#1F1B2E] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#2d2640] transition-colors shrink-0"
-            >
-              + Ajouter
-            </button>
+            <div className="flex items-center gap-2">
+              {completerConfirm ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-[#6b6b78]">Confirmer ?</span>
+                  <button type="button" onClick={handleCompleterDistricts}
+                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#2E7D32] text-white hover:bg-[#256427] transition-colors">
+                    Oui
+                  </button>
+                  <button type="button" onClick={() => setCompleterConfirm(false)}
+                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#f0f0f4] text-[#1F1B2E] hover:bg-[#e4e4ea] transition-colors">
+                    Annuler
+                  </button>
+                </div>
+              ) : completerLoading ? (
+                <span className="text-xs text-[#6b6b78] animate-pulse">Mise à jour…</span>
+              ) : completerResult ? (
+                <button type="button" onClick={() => setCompleterResult(null)}
+                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[#e6f4e8] text-[#2E7D32]">
+                  {completerResult.corriges} district{completerResult.corriges !== 1 ? 's' : ''} complété{completerResult.corriges !== 1 ? 's' : ''} ✓
+                </button>
+              ) : (
+                <button type="button" onClick={() => setCompleterConfirm(true)}
+                  className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-[#1F1B2E]/20 text-[#1F1B2E] hover:bg-[#f0f0f4] transition-colors shrink-0">
+                  Compléter districts
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="flex items-center gap-1 bg-[#1F1B2E] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#2d2640] transition-colors shrink-0"
+              >
+                + Ajouter
+              </button>
+            </div>
           }
           filters={
             <>

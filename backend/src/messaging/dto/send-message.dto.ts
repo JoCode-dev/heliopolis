@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, MaxLength, IsEnum, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MaxLength, IsEnum } from 'class-validator';
 import { MessageType } from '../../../generated/prisma/enums.js';
 
 export class SendMessageDto {
@@ -12,6 +12,6 @@ export class SendMessageDto {
   type?: MessageType;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   replyToId?: string;
 }

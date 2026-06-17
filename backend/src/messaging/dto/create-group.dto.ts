@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateGroupDto {
   @IsString()
@@ -7,7 +7,7 @@ export class CreateGroupDto {
   declare nom: string;
 
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   @ArrayMinSize(1)
   @ArrayMaxSize(50)
   declare memberIds: string[];

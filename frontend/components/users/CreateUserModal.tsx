@@ -65,6 +65,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
   const [parishes, setParishes]   = useState<Parish[]>([]);
   const [districtId, setDistrictId] = useState('');
   const [parishId, setParishId]     = useState('');
+  const [dateNaissance, setDateNaissance] = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
 
@@ -95,9 +96,17 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
       setEmail(editUser.email ?? '');
       setTelephone(editUser.telephone ?? '');
       setRole(editUser.role ?? defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+      setDistrictId(editUser.district?.id ?? '');
+      setParishId(editUser.parish?.id ?? '');
+      // Formater la date en YYYY-MM-DD pour l'input type="date"
+      setDateNaissance(
+        editUser.dateNaissance
+          ? new Date(editUser.dateNaissance).toISOString().split('T')[0]
+          : ''
+      );
     } else {
       setNom(''); setPrenoms(''); setMatricule('');
-      setEmail(''); setTelephone('');
+      setEmail(''); setTelephone(''); setDateNaissance('');
       setRole(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
       setDistrictId(''); setParishId('');
     }
@@ -140,11 +149,14 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
     try {
       if (isEditMode && editUser) {
         const payload: Record<string, string | undefined> = {
-          matricule: matricule.trim(),
-          nom:       nom.trim(),
-          prenoms:   prenoms.trim(),
-          email:     email.trim()     || undefined,
-          telephone: telephone.trim() || undefined,
+          matricule:    matricule.trim(),
+          nom:          nom.trim(),
+          prenoms:      prenoms.trim(),
+          email:        email.trim()        || undefined,
+          telephone:    telephone.trim()    || undefined,
+          dateNaissance: dateNaissance      || undefined,
+          districtId:   districtId         || undefined,
+          parishId:     parishId           || undefined,
         };
         const { data } = await usersApi.update(editUser.id, payload);
         onUpdated?.(data as User);
@@ -328,6 +340,11 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
               <label className="block text-xs text-[#9b9ba8] mb-1">Téléphone</label>
               <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)}
                 placeholder="+225 07 00 00 00 00"
+                className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
+            </div>
+            <div>
+              <label className="block text-xs text-[#9b9ba8] mb-1">Date de naissance</label>
+              <input type="date" value={dateNaissance} onChange={e => setDateNaissance(e.target.value)}
                 className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateDistrictDto {
   @IsString()
@@ -11,6 +11,6 @@ export class CreateDistrictDto {
   @MaxLength(20)
   declare code?: string;
 
-  @IsUUID()
+  @IsString()
   declare regionId: string;
 }

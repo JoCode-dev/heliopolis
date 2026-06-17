@@ -5,7 +5,6 @@ import {
   IsEnum,
   IsDateString,
   IsNotEmpty,
-  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { UserRole } from '../../../generated/prisma/enums.js';
@@ -50,14 +49,14 @@ export class CreateUserDto {
   dateNaissance?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   regionId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   districtId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   parishId?: string;
 }

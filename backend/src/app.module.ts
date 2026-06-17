@@ -1,6 +1,8 @@
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { AuthRateLimitMiddleware } from './common/middleware/auth-rate-limit.middleware.js';
 import { ConfigModule } from '@nestjs/config';
+import { DbRetryInterceptor } from './common/interceptors/db-retry.interceptor.js';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -52,7 +54,10 @@ import { UsersModule } from './users/users.module.js';
     SchedulerModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_INTERCEPTOR, useClass: DbRetryInterceptor },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

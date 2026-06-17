@@ -22,6 +22,7 @@ export interface Adhesion { id: string; annee: number; statut: AdhesionStatus; p
 export interface User {
   id: string; nom: string; prenoms: string; matricule?: string;
   email?: string; telephone?: string; avatarUrl?: string;
+  dateNaissance?: string;
   role: UserRole; statutProfil: ProfileStatus;
   notifPush?: boolean; notifEmail?: boolean;
   region?: Region; district?: District; parish?: Parish;

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateParishDto {
   @IsString()
@@ -6,6 +6,6 @@ export class CreateParishDto {
   @MaxLength(100)
   declare nom: string;
 
-  @IsUUID()
+  @IsString()
   declare districtId: string;
 }

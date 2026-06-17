@@ -123,7 +123,6 @@ export class UsersService {
       where,
       select: this.userSelect,
       orderBy: { nom: 'asc' },
-      take: 500,
     });
   }
 
@@ -340,6 +339,11 @@ export class UsersService {
       const directDistrictId = String(row['districtId'] ?? row['district_id'] ?? '').trim() || null;
       const directParishId   = String(row['parishId']   ?? row['parish_id']   ?? '').trim() || null;
 
+      // Détection équipe régionale (colonne District ou Groupe Scoute contient "équipe régionale")
+      const estEquipeReg = (s: string) =>
+        /equipe.{0,10}r[eé]gionale?/i.test(s.normalize('NFD').replace(/[̀-ͯ]/g, ''));
+      const isRegional = estEquipeReg(districtName) || estEquipeReg(parishName);
+
       if (!matricule || !/^\d{7}[A-Z]$/.test(matricule)) {
         erreurs.push({ matricule: matricule || '(vide)', raison: 'Format de matricule invalide' });
         continue;
@@ -352,16 +356,20 @@ export class UsersService {
       }
 
       let role: UserRole;
-      try {
-        role = determineRoleFromAge(dateNaissance);
-      } catch {
-        erreurs.push({ matricule, raison: 'Âge non éligible (minimum 18 ans)' });
-        continue;
+      if (isRegional) {
+        role = UserRole.REGION;
+      } else {
+        try {
+          role = determineRoleFromAge(dateNaissance);
+        } catch {
+          erreurs.push({ matricule, raison: 'Âge non éligible (minimum 18 ans)' });
+          continue;
+        }
       }
 
       const existing = await this.prisma.user.findUnique({
         where: { matricule },
-        select: { id: true, nom: true, prenoms: true, districtId: true, parishId: true, regionId: true },
+        select: { id: true, nom: true, prenoms: true, districtId: true, parishId: true, regionId: true, role: true },
       });
 
       if (existing) {
@@ -372,9 +380,12 @@ export class UsersService {
         if (!existing.prenoms  && prenomsVal) updates.prenoms = prenomsVal;
         if (!existing.regionId && directRegionId) updates.regionId = directRegionId;
 
-        // District : résoudre uniquement si manquant
+        // Promotion vers REGION si la ligne indique équipe régionale
+        if (isRegional && existing.role !== UserRole.REGION) updates.role = UserRole.REGION;
+
+        // District : résoudre uniquement si manquant et pas équipe régionale
         let mergeDistrictId = existing.districtId;
-        if (!existing.districtId) {
+        if (!existing.districtId && !isRegional) {
           const resolvedDistrict = directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null);
           if (resolvedDistrict) {
             updates.districtId = resolvedDistrict;
@@ -382,8 +393,8 @@ export class UsersService {
           }
         }
 
-        // Paroisse : résoudre uniquement si manquante
-        if (!existing.parishId && mergeDistrictId) {
+        // Paroisse : résoudre uniquement si manquante et pas équipe régionale
+        if (!existing.parishId && !isRegional && mergeDistrictId) {
           const resolvedParish = directParishId ?? (parishName ? await resolveParish(parishName, mergeDistrictId) : null);
           if (resolvedParish) updates.parishId = resolvedParish;
         }
@@ -404,14 +415,18 @@ export class UsersService {
         continue;
       }
 
-      const districtId = directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null);
+      const districtId = isRegional
+        ? null
+        : (directDistrictId ?? (districtName ? await resolveDistrict(districtName) : null));
 
-      // Avertir si le district du fichier ne correspond à aucun district existant
-      if (districtName && !districtId) {
+      // Avertir si le district du fichier ne correspond à aucun district existant (hors équipe régionale)
+      if (!isRegional && districtName && !districtId) {
         erreurs.push({ matricule, raison: `District introuvable : "${districtName}"` });
       }
 
-      const parishId = directParishId ?? (parishName ? await resolveParish(parishName, districtId) : null);
+      const parishId = isRegional
+        ? null
+        : (directParishId ?? (parishName ? await resolveParish(parishName, districtId) : null));
 
       // Création utilisateur + adhésion dans une transaction atomique
       const created = await this.prisma.$transaction(async (tx) => {
@@ -563,11 +578,16 @@ export class UsersService {
     if (actor.role !== UserRole.ADMIN && actor.role !== UserRole.REGION) {
       throw new ForbiddenException('Modification réservée à l\'administrateur ou au régional');
     }
-    const { password, ...rest } = dto;
+    const { password, dateNaissance: dateNaissanceStr, ...rest } = dto;
     const passwordHash = password ? await bcrypt.hash(password, 12) : undefined;
+    const dateNaissance = dateNaissanceStr ? new Date(dateNaissanceStr) : undefined;
     const updated = await this.prisma.user.update({
       where: { id },
-      data: { ...rest, ...(passwordHash && { passwordHash }) },
+      data: {
+        ...rest,
+        ...(passwordHash   && { passwordHash }),
+        ...(dateNaissance  && { dateNaissance }),
+      },
       select: this.userSelect,
     });
     this.actionLog.record({

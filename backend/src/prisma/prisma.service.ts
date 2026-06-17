@@ -67,9 +67,9 @@ export class PrismaService
       throw error;
     }
 
-    // Ping toutes les 60 s — l'idleTimeoutMillis (30 s) recycle les connexions
-    // avant chaque ping, évitant qu'une même connexion survive au-delà de 90 s.
-    this.heartbeat = setInterval(() => void this.ping(), 60_000);
+    // Ping toutes les 25 s — en dessous de l'idleTimeoutMillis (30 s),
+    // ce qui évite la fenêtre morte de 30-60 s source de P1017.
+    this.heartbeat = setInterval(() => void this.ping(), 25_000);
   }
 
   private async ping() {

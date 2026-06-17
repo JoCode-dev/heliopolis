@@ -6,7 +6,6 @@ import 'dotenv/config'; // doit être le 1er import — charge le .env avant tou
 import 'reflect-metadata';
 import { join } from 'path';
 import { AppModule } from './app.module.js';
-import { DbRetryInterceptor } from './common/interceptors/db-retry.interceptor.js';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter.js';
 import { RedisIoAdapter } from './redis/redis-io.adapter.js';
 
@@ -33,7 +32,6 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.useGlobalInterceptors(new DbRetryInterceptor());
   app.use(cookieParser());
 
   const allowedOrigins = (process.env.FRONTEND_URLS ?? 'http://localhost:3000')
