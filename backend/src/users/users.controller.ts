@@ -99,11 +99,15 @@ export class UsersController {
   async importerMatricules(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: AuthUser,
+    @Body('forceRole') forceRole?: string,
   ) {
     if (!file) {
       throw new BadRequestException('Fichier CSV ou Excel manquant');
     }
-    return this.usersService.importerMatricules(file.buffer, user);
+    const role = ['GARDIEN', 'GUIDE', 'SENTINELLE', 'REGION'].includes(forceRole ?? '')
+      ? (forceRole as UserRole)
+      : undefined;
+    return this.usersService.importerMatricules(file.buffer, user, role);
   }
 
   /** Promotion d'un membre : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION (ADMIN) */

@@ -292,9 +292,10 @@ export const usersApi = {
     parishId?: string;
   }) => api.post('/users/pre-enregistrer', data),
   /** Import en masse CSV/Excel de matricules (ADMIN) */
-  importerMatricules: (file: File) => {
+  importerMatricules: (file: File, forceRole?: string) => {
     const form = new FormData();
     form.append('fichier', file);
+    if (forceRole) form.append('forceRole', forceRole);
     return api.post('/users/importer', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

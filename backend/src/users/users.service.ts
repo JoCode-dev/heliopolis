@@ -226,6 +226,7 @@ export class UsersService {
   async importerMatricules(
     buffer: Buffer,
     actor: AuthUser,
+    forceRole?: UserRole,
   ): Promise<{ importes: number; fusionnes: number; ignores: number; erreurs: { matricule: string; raison: string }[]; districtsCrees: number; paroissesCrees: number }> {
     if (actor.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Seul l\'administrateur peut importer des matricules');
@@ -358,6 +359,14 @@ export class UsersService {
       let role: UserRole;
       if (isRegional) {
         role = UserRole.REGION;
+      } else if (forceRole) {
+        // Vérifier l'âge minimum même en mode forceRole
+        const age = new Date().getFullYear() - dateNaissance.getFullYear();
+        if (age < 18) {
+          erreurs.push({ matricule, raison: 'Âge non éligible (minimum 18 ans)' });
+          continue;
+        }
+        role = forceRole;
       } else {
         try {
           role = determineRoleFromAge(dateNaissance);
@@ -380,8 +389,12 @@ export class UsersService {
         if (!existing.prenoms  && prenomsVal) updates.prenoms = prenomsVal;
         if (!existing.regionId && directRegionId) updates.regionId = directRegionId;
 
-        // Promotion vers REGION si la ligne indique équipe régionale
-        if (isRegional && existing.role !== UserRole.REGION) updates.role = UserRole.REGION;
+        // Mise à jour du rôle : équipe régionale prioritaire, puis forceRole
+        if (isRegional && existing.role !== UserRole.REGION) {
+          updates.role = UserRole.REGION;
+        } else if (forceRole && !isRegional && existing.role !== forceRole) {
+          updates.role = forceRole;
+        }
 
         // District : résoudre uniquement si manquant et pas équipe régionale
         let mergeDistrictId = existing.districtId;

@@ -112,6 +112,7 @@ export default function ImportPage() {
   const [resultat, setResultat] = useState<ResultatImport | null>(null);
   const [erreurGlobal, setErreurGlobal] = useState('');
   const [drag, setDrag] = useState(false);
+  const [forceRole, setForceRole] = useState<string>('AUTO');
 
   const [membres, setMembres]             = useState<Membre[]>([]);
   const [loadingMembres, setLoadingMembres] = useState(true);
@@ -151,7 +152,8 @@ export default function ImportPage() {
     setErreurGlobal('');
     setResultat(null);
     try {
-      const { data } = await usersApi.importerMatricules(fichier);
+      const roleParam = forceRole === 'AUTO' ? undefined : forceRole;
+      const { data } = await usersApi.importerMatricules(fichier, roleParam);
       setResultat(data as ResultatImport);
       if ((data as ResultatImport).importes > 0) chargerMembres();
     } catch (e: unknown) {
@@ -176,6 +178,33 @@ export default function ImportPage() {
             Colonnes attendues :{' '}
             <span className="font-semibold">District, Groupe Scoute, Matricule, Nom, Prenom, Date de Naissance</span>.
           </p>
+        </div>
+
+        {/* Sélecteur de rôle */}
+        <div className="mb-4">
+          <p className="text-xs font-semibold text-[#6b6b78] uppercase tracking-wider mb-2">Rôle à assigner</p>
+          <div className="flex rounded-xl border border-[#e0d6cc] overflow-hidden bg-white w-fit">
+            {[
+              { value: 'AUTO',      label: 'Auto (par âge)' },
+              { value: 'GARDIEN',   label: 'Gardiens' },
+              { value: 'GUIDE',     label: 'Guides' },
+              { value: 'SENTINELLE',label: 'Sentinelles' },
+            ].map(({ value, label }, i, arr) => (
+              <button
+                key={value}
+                onClick={() => setForceRole(value)}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  i < arr.length - 1 ? 'border-r border-[#e0d6cc]' : ''
+                } ${
+                  forceRole === value
+                    ? 'bg-[#E55A35] text-white'
+                    : 'text-[#6b6b78] hover:bg-[#faf6f3] hover:text-[#1F1B2E]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div
@@ -211,7 +240,13 @@ export default function ImportPage() {
           className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity disabled:opacity-40"
           style={{ background: 'linear-gradient(90deg,#F58A4B,#E55A35)' }}
         >
-          {loading ? 'Import en cours…' : 'Importer les membres'}
+          {loading ? 'Import en cours…' : (
+            forceRole === 'AUTO'       ? 'Importer les membres' :
+            forceRole === 'GARDIEN'    ? 'Importer les Gardiens' :
+            forceRole === 'GUIDE'      ? 'Importer les Guides' :
+            forceRole === 'SENTINELLE' ? 'Importer les Sentinelles' :
+            'Importer les membres'
+          )}
         </button>
 
         {erreurGlobal && (
