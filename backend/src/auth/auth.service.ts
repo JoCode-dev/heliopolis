@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ActivateDto } from './dto/activate.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { InscrireDto } from './dto/inscrire.dto.js';
-import { ProfileStatus, AuditAction, UserRole } from '../../generated/prisma/enums.js';
+import { ProfileStatus, AuditAction, UserRole, ConversationType, ConversationMemberRole } from '../../generated/prisma/enums.js';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { ActionLogService } from '../logs/action-log.service.js';
@@ -22,6 +22,32 @@ export class AuthService {
     private jwtService: JwtService,
     private actionLog: ActionLogService,
   ) {}
+
+  private async addToTerritoryChannels(userId: string, role: UserRole, parishId?: string | null, districtId?: string | null, regionId?: string | null) {
+    type ConvWhere = { type: string; archivedAt: null; parishId?: string; districtId?: string; regionId?: string };
+    const orFilters: ConvWhere[] = [{ type: 'DIFFUSION', archivedAt: null }];
+    if (parishId && (role === UserRole.GUIDE || role === UserRole.GARDIEN)) {
+      orFilters.push({ type: 'PAROISSE', parishId, archivedAt: null });
+    }
+    if (districtId && (role === UserRole.SENTINELLE || role === UserRole.GUIDE)) {
+      orFilters.push({ type: 'DOYENNE', districtId, archivedAt: null });
+    }
+    if (regionId && (role === UserRole.REGION || role === UserRole.SENTINELLE)) {
+      orFilters.push({ type: 'REGION', regionId, archivedAt: null });
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channels = await this.prisma.conversation.findMany({ where: { OR: orFilters as any }, select: { id: true } });
+    if (!channels.length) return;
+    await Promise.all(
+      channels.map((c) =>
+        this.prisma.conversationMember.upsert({
+          where: { conversationId_userId: { conversationId: c.id, userId } },
+          create: { conversationId: c.id, userId, role: ConversationMemberRole.MEMBRE },
+          update: { leftAt: null },
+        }),
+      ),
+    );
+  }
 
   private computeAge(dateNaissance: Date): number {
     const today = new Date();
@@ -97,6 +123,7 @@ export class AuthService {
       target: { entityType: 'User', entityId: updated.id },
       metadata: { matricule: dto.matricule, role },
     });
+    void this.addToTerritoryChannels(updated.id, updated.role, updated.parishId, updated.districtId, updated.regionId);
     return this.generateTokens(updated.id, updated.role);
   }
 

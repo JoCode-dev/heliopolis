@@ -19,6 +19,7 @@ import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto.js';
 import { PreEnregistrerDto } from './dto/pre-enregistrer.dto.js';
 import { UpdateAdhesionDto } from './dto/update-adhesion.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -131,11 +132,23 @@ export class UsersController {
     return this.usersService.findOne(id, user);
   }
 
-  /** Création manuelle réservée à l'ADMIN (cas exceptionnels) */
-  @Roles(UserRole.ADMIN)
+  /** Création d'un membre — ADMIN/REGION direct, GUIDE/SENTINELLE → EN_ATTENTE_VALIDATION */
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)
   @Post()
   create(@Body() dto: CreateUserDto, @CurrentUser() user: AuthUser) {
     return this.usersService.create(dto, user);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Patch(':id/valider')
+  valider(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.usersService.valider(id, user);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Patch(':id/rejeter')
+  rejeter(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.usersService.rejeter(id, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.REGION)
@@ -146,6 +159,16 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.usersService.update(id, dto, user);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Patch(':id/reset-password')
+  resetPassword(
+    @Param('id') id: string,
+    @Body() dto: ResetPasswordDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.resetPassword(id, dto.password, user);
   }
 
   @Roles(UserRole.ADMIN)
@@ -162,6 +185,12 @@ export class UsersController {
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.usersService.remove(id, user);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Delete(':id/purger')
+  purger(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.usersService.purger(id, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE, UserRole.GUIDE)

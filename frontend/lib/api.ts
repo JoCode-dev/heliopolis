@@ -271,8 +271,9 @@ export const messagingApi = {
   deleteConversation: (id: string) => api.delete(`/messaging/conversations/${id}`),
   createGroup:           (nom: string, memberIds: string[]) => api.post('/messaging/conversations/group', { nom, memberIds }),
   suggestedChannels:     () => api.get('/messaging/conversations/channels/suggestions'),
-  createOrJoinChannel:   (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES') =>
+  createOrJoinChannel:   (channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES' | 'DIFFUSION') =>
     api.post('/messaging/conversations/channel', { channelKey }),
+  syncMembers: (conversationId: string) => api.post(`/messaging/conversations/${conversationId}/sync-members`),
   search: (q: string) => api.get('/messaging/search', { params: { q } }),
 };
 
@@ -313,6 +314,14 @@ export const usersApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  purger: (id: string) =>
+    api.delete(`/users/${id}/purger`),
+  valider: (id: string) =>
+    api.patch(`/users/${id}/valider`),
+  rejeter: (id: string) =>
+    api.patch(`/users/${id}/rejeter`),
+  resetPassword: (id: string, password: string) =>
+    api.patch(`/users/${id}/reset-password`, { password }),
   updateStatut: (id: string, statut: string) =>
     api.patch(`/users/${id}/statut`, { statut }),
   updateAdhesion: (id: string, annee: number, statut: string, file?: File) => {

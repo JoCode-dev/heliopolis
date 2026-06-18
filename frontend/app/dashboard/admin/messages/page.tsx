@@ -11,7 +11,7 @@ import type { Conversation, ContactItem, Contact, User } from '@/types';
 type RowUser = { id: string; nom: string; prenoms: string; avatarUrl?: string; role: string; parish?: { nom: string }; district?: { nom: string } };
 
 const CONV_ICON: Record<string, string> = {
-  COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥',
+  COMMUNAUTE: '🌍', REGION: '🗺️', DOYENNE: '🛡️', PAROISSE: '⛪', PRIVE: '🤝', GROUPE: '👥', DIFFUSION: '📣',
 };
 const CONV_GRADIENT: Record<string, string> = {
   COMMUNAUTE: 'from-[#FFB36B] to-[#7A2820]',
@@ -20,6 +20,7 @@ const CONV_GRADIENT: Record<string, string> = {
   PAROISSE:   'from-[#F58A4B] to-[#7A2820]',
   PRIVE:      'from-[#1F1B2E] to-[#3a1d4d]',
   GROUPE:     'from-[#2E7D32] to-[#1a5021]',
+  DIFFUSION:  'from-[#B71C1C] to-[#7f1010]',
 };
 type Tab = 'messages' | 'contacts';
 type FilterType = 'tous' | 'contacts' | 'demandes';
@@ -136,10 +137,11 @@ function MessagesTab({ msgBase }: { msgBase: string }) {
     [search],
   );
 
-  const pinned   = filtered(conversations.filter(c => c.isPinned));
-  const channels = filtered(conversations.filter(c => !c.isPinned && c.type !== 'PRIVE' && c.type !== 'GROUPE'));
-  const groups   = filtered(conversations.filter(c => !c.isPinned && c.type === 'GROUPE'));
-  const privates = filtered(conversations.filter(c => !c.isPinned && c.type === 'PRIVE'));
+  const pinned    = filtered(conversations.filter(c => c.isPinned));
+  const broadcast = filtered(conversations.filter(c => !c.isPinned && c.type === 'DIFFUSION'));
+  const channels  = filtered(conversations.filter(c => !c.isPinned && c.type !== 'PRIVE' && c.type !== 'GROUPE' && c.type !== 'DIFFUSION'));
+  const groups    = filtered(conversations.filter(c => !c.isPinned && c.type === 'GROUPE'));
+  const privates  = filtered(conversations.filter(c => !c.isPinned && c.type === 'PRIVE'));
   const isEmpty  = !loading && conversations.length === 0;
 
   return (
@@ -169,6 +171,17 @@ function MessagesTab({ msgBase }: { msgBase: string }) {
         <>
           <ListDivider label="Épinglés" />
           {pinned.map(conv => (
+            <ConvRow key={conv.id} conv={conv} msgBase={msgBase}
+              onPin={() => handlePin(conv)}
+              onDelete={() => setDeleteConfirmId(conv.id)}
+            />
+          ))}
+        </>
+      )}
+      {broadcast.length > 0 && (
+        <>
+          <ListDivider label="Diffusion" />
+          {broadcast.map(conv => (
             <ConvRow key={conv.id} conv={conv} msgBase={msgBase}
               onPin={() => handlePin(conv)}
               onDelete={() => setDeleteConfirmId(conv.id)}

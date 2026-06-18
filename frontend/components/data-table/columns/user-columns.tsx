@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pill } from '@/components/ui';
 import { UserAvatar } from '@/components/profile/UserAvatar';
@@ -20,6 +22,7 @@ export const STATUT_PILL: Record<string, 'vert' | 'rouge' | 'or' | 'gris'> = {
   ACTIF: 'vert',
   INACTIF: 'rouge',
   EN_ATTENTE_ACTIVATION: 'or',
+  EN_ATTENTE_VALIDATION: 'or',
   SUSPENDU: 'rouge',
   ARCHIVE: 'gris',
 };
@@ -27,17 +30,185 @@ export const STATUT_LABEL: Record<string, string> = {
   ACTIF: 'Actif',
   INACTIF: 'Inactif',
   EN_ATTENTE_ACTIVATION: 'En attente',
+  EN_ATTENTE_VALIDATION: 'À valider',
   SUSPENDU: 'Suspendu',
   ARCHIVE: 'Archivé',
 };
+
+// ─── Dropdown actions ─────────────────────────────────────────────────────────
+
+type ItemVariant = 'default' | 'success' | 'blue' | 'orange' | 'danger';
+
+interface DropdownItem {
+  label: string;
+  icon?: string;
+  onClick: () => void;
+  variant?: ItemVariant;
+  confirm?: boolean;        // affiche Oui / Non avant d'exécuter
+  confirmLabel?: string;    // texte de la question (ex: "Supprimer définitivement ?")
+  disabled?: boolean;
+}
+
+const VARIANT_CLASS: Record<ItemVariant, string> = {
+  default: 'text-[#1F1B2E]',
+  success: 'text-[#2E7D32]',
+  blue:    'text-[#1a56db]',
+  orange:  'text-[#e65100]',
+  danger:  'text-[#C62828]',
+};
+
+function ActionsDropdown({ items, isLoading }: { items: DropdownItem[]; isLoading: boolean }) {
+  const [open, setOpen]           = useState(false);
+  const [confirmItem, setConfirmItem] = useState<DropdownItem | null>(null);
+  const [style, setStyle]         = useState<React.CSSProperties>({});
+  const btnRef  = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  const toggle = () => {
+    if (open) { setOpen(false); setConfirmItem(null); return; }
+    if (!btnRef.current) return;
+    const r   = btnRef.current.getBoundingClientRect();
+    const est = 240; // hauteur estimée du menu
+    const up  = window.innerHeight - r.bottom < est && r.top > est;
+    setStyle({
+      position: 'fixed',
+      right: Math.max(8, window.innerWidth - r.right),
+      ...(up ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+      minWidth: Math.max(r.width, 192),
+      zIndex: 9999,
+    });
+    setOpen(true);
+    setConfirmItem(null);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (
+        !btnRef.current?.contains(e.target as Node) &&
+        !dropRef.current?.contains(e.target as Node)
+      ) { setOpen(false); setConfirmItem(null); }
+    };
+    const onScroll = () => { setOpen(false); setConfirmItem(null); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open]);
+
+  const visibleItems = items.filter(i => !i.disabled);
+
+  // Sépare les items "danger" des autres pour afficher un diviseur
+  const hasDangerSeparator = (i: number) =>
+    i > 0 &&
+    visibleItems[i].variant === 'danger' &&
+    visibleItems[i - 1]?.variant !== 'danger';
+
+  const menu = open ? createPortal(
+    <div
+      ref={dropRef}
+      style={style}
+      className="bg-white border border-[#e6e6ea] rounded-xl shadow-2xl overflow-hidden"
+    >
+      {confirmItem ? (
+        <div className="p-3 flex flex-col gap-2.5">
+          <p className="text-[11px] font-semibold text-[#1F1B2E] leading-snug">
+            {confirmItem.confirmLabel ?? 'Confirmer cette action ?'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { confirmItem.onClick(); setOpen(false); setConfirmItem(null); }}
+              className="flex-1 text-[11px] font-bold py-1.5 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] transition-colors"
+            >
+              Confirmer
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmItem(null)}
+              className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg bg-[#f0f0f4] text-[#6b6b78] hover:bg-[#e4e4ea] transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="py-1">
+          {visibleItems.map((item, i) => {
+            const isDanger = item.variant === 'danger';
+            return (
+              <div key={i}>
+                {hasDangerSeparator(i) && (
+                  <div className="my-1 border-t border-[#f0f0f4]" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (item.confirm) { setConfirmItem(item); return; }
+                    item.onClick();
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 text-left text-[12px] font-medium px-3.5 py-2 transition-colors
+                    ${isDanger ? 'hover:bg-[#fff5f5]' : 'hover:bg-[#f6f6fa]'}
+                    ${VARIANT_CLASS[item.variant ?? 'default']}
+                  `}
+                >
+                  {item.icon && (
+                    <span className="text-[14px] leading-none shrink-0 w-4 text-center">
+                      {item.icon}
+                    </span>
+                  )}
+                  {!item.icon && <span className="w-4 shrink-0" />}
+                  {item.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>,
+    document.body,
+  ) : null;
+
+  return (
+    <div className="relative inline-block">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        disabled={isLoading}
+        className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#f0f0f4] text-[#1F1B2E] hover:bg-[#e4e4ea] transition-colors disabled:opacity-50 whitespace-nowrap"
+      >
+        {isLoading ? '…' : 'Actions'}
+        <svg
+          className={`w-3 h-3 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          viewBox="0 0 12 12" fill="none"
+        >
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {menu}
+    </div>
+  );
+}
+
+// ─── createGardienColumns ─────────────────────────────────────────────────────
 
 export function createGardienColumns(
   actions: {
     onEdit: (user: User) => void;
     onSuspend: (user: User) => void;
     onReactivate: (user: User) => void;
+    onValider?: (user: User) => void;
+    onRejeter?: (user: User) => void;
+    onPurger?: (user: User) => void;
+    onResetPassword?: (user: User) => void;
     pendingSuspend: string | null;
     setPendingSuspend: (id: string | null) => void;
+    pendingDelete: string | null;
+    setPendingDelete: (id: string | null) => void;
     actionLoading: string | null;
   },
 ): ColumnDef<User>[] {
@@ -143,79 +314,32 @@ export function createGardienColumns(
     },
     {
       id: 'actions',
-      header: 'Action',
+      header: 'Actions',
       enableSorting: false,
       cell: ({ row }) => {
         const u = row.original;
-        const isLoading = actions.actionLoading === u.id;
-        const isPending = actions.pendingSuspend === u.id;
-        const canSuspend = u.statutProfil === 'ACTIF';
-        const canReact = u.statutProfil === 'SUSPENDU';
+        const isLoading   = actions.actionLoading === u.id;
+        const canSuspend  = u.statutProfil === 'ACTIF';
+        const canReact    = u.statutProfil === 'SUSPENDU';
+        const canValider  = u.statutProfil === 'EN_ATTENTE_VALIDATION';
 
-        return (
-          <div className="flex flex-col gap-1">
-            {canReact && (
-              <button
-                type="button"
-                onClick={() => actions.onReactivate(u)}
-                disabled={isLoading}
-                className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
-              >
-                {isLoading ? '…' : '✓ Réactiver'}
-              </button>
-            )}
-            {canSuspend && !isPending && (
-              <button
-                type="button"
-                onClick={() => actions.setPendingSuspend(u.id)}
-                disabled={isLoading}
-                className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
-              >
-                Suspendre
-              </button>
-            )}
-            {canSuspend && isPending && (
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => actions.onSuspend(u)}
-                  disabled={isLoading}
-                  className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50"
-                >
-                  {isLoading ? '…' : 'Oui'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => actions.setPendingSuspend(null)}
-                  className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-[#f0f0f4] text-[#6b6b78]"
-                >
-                  Non
-                </button>
-              </div>
-            )}
-            {!canSuspend && !canReact && (
-              <span className="text-[10px] text-[#b0b0bc]">—</span>
-            )}
-          </div>
-        );
+        const items: DropdownItem[] = [
+          { label: 'Modifier',   icon: '✎',  onClick: () => actions.onEdit(u), variant: 'default' },
+          ...(canValider && actions.onValider ? [{ label: 'Valider l\'ajout', icon: '✓', onClick: () => actions.onValider!(u), variant: 'success' as ItemVariant }] : []),
+          ...(canValider && actions.onRejeter ? [{ label: 'Rejeter', icon: '✗', onClick: () => actions.onRejeter!(u), variant: 'danger' as ItemVariant, confirm: true, confirmLabel: 'Rejeter et supprimer cet ajout ?' }] : []),
+          ...(canReact ? [{ label: 'Réactiver', icon: '✓', onClick: () => actions.onReactivate(u), variant: 'success' as ItemVariant }] : []),
+          ...(canSuspend ? [{ label: 'Suspendre', onClick: () => actions.onSuspend(u), variant: 'danger' as ItemVariant, confirm: true, confirmLabel: 'Suspendre ce gardien ?' }] : []),
+          ...(actions.onResetPassword ? [{ label: 'Réinitialiser le MDP', icon: '🔑', onClick: () => actions.onResetPassword!(u), variant: 'orange' as ItemVariant }] : []),
+          ...(actions.onPurger ? [{ label: 'Supprimer définitivement', icon: '🗑', onClick: () => actions.onPurger!(u), variant: 'danger' as ItemVariant, confirm: true, confirmLabel: 'Supprimer définitivement ? Cette action est irréversible.' }] : []),
+        ];
+
+        return <ActionsDropdown items={items} isLoading={isLoading} />;
       },
-    },
-    {
-      id: 'edit',
-      header: '',
-      enableSorting: false,
-      cell: ({ row }) => (
-        <button
-          type="button"
-          onClick={() => actions.onEdit(row.original)}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#f0e8ff] text-[#6A1B9A] hover:bg-[#6A1B9A] hover:text-white transition-colors"
-        >
-          ✎ Modifier
-        </button>
-      ),
     },
   ];
 }
+
+// ─── createGuideColumns ───────────────────────────────────────────────────────
 
 export const ROLE_LABEL: Record<'GUIDE' | 'SENTINELLE' | 'REGION', string> = {
   GUIDE: 'Guide',
@@ -233,8 +357,12 @@ export function createGuideColumns(
     onSuspend: (user: User) => void;
     onReactivate: (user: User) => void;
     onPromote?: (user: User) => void;
+    onResetPassword?: (user: User) => void;
+    onPurger?: (user: User) => void;
     pendingSuspend: string | null;
     setPendingSuspend: (id: string | null) => void;
+    pendingDelete: string | null;
+    setPendingDelete: (id: string | null) => void;
     actionLoading: string | null;
   },
 ): ColumnDef<User>[] {
@@ -357,71 +485,27 @@ export function createGuideColumns(
     },
     {
       id: 'actions',
-      header: 'Action',
+      header: 'Actions',
       enableSorting: false,
       cell: ({ row }) => {
         const u = row.original;
-        const isLoading = actions.actionLoading === u.id;
-        const isPending = actions.pendingSuspend === u.id;
-        const canSuspend = u.statutProfil === 'ACTIF';
+        const isLoading     = actions.actionLoading === u.id;
+        const isEncadrant   = u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION';
+        const canSuspend    = u.statutProfil === 'ACTIF';
         const canReactivate = u.statutProfil === 'SUSPENDU';
+        const canActivate   = u.statutProfil === 'EN_ATTENTE_ACTIVATION';
 
-        return (
-          <div className="flex flex-col gap-1">
-            {actions.onPromote && (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION') && !isPending && (
-              <button
-                type="button"
-                onClick={() => actions.onPromote!(u)}
-                disabled={isLoading}
-                className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] disabled:opacity-50"
-              >
-                ⇅ Rôle
-              </button>
-            )}
-            {canReactivate && (
-              <button
-                type="button"
-                onClick={() => actions.onReactivate(u)}
-                disabled={isLoading}
-                className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
-              >
-                {isLoading ? '…' : '✓ Réactiver'}
-              </button>
-            )}
-            {canSuspend && !isPending && (
-              <button
-                type="button"
-                onClick={() => actions.setPendingSuspend(u.id)}
-                disabled={isLoading}
-                className="w-full text-[11px] font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
-              >
-                Suspendre
-              </button>
-            )}
-            {canSuspend && isPending && (
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => actions.onSuspend(u)}
-                  disabled={isLoading}
-                  className="flex-1 text-[11px] font-bold py-1 rounded-lg bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50"
-                >
-                  {isLoading ? '…' : 'Oui'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => actions.setPendingSuspend(null)}
-                  className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-[#f0f0f4] text-[#6b6b78]"
-                >
-                  Non
-                </button>
-              </div>
-            )}
-            {!actions.onPromote && !canSuspend && !canReactivate && (
-              <span className="text-[10px] text-[#b0b0bc]">—</span>
-            )}
-          </div>
-        );
+        const items: DropdownItem[] = [
+          ...(actions.onPromote && isEncadrant ? [{ label: 'Changer le rôle', icon: '⇅', onClick: () => actions.onPromote!(u), variant: 'blue' as ItemVariant }] : []),
+          ...(canActivate  ? [{ label: 'Activer le compte',   icon: '✓', onClick: () => actions.onReactivate(u), variant: 'success' as ItemVariant }] : []),
+          ...(canReactivate? [{ label: 'Réactiver le compte', icon: '✓', onClick: () => actions.onReactivate(u), variant: 'success' as ItemVariant }] : []),
+          ...(canSuspend   ? [{ label: 'Suspendre',           onClick: () => actions.onSuspend(u),    variant: 'danger' as ItemVariant, confirm: true, confirmLabel: 'Suspendre cet encadrant ?' }] : []),
+          ...(actions.onResetPassword ? [{ label: 'Réinitialiser le MDP', icon: '🔑', onClick: () => actions.onResetPassword!(u), variant: 'orange' as ItemVariant }] : []),
+          ...(actions.onPurger ? [{ label: 'Supprimer définitivement', icon: '🗑', onClick: () => actions.onPurger!(u), variant: 'danger' as ItemVariant, confirm: true, confirmLabel: 'Supprimer définitivement ? Cette action est irréversible.' }] : []),
+        ];
+
+        if (!items.length) return <span className="text-[10px] text-[#b0b0bc]">—</span>;
+        return <ActionsDropdown items={items} isLoading={isLoading} />;
       },
     },
   ];

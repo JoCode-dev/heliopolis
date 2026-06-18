@@ -698,29 +698,7 @@ async function main() {
   }
   console.log(`✔ Défis       : ${challengesCreated} créés`);
 
-  // ── 13. Camp régional Abay-Ka 2026 ──────────────────────────────────────────
-  const existingCamp = await prisma.camp.findFirst({
-    where: { nom: "Camp d'Abay-Ka 2026" },
-  });
-  if (!existingCamp) {
-    await prisma.camp.create({
-      data: {
-        nom: "Camp d'Abay-Ka 2026",
-        theme: 'Les Cinq Règnes de la Création',
-        description:
-          "Camp régional annuel de la Route en Joie — Communauté Mahatma Gandhi, Région d'Abidjan.",
-        type: 'REGIONAL',
-        statut: 'OUVERT',
-        lieu: "Bingerville, Côte d'Ivoire",
-        dateDebut: new Date('2026-07-20'),
-        dateFin: new Date('2026-07-27'),
-        selectionOuverte: true,
-        regionId: region.id,
-        createdById: admin.id,
-      },
-    });
-  }
-  console.log(`✔ Camp        : Camp d'Abay-Ka 2026 (OUVERT · Bingerville)`);
+  // ── 13. Camp régional Abay-Ka 2026 — non créé par le seed (à créer via l'UI) ─
 
   // ── 14. Canal de messagerie régional ────────────────────────────────────────
   const existingConv = await prisma.conversation.findFirst({

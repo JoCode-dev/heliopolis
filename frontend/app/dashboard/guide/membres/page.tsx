@@ -18,11 +18,13 @@ const STATUT_PILL: Record<string, string> = {
   ACTIF: 'bg-[#e8f5e9] text-[#2E7D32] border-[#a5d6a7]',
   SUSPENDU: 'bg-[#ffebee] text-[#E55A35] border-[#ef9a9a]',
   EN_ATTENTE_ACTIVATION: 'bg-[#fff8e1] text-[#D9A441] border-[#ffe082]',
+  EN_ATTENTE_VALIDATION: 'bg-[#fff8e1] text-[#D9A441] border-[#ffe082]',
   INACTIF: 'bg-[#ffebee] text-[#E55A35] border-[#ef9a9a]',
   ARCHIVE: 'bg-[#f5f5f5] text-[#9b9ba8] border-[#e0e0e0]',
 };
 const STATUT_LABEL: Record<string, string> = {
-  ACTIF: 'Actif', SUSPENDU: 'Suspendu', EN_ATTENTE_ACTIVATION: 'En attente', INACTIF: 'Inactif', ARCHIVE: 'Archivé',
+  ACTIF: 'Actif', SUSPENDU: 'Suspendu', EN_ATTENTE_ACTIVATION: 'En attente',
+  EN_ATTENTE_VALIDATION: 'En att. validation', INACTIF: 'Inactif', ARCHIVE: 'Archivé',
 };
 
 const ADH_CFG: Record<AdhesionStatus, { bg: string; text: string; border: string; icon: string; dot: string }> = {

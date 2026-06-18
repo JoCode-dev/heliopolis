@@ -29,6 +29,7 @@ enum ProfileStatus {
   ACTIF
   INACTIF
   EN_ATTENTE_ACTIVATION
+  EN_ATTENTE_VALIDATION  // ajout par guide/sentinelle — attend approbation admin/région
   SUSPENDU
   ARCHIVE
 }
@@ -151,6 +152,7 @@ enum ConversationType {
   PAROISSE
   PRIVE // 1-à-1
   GROUPE // groupe libre (équipe de camp, comité…)
+  DIFFUSION // canal de diffusion globale — écriture ADMIN/REGION seulement
 }
 
 enum ConversationMemberRole {

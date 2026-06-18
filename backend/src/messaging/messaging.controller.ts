@@ -96,9 +96,17 @@ export class MessagingController {
     return this.messagingService.getSuggestedChannels(user);
   }
 
+  @Post('conversations/:conversationId/sync-members')
+  syncMembers(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.messagingService.syncConversationMembers(conversationId, user.id);
+  }
+
   @Post('conversations/channel')
   createOrJoinChannel(
-    @Body('channelKey') channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES',
+    @Body('channelKey') channelKey: 'PAROISSE' | 'DOYENNE' | 'REGION' | 'GARDIENS' | 'GUIDES' | 'SENTINELLES' | 'DIFFUSION',
     @CurrentUser() user: AuthUser,
   ) {
     return this.messagingService.createOrJoinTerritoryChannel(user, channelKey);

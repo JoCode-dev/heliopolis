@@ -1,6 +1,6 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export type UserRole = 'ADMIN' | 'REGION' | 'SENTINELLE' | 'GUIDE' | 'GARDIEN' | 'PHOTOGRAPHE';
-export type ProfileStatus = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE_ACTIVATION' | 'SUSPENDU' | 'ARCHIVE';
+export type ProfileStatus = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE_ACTIVATION' | 'EN_ATTENTE_VALIDATION' | 'SUSPENDU' | 'ARCHIVE';
 export type AdhesionStatus = 'A_JOUR' | 'NON_A_JOUR' | 'EN_ATTENTE';
 export type CampType = 'REGIONAL' | 'DISTRICT' | 'PAROISSIAL' | 'NATIONAL' | 'COMMUNAUTE';
 export type CampStatus = 'BROUILLON' | 'OUVERT' | 'EN_COURS' | 'CLOTURE' | 'ARCHIVE';
@@ -8,7 +8,7 @@ export type ParticipationStatus = 'NON_SELECTIONNE' | 'SELECTIONNE' | 'CONFIRME'
 export type ChallengeCategory = 'PERSONNEL' | 'COMMUNAUTAIRE' | 'SPIRITUEL' | 'LONG';
 export type SubmissionStatus = 'EN_ATTENTE' | 'VALIDE' | 'REJETE' | 'CORRECTION_DEMANDEE';
 export type BadgeLevel = 'BRONZE' | 'ARGENT' | 'OR' | 'LEGENDE';
-export type ConversationType = 'COMMUNAUTE' | 'REGION' | 'DOYENNE' | 'PAROISSE' | 'PRIVE' | 'GROUPE';
+export type ConversationType = 'COMMUNAUTE' | 'REGION' | 'DOYENNE' | 'PAROISSE' | 'PRIVE' | 'GROUPE' | 'DIFFUSION';
 export type MessageType = 'TEXTE' | 'IMAGE' | 'FICHIER' | 'AUDIO' | 'SYSTEME';
 export type ContactStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'BLOCKED';
 

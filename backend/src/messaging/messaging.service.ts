@@ -61,12 +61,42 @@ export class MessagingService {
     return ids;
   }
 
+  // ── Auto-rejoindre les canaux DIFFUSION ───────────────────────────────────
+
+  private async autoJoinBroadcasts(userId: string) {
+    const toJoin = await this.prisma.conversation.findMany({
+      where: {
+        type: ConversationType.DIFFUSION,
+        archivedAt: null,
+        members: { none: { userId, leftAt: null } },
+      },
+      select: { id: true },
+    });
+    if (!toJoin.length) return;
+    await Promise.all(
+      toJoin.map((bc) =>
+        this.prisma.conversationMember.upsert({
+          where: { conversationId_userId: { conversationId: bc.id, userId } },
+          create: { conversationId: bc.id, userId, role: ConversationMemberRole.MEMBRE },
+          update: { leftAt: null },
+        }),
+      ),
+    );
+    await Promise.all([
+      this.redis.invalidateConvList(userId),
+      this.redis.invalidateConvIds(userId),
+    ]);
+  }
+
   // ── Liste des conversations (cache 15s) ───────────────────────────────────
 
   async getMyConversations(userId: string) {
     const cacheKey = `conv:list:${userId}`;
     const cached = await this.redis.getJson(cacheKey);
     if (cached) return cached;
+
+    // Auto-adhésion aux canaux de diffusion globale (exécuté uniquement sur cache miss)
+    await this.autoJoinBroadcasts(userId);
 
     const conversations = await this.prisma.conversation.findMany({
       where: {
@@ -165,9 +195,21 @@ export class MessagingService {
   ) {
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: { members: { where: { userId: authorId, leftAt: null }, select: { role: true } } },
     });
     if (!conv) throw new NotFoundException('Conversation introuvable');
     await this.assertMember(conversationId, authorId);
+
+    // Canal de diffusion — écriture réservée aux ADMIN et REGION
+    if (conv.type === ConversationType.DIFFUSION) {
+      const author = await this.prisma.user.findUnique({
+        where: { id: authorId },
+        select: { role: true },
+      });
+      if (!author || !([UserRole.ADMIN, UserRole.REGION] as UserRole[]).includes(author.role)) {
+        throw new ForbiddenException('Seuls les administrateurs et responsables régionaux peuvent écrire dans ce canal');
+      }
+    }
 
     const message = await this.prisma.message.create({
       data: {
@@ -676,7 +718,80 @@ export class MessagingService {
       }
     }
 
+    // Canal de diffusion globale — ADMIN et REGION seulement
+    if (([UserRole.ADMIN, UserRole.REGION] as UserRole[]).includes(user.role)) {
+      const existing = await this.prisma.conversation.findFirst({
+        where: { type: ConversationType.DIFFUSION, archivedAt: null },
+        include: { _count: { select: { members: { where: { leftAt: null } } } } },
+      });
+      const member = existing
+        ? await this.prisma.conversationMember.findUnique({
+            where: { conversationId_userId: { conversationId: existing.id, userId: user.id } },
+          })
+        : null;
+      suggestions.push({
+        channelKey: 'DIFFUSION',
+        convType: ConversationType.DIFFUSION,
+        nomPrefix: '📣 ',
+        nom: '📣 Diffusion générale',
+        description: 'Écrire à tous les membres — Admin & Région seulement',
+        icon: '📣',
+        territoryId: '',
+        conversationId: existing?.id ?? null,
+        memberCount: existing?._count.members ?? 0,
+        isMember: !!member && !member.leftAt,
+      });
+    }
+
     return suggestions;
+  }
+
+  async syncConversationMembers(conversationId: string, actorId: string) {
+    const conv = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { type: true, parishId: true, districtId: true, regionId: true },
+    });
+    if (!conv) throw new NotFoundException('Conversation introuvable');
+
+    // Only territory channels can be synced
+    const territoryTypes: string[] = [ConversationType.PAROISSE, ConversationType.DOYENNE, ConversationType.REGION, ConversationType.DIFFUSION];
+    if (!territoryTypes.includes(conv.type)) {
+      throw new ForbiddenException('Seuls les canaux territoriaux peuvent être synchronisés');
+    }
+
+    let memberRoles: UserRole[] = [];
+    type WhereExtra = { parishId?: string; districtId?: string; regionId?: string };
+    let whereExtra: WhereExtra = {};
+
+    if (conv.type === ConversationType.PAROISSE && conv.parishId) {
+      memberRoles = [UserRole.GUIDE, UserRole.GARDIEN];
+      whereExtra = { parishId: conv.parishId };
+    } else if (conv.type === ConversationType.DOYENNE && conv.districtId) {
+      memberRoles = [UserRole.SENTINELLE, UserRole.GUIDE];
+      whereExtra = { districtId: conv.districtId };
+    } else if (conv.type === ConversationType.REGION && conv.regionId) {
+      memberRoles = [UserRole.REGION, UserRole.SENTINELLE];
+      whereExtra = { regionId: conv.regionId };
+    }
+
+    const where = conv.type === ConversationType.DIFFUSION
+      ? { statutProfil: 'ACTIF' as const, deletedAt: null }
+      : { role: { in: memberRoles }, statutProfil: 'ACTIF' as const, deletedAt: null, ...whereExtra };
+
+    const eligibleUsers = await this.prisma.user.findMany({ where, select: { id: true } });
+    const allIds = [...new Set([actorId, ...eligibleUsers.map((u) => u.id)])];
+
+    await Promise.all(
+      allIds.map((uid) =>
+        this.prisma.conversationMember.upsert({
+          where: { conversationId_userId: { conversationId, userId: uid } },
+          create: { conversationId, userId: uid, role: ConversationMemberRole.MEMBRE },
+          update: { leftAt: null },
+        }),
+      ),
+    );
+    await Promise.all(allIds.map((uid) => this.redis.invalidateConvIds(uid)));
+    return { synced: allIds.length };
   }
 
   async createOrJoinTerritoryChannel(
@@ -687,7 +802,8 @@ export class MessagingService {
       | 'REGION'
       | 'GARDIENS'
       | 'GUIDES'
-      | 'SENTINELLES',
+      | 'SENTINELLES'
+      | 'DIFFUSION',
   ) {
     type TerritoryWhere = {
       parishId?: string;
@@ -797,6 +913,50 @@ export class MessagingService {
         isModerated = true;
         break;
 
+      case 'DIFFUSION': {
+        if (!([UserRole.ADMIN, UserRole.REGION] as UserRole[]).includes(user.role)) {
+          throw new ForbiddenException('Seuls les administrateurs et responsables régionaux peuvent créer ce canal');
+        }
+        const existingDiff = await this.prisma.conversation.findFirst({
+          where: { type: ConversationType.DIFFUSION, archivedAt: null },
+        });
+        if (existingDiff) {
+          await this.prisma.conversationMember.upsert({
+            where: { conversationId_userId: { conversationId: existingDiff.id, userId: user.id } },
+            create: { conversationId: existingDiff.id, userId: user.id, role: ConversationMemberRole.MEMBRE },
+            update: { leftAt: null },
+          });
+          await Promise.all([
+            this.redis.invalidateConvIds(user.id),
+            this.redis.invalidateConvList(user.id),
+          ]);
+          return existingDiff;
+        }
+        // Créer le canal et y ajouter TOUS les utilisateurs actifs
+        const allUsers = await this.prisma.user.findMany({
+          where: { statutProfil: 'ACTIF', deletedAt: null },
+          select: { id: true },
+        });
+        const allIds = [...new Set([user.id, ...allUsers.map((u) => u.id)])];
+        const created = await this.prisma.conversation.create({
+          data: {
+            type: ConversationType.DIFFUSION,
+            nom: '📣 Diffusion générale',
+            description: 'Canal de diffusion — messages de la direction à tous les membres',
+            isPinned: true,
+            isModerated: false,
+            members: {
+              create: allIds.map((uid) => ({
+                userId: uid,
+                role: uid === user.id ? ConversationMemberRole.OWNER : ConversationMemberRole.MEMBRE,
+              })),
+            },
+          },
+        });
+        await Promise.all(allIds.map((uid) => this.redis.invalidateConvIds(uid)));
+        return created;
+      }
+
       default:
         throw new ForbiddenException('Type de canal invalide');
     }
@@ -811,21 +971,27 @@ export class MessagingService {
     });
 
     if (existing) {
-      await this.prisma.conversationMember.upsert({
+      // Sync ALL eligible territory members (not just the caller)
+      const territoryUsersSync = await this.prisma.user.findMany({
         where: {
-          conversationId_userId: { conversationId: existing.id, userId: user.id },
+          role: { in: memberRoles },
+          statutProfil: 'ACTIF',
+          deletedAt: null,
+          ...where,
         },
-        create: {
-          conversationId: existing.id,
-          userId: user.id,
-          role: ConversationMemberRole.MEMBRE,
-        },
-        update: { leftAt: null },
+        select: { id: true },
       });
-      await Promise.all([
-        this.redis.invalidateConvIds(user.id),
-        this.redis.invalidateConvList(user.id),
-      ]);
+      const syncIds = [...new Set([user.id, ...territoryUsersSync.map((u) => u.id)])];
+      await Promise.all(
+        syncIds.map((uid) =>
+          this.prisma.conversationMember.upsert({
+            where: { conversationId_userId: { conversationId: existing.id, userId: uid } },
+            create: { conversationId: existing.id, userId: uid, role: ConversationMemberRole.MEMBRE },
+            update: { leftAt: null },
+          }),
+        ),
+      );
+      await Promise.all(syncIds.map((uid) => this.redis.invalidateConvIds(uid)));
       return existing;
     }
 

@@ -15,6 +15,34 @@ const HEADER_CONFIG: Record<string, { label: string; gradient: string }> = {
   PAROISSE:   { label: '⛪ Paroisse',             gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
   PRIVE:      { label: '🤝 Conversation privée', gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
   GROUPE:     { label: '👥 Groupe',               gradient: 'from-[#F58A4B] via-[#E55A35] to-[#7A2820]' },
+  DIFFUSION:  { label: '📣 Diffusion générale',  gradient: 'from-[#B71C1C] via-[#c62828] to-[#7f1010]' },
+};
+
+const PANEL_LABELS: Record<string, string> = {
+  COMMUNAUTE: 'Membres de la communauté',
+  REGION:     'Membres de la région',
+  DOYENNE:    'Membres du district',
+  PAROISSE:   'Membres de la paroisse',
+  PRIVE:      'Participants',
+  GROUPE:     'Membres du groupe',
+  DIFFUSION:  'Tous les membres',
+};
+
+const PANEL_ICONS: Record<string, string> = {
+  COMMUNAUTE: '🌍',
+  REGION:     '🗺️',
+  DOYENNE:    '🛡️',
+  PAROISSE:   '⛪',
+  PRIVE:      '🤝',
+  GROUPE:     '👥',
+  DIFFUSION:  '📣',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN:      'Administrateur',
+  SENTINELLE: 'Sentinelle régionale',
+  GUIDE:      'Guide paroissial',
+  GARDIEN:    'Gardien',
 };
 
 function formatTime(iso: string) {
@@ -99,7 +127,24 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const [selectedToAdd, setSelectedToAdd] = useState<string[]>([]);
   const [selectedToRemove, setSelectedToRemove] = useState<string[]>([]);
   const [applyingChanges, setApplyingChanges] = useState(false);
+  const [syncingMembers, setSyncingMembers] = useState(false);
+  const [syncResult, setSyncResult] = useState<number | null>(null);
   const isOwner = myRole === 'OWNER';
+
+  const TERRITORY_TYPES = ['PAROISSE', 'DOYENNE', 'REGION', 'DIFFUSION'];
+
+  const handleSyncMembers = async () => {
+    setSyncingMembers(true);
+    setSyncResult(null);
+    try {
+      const { data } = await messagingApi.syncMembers(id);
+      setSyncResult((data as { synced: number }).synced);
+      // Reload members
+      const conv = await messagingApi.getConversation(id);
+      setGroupMembers((conv.data as { members?: ConversationMember[] }).members ?? []);
+    } catch { /* ignore */ }
+    finally { setSyncingMembers(false); }
+  };
 
   // Swipe-to-reply
   const swipeStartX = useRef(0);
@@ -139,7 +184,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         if (conv) {
           setConvType(conv.type);
           setConvNom(conv.nom ?? '');
-          if (conv.type === 'GROUPE' || conv.type === 'PRIVE') loadGroupDetails();
+          loadGroupDetails();
         }
       })
       .catch(() => {});
@@ -303,11 +348,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                 : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
           </div>
         </div>
-        {convType === 'GROUPE' && (
-          <button onClick={() => setShowGroupPanel(true)} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base">
-            👥
-          </button>
-        )}
+        <button onClick={() => setShowGroupPanel(true)} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base" title="Voir les membres">
+          👥
+        </button>
       </div>
 
       {/* ── Zone messages ── */}
@@ -470,29 +513,47 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       )}
 
       {/* ── Barre d'input ── */}
-      <div className="flex-shrink-0 bg-[#F0F2F5] px-2 py-2 flex items-center gap-2">
-        <input
-          ref={inputRef}
-          className="flex-1 bg-white rounded-full px-4 py-2.5 text-sm outline-none shadow-sm"
-          placeholder="Message…"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={sending}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!input.trim() || sending}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex items-center justify-center text-white disabled:opacity-60 flex-shrink-0 transition-opacity shadow"
-        >
-          {sending ? <span className="text-xs animate-pulse">…</span> : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
-          )}
-        </button>
-      </div>
+      {convType === 'DIFFUSION' && user?.role !== 'ADMIN' && user?.role !== 'REGION' ? (
+        <div className="flex-shrink-0 bg-[#fef2f2] border-t border-[#fca5a5] px-4 py-3 flex items-center gap-2">
+          <span className="text-base">📣</span>
+          <p className="text-[12px] text-[#991b1b] font-medium">Canal en lecture seule — seuls les administrateurs et responsables régionaux peuvent écrire ici.</p>
+        </div>
+      ) : (
+        <div className="flex-shrink-0 bg-[#F0F2F5] px-2 py-2 flex items-center gap-2">
+          <input
+            ref={inputRef}
+            className="flex-1 bg-white rounded-full px-4 py-2.5 text-sm outline-none shadow-sm"
+            placeholder="Message…"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={sending}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim() || sending}
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F58A4B] via-[#E55A35] to-[#7A2820] flex items-center justify-center text-white disabled:opacity-60 flex-shrink-0 transition-opacity shadow"
+          >
+            {sending ? <span className="text-xs animate-pulse">…</span> : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
+            )}
+          </button>
+        </div>
+      )}
 
-      {/* ── Panneau gestion groupe ── */}
-      {showGroupPanel && (
+      {/* ── Panneau membres / gestion groupe ── */}
+      {showGroupPanel && (() => {
+        const isGroupe = convType === 'GROUPE';
+        const panelTitle = showAddMember
+          ? 'Ajouter des membres'
+          : isGroupe
+            ? convNom
+            : PANEL_LABELS[convType] ?? 'Membres';
+        const panelSub = showAddMember
+          ? (selectedToAdd.length > 0 ? `${selectedToAdd.length} sélectionné${selectedToAdd.length > 1 ? 's' : ''}` : `${annuaire.length} disponibles`)
+          : `${groupMembers.length} membre${groupMembers.length > 1 ? 's' : ''}`;
+
+        return (
         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
 
           {/* Header */}
@@ -502,27 +563,35 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg"
             >‹</button>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm">{showAddMember ? 'Ajouter des membres' : convNom}</div>
-              <div className="text-[11px] opacity-80">
-                {showAddMember
-                  ? `${selectedToAdd.length > 0 ? `${selectedToAdd.length} sélectionné${selectedToAdd.length > 1 ? 's' : ''}` : `${annuaire.length} disponibles`}`
-                  : `${groupMembers.length} membre${groupMembers.length > 1 ? 's' : ''}`}
-              </div>
+              <div className="font-bold text-sm truncate">{panelTitle}</div>
+              <div className="text-[11px] opacity-80">{panelSub}</div>
             </div>
-            {isOwner && !showAddMember && (
+            {isGroupe && isOwner && !showAddMember && (
               <button onClick={openAddMember} className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">
                 + Ajouter
               </button>
             )}
-            {showAddMember && (
+            {isGroupe && showAddMember && (
               <button onClick={closeAddMember} className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">
                 Annuler
               </button>
             )}
+            {!isGroupe && TERRITORY_TYPES.includes(convType) && convType !== 'DIFFUSION' && (
+              syncResult !== null ? (
+                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full">
+                  {syncResult} membres ✓
+                </span>
+              ) : (
+                <button onClick={handleSyncMembers} disabled={syncingMembers}
+                  className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full disabled:opacity-50">
+                  {syncingMembers ? '…' : '⟳ Sync'}
+                </button>
+              )
+            )}
           </div>
 
-          {/* ── Vue AJOUTER ── */}
-          {showAddMember ? (
+          {/* ── Vue AJOUTER (GROUPE seulement) ── */}
+          {isGroupe && showAddMember ? (
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Recherche */}
               <div className="px-3 py-2 flex-shrink-0">
@@ -594,8 +663,15 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
           ) : (
             /* ── Vue MEMBRES ── */
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Barre sélectionner tout (owner uniquement) */}
-              {isOwner && removableMembers.length > 0 && (
+              {/* Bandeau territoire pour les canaux non-groupe */}
+              {!isGroupe && convNom && (
+                <div className="px-4 py-2.5 bg-[#f9f4ff] border-b border-[#ede4f8] flex-shrink-0 flex items-center gap-2">
+                  <span className="text-[#6A1B9A] text-base">{PANEL_ICONS[convType] ?? '📡'}</span>
+                  <span className="text-[13px] text-[#6A1B9A] font-semibold truncate">{convNom}</span>
+                </div>
+              )}
+              {/* Barre sélectionner tout (GROUPE + owner uniquement) */}
+              {isGroupe && isOwner && removableMembers.length > 0 && (
                 <div className="flex items-center justify-between px-4 py-2 border-b border-[#f0f0f0] flex-shrink-0">
                   <span className="text-[12px] text-[#9b9ba8]">
                     {selectedToRemove.length > 0 ? `${selectedToRemove.length} sélectionné${selectedToRemove.length > 1 ? 's' : ''}` : `${groupMembers.length} membres`}
@@ -610,14 +686,21 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
               )}
               {/* Liste */}
               <div className="flex-1 overflow-y-auto">
+                {groupMembers.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 gap-2 text-[#9b9ba8]">
+                    <span className="text-3xl">👥</span>
+                    <span className="text-sm">Aucun membre trouvé</span>
+                  </div>
+                )}
                 {groupMembers.map(m => {
                   const u = m.user;
                   if (!u) return null;
                   const COLORS = ['from-[#F58A4B] via-[#E55A35] to-[#7A2820]','from-[#6A1B9A] to-[#4a1370]','from-[#2E7D32] to-[#1a5021]','from-[#1F1B2E] to-[#3a1d4d]'];
                   const color = COLORS[u.id.charCodeAt(0) % COLORS.length];
                   const isMe = u.id === user?.id;
-                  const canSelect = isOwner && !isMe && m.role !== 'OWNER';
+                  const canSelect = isGroupe && isOwner && !isMe && m.role !== 'OWNER';
                   const isSelected = selectedToRemove.includes(u.id);
+                  const roleLabel = ROLE_LABELS[u.role as string] ?? u.role;
                   return (
                     <div
                       key={m.id}
@@ -636,7 +719,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                       <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1">
                         <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}{isMe ? ' (moi)' : ''}</p>
                         <p className="text-[13px] text-[#9b9ba8] truncate">
-                          {m.role === 'OWNER' ? 'Administrateur' : u.parish?.nom ?? u.role}
+                          {m.role === 'OWNER' ? 'Administrateur' : (u.parish?.nom ?? roleLabel)}
                         </p>
                       </div>
                       {canSelect && (
@@ -648,8 +731,8 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   );
                 })}
               </div>
-              {/* Bouton confirmer retrait */}
-              {selectedToRemove.length > 0 && (
+              {/* Bouton confirmer retrait (GROUPE uniquement) */}
+              {isGroupe && selectedToRemove.length > 0 && (
                 <div className="px-4 py-3 pb-safe border-t border-[#f0f0f0] flex-shrink-0 bg-white">
                   <button
                     onClick={handleConfirmRemove}
@@ -663,7 +746,8 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ── Action sheet message (mobile) ── */}
       {menuMsgId && (() => {

@@ -44,6 +44,12 @@ function GuidesContent() {
   const [promoting, setPromoting] = useState<User | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [resetPwdTarget, setResetPwdTarget] = useState<User | null>(null);
+  const [resetPwdValue, setResetPwdValue] = useState('');
+  const [resetPwdShow, setResetPwdShow] = useState(false);
+  const [resetPwdLoading, setResetPwdLoading] = useState(false);
+  const [resetPwdError, setResetPwdError] = useState('');
   const [page, setPage] = usePaginationUrl();
 
   const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
@@ -134,6 +140,35 @@ function GuidesContent() {
     finally { setPromoteLoading(false); }
   };
 
+  const handlePurger = async (user: User) => {
+    setActionLoading(user.id);
+    try {
+      await usersApi.purger(user.id);
+      setGuides(prev => prev.filter(u => u.id !== user.id));
+    } catch { /* ignore */ }
+    finally { setActionLoading(null); }
+  };
+
+  const openResetPwd = (user: User) => {
+    setResetPwdTarget(user);
+    setResetPwdValue('');
+    setResetPwdShow(false);
+    setResetPwdError('');
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPwdTarget) return;
+    if (resetPwdValue.length < 6) { setResetPwdError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
+    setResetPwdLoading(true);
+    setResetPwdError('');
+    try {
+      const { data } = await usersApi.resetPassword(resetPwdTarget.id, resetPwdValue);
+      setGuides(prev => prev.map(u => u.id === resetPwdTarget.id ? { ...u, statutProfil: (data as User).statutProfil } : u));
+      setResetPwdTarget(null);
+    } catch { setResetPwdError('Une erreur est survenue. Vérifiez le mot de passe et réessayez.'); }
+    finally { setResetPwdLoading(false); }
+  };
+
   const handleStatut = async (user: User, newStatut: 'SUSPENDU' | 'ACTIF') => {
     setActionLoading(user.id);
     setPendingSuspend(null);
@@ -149,11 +184,15 @@ function GuidesContent() {
       onSuspend: u => handleStatut(u, 'SUSPENDU'),
       onReactivate: u => handleStatut(u, 'ACTIF'),
       onPromote: u => setPromoting(u),
+      onResetPassword: u => openResetPwd(u),
+      onPurger: handlePurger,
       pendingSuspend,
       setPendingSuspend,
+      pendingDelete,
+      setPendingDelete,
       actionLoading,
     }),
-    [actionLoading, pendingSuspend],
+    [actionLoading, pendingSuspend, pendingDelete],
   );
 
   const { table } = useDataTable({
@@ -317,10 +356,12 @@ function GuidesContent() {
         <>
           <div className="lg:hidden flex flex-col gap-2">
             {paginatedRows.map(({ original: u }) => {
-              const isLoading = actionLoading === u.id;
-              const isPending = pendingSuspend === u.id;
-              const canSuspend = u.statutProfil === 'ACTIF';
+              const isLoading  = actionLoading === u.id;
+              const isPending  = pendingSuspend === u.id;
+              const isPendDel  = pendingDelete === u.id;
+              const canSuspend    = u.statutProfil === 'ACTIF';
               const canReactivate = u.statutProfil === 'SUSPENDU';
+              const canActivate   = u.statutProfil === 'EN_ATTENTE_ACTIVATION';
 
               return (
                 <div key={u.id} className="bg-white border border-[#ececf0] rounded-xl p-3">
@@ -352,12 +393,24 @@ function GuidesContent() {
                       )}
                     </div>
                   </div>
-                  {((canSuspend || canReactivate) || (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION')) && (
+                  {((canSuspend || canReactivate || canActivate) || (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION')) && (
                     <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4] flex flex-col gap-1.5">
                       {!isPending && (
                         <button type="button" onClick={() => setPromoting(u)} disabled={isLoading}
                           className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] transition-colors disabled:opacity-50">
                           Changer le rôle
+                        </button>
+                      )}
+                      {!isPending && (
+                        <button type="button" onClick={() => openResetPwd(u)} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#fff3e0] text-[#e65100] hover:bg-[#ffe0b2] transition-colors disabled:opacity-50">
+                          🔑 Réinitialiser le mot de passe
+                        </button>
+                      )}
+                      {canActivate && (
+                        <button type="button" onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
+                          {isLoading ? '…' : '✓ Activer le compte'}
                         </button>
                       )}
                       {canReactivate && (
@@ -380,6 +433,25 @@ function GuidesContent() {
                           </button>
                           <button type="button" onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
                             className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#E55A35] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50">
+                            {isLoading ? '…' : 'Confirmer'}
+                          </button>
+                        </div>
+                      )}
+                      {!isPendDel && !isPending && (
+                        <button type="button" onClick={() => setPendingDelete(u.id)} disabled={isLoading}
+                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-50">
+                          🗑 Supprimer définitivement
+                        </button>
+                      )}
+                      {isPendDel && (
+                        <div className="flex gap-2">
+                          <span className="flex-1 text-[11px] text-[#C62828] font-semibold flex items-center">Supprimer ?</span>
+                          <button type="button" onClick={() => setPendingDelete(null)}
+                            className="py-1.5 px-3 rounded-lg text-xs font-semibold bg-[#f6f6fa] text-[#6b6b78]">
+                            Annuler
+                          </button>
+                          <button type="button" onClick={() => handlePurger(u)} disabled={isLoading}
+                            className="py-1.5 px-3 rounded-lg text-xs font-bold bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
                             {isLoading ? '…' : 'Confirmer'}
                           </button>
                         </div>
@@ -417,6 +489,48 @@ function GuidesContent() {
         defaultRole="GUIDE"
         allowedRoles={['GUIDE']}
       />
+
+      {/* ── Modal réinitialisation mot de passe ── */}
+      {resetPwdTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-[60]" onClick={() => !resetPwdLoading && setResetPwdTarget(null)}>
+          <div className="bg-white rounded-t-2xl w-full max-w-lg mx-auto shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-4 pb-3 border-b border-[#f0f0f4]">
+              <p className="text-[11px] text-[#9b9ba8] mb-0.5">{resetPwdTarget.prenoms} {resetPwdTarget.nom}</p>
+              <p className="text-sm font-bold text-[#1F1B2E]">Réinitialiser le mot de passe</p>
+            </div>
+            <div className="p-5 flex flex-col gap-3">
+              <div className="relative">
+                <input
+                  type={resetPwdShow ? 'text' : 'password'}
+                  value={resetPwdValue}
+                  onChange={e => { setResetPwdValue(e.target.value); setResetPwdError(''); }}
+                  placeholder="Nouveau mot de passe (min. 6 caractères)"
+                  className="w-full border border-[#e6e6ea] rounded-xl px-3.5 py-2.5 text-sm text-[#1F1B2E] pr-10 focus:outline-none focus:border-[#1F1B2E]"
+                  disabled={resetPwdLoading}
+                />
+                <button type="button" onClick={() => setResetPwdShow(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9b9ba8] text-xs">
+                  {resetPwdShow ? '🙈' : '👁'}
+                </button>
+              </div>
+              {resetPwdError && <p className="text-xs text-red-600">{resetPwdError}</p>}
+              <p className="text-[11px] text-[#9b9ba8]">
+                Le compte sera automatiquement activé après la réinitialisation.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setResetPwdTarget(null)} disabled={resetPwdLoading}
+                  className="flex-1 py-2.5 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78]">
+                  Annuler
+                </button>
+                <button type="button" onClick={handleResetPassword} disabled={resetPwdLoading || resetPwdValue.length < 6}
+                  className="flex-1 py-2.5 rounded-xl bg-[#1F1B2E] text-white text-sm font-bold disabled:opacity-50">
+                  {resetPwdLoading ? 'Enregistrement…' : 'Confirmer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal promotion ── */}
       {promoting && (() => {

@@ -66,8 +66,12 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
   const [districtId, setDistrictId] = useState('');
   const [parishId, setParishId]     = useState('');
   const [dateNaissance, setDateNaissance] = useState('');
+  const [password, setPassword]           = useState('');
+  const [confirmPwd, setConfirmPwd]       = useState('');
+  const [showPwd, setShowPwd]             = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
+  const [pendingSuccess, setPendingSuccess] = useState(false);
 
   const isAdminOrRegion = ['ADMIN', 'REGION'].includes(actorRole);
   const isSentinelle    = actorRole === 'SENTINELLE';
@@ -107,10 +111,12 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
     } else {
       setNom(''); setPrenoms(''); setMatricule('');
       setEmail(''); setTelephone(''); setDateNaissance('');
+      setPassword(''); setConfirmPwd('');
       setRole(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
       setDistrictId(''); setParishId('');
     }
     setError('');
+    setPendingSuccess(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [isOpen, editUser]);
 
@@ -144,6 +150,14 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
       setError('Le matricule est obligatoire pour modifier un utilisateur.');
       return;
     }
+    if (!isEditMode && password && password.length < 6) {
+      setError('Le mot de passe doit comporter au moins 6 caractères.');
+      return;
+    }
+    if (!isEditMode && password && password !== confirmPwd) {
+      setError('Les mots de passe ne correspondent pas.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -172,9 +186,14 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
           telephone:  telephone.trim() || undefined,
           districtId: effectiveDistrict,
           parishId:   effectiveParish,
+          password:   password.trim() || undefined,
         };
         const { data } = await usersApi.create(payload);
         onCreated(data as User);
+        if (!isAdminOrRegion) {
+          setPendingSuccess(true);
+          return;
+        }
       }
       onClose();
     } catch (e: unknown) {
@@ -187,6 +206,29 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
   };
 
   if (!isOpen) return null;
+
+  if (pendingSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-gradient-to-r from-[#D9A441] to-[#b87c1c] text-white p-5 text-center">
+            <div className="text-4xl mb-2">⏳</div>
+            <p className="font-black text-lg">Ajout envoyé</p>
+          </div>
+          <div className="p-6 flex flex-col gap-4 text-center">
+            <p className="text-sm text-[#1F1B2E]">
+              L'ajout de ce membre a été transmis pour validation.<br />
+              Un administrateur ou le régional devra l'approuver avant qu'il soit actif.
+            </p>
+            <button type="button" onClick={onClose}
+              className="w-full py-2.5 rounded-xl bg-[#1F1B2E] text-white font-bold text-sm">
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const selectedOption = availableRoles.find(r => r.value === role) ?? availableRoles[0];
 
@@ -348,6 +390,60 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
                 className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#6A1B9A] transition" />
             </div>
           </div>
+
+          {/* ── Mot de passe (création uniquement) ── */}
+          {!isEditMode && (
+            <div>
+              <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-2">
+                Mot de passe
+              </label>
+              <div className="space-y-3">
+                <div className="relative">
+                  <label className="block text-xs text-[#9b9ba8] mb-1">
+                    Mot de passe <span className="opacity-60">(optionnel)</span>
+                  </label>
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Min. 6 caractères"
+                    className="w-full border border-[#e0e0e8] rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:border-[#6A1B9A] transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd(v => !v)}
+                    className="absolute right-3 top-[calc(1.5rem+10px)] -translate-y-1/2 text-[#9b9ba8] hover:text-[#6A1B9A] text-base leading-none"
+                  >
+                    {showPwd ? '🙈' : '👁'}
+                  </button>
+                </div>
+                {password && (
+                  <div>
+                    <label className="block text-xs text-[#9b9ba8] mb-1">Confirmer le mot de passe</label>
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={confirmPwd}
+                      onChange={e => setConfirmPwd(e.target.value)}
+                      placeholder="Répéter le mot de passe"
+                      className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none transition ${
+                        confirmPwd && confirmPwd !== password
+                          ? 'border-[#f5c6c6] focus:border-[#C62828]'
+                          : 'border-[#e0e0e8] focus:border-[#6A1B9A]'
+                      }`}
+                    />
+                    {confirmPwd && confirmPwd !== password && (
+                      <p className="text-[11px] text-[#C62828] mt-1">Les mots de passe ne correspondent pas.</p>
+                    )}
+                  </div>
+                )}
+                <p className="text-[11px] text-[#9b9ba8]">
+                  {password
+                    ? '✓ Le membre pourra se connecter immédiatement avec ce mot de passe.'
+                    : 'Sans mot de passe, le compte sera en attente jusqu\'à ce que le membre en choisisse un.'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-5 border-t border-[#f0f0f0] flex-shrink-0 flex gap-3">

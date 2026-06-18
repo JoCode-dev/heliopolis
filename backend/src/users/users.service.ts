@@ -12,6 +12,8 @@ import { PreEnregistrerDto } from './dto/pre-enregistrer.dto.js';
 import {
   AdhesionStatus,
   AuditAction,
+  ConversationMemberRole,
+  ConversationType,
   ProfileStatus,
   UserRole,
 } from '../../generated/prisma/enums.js';
@@ -29,6 +31,38 @@ export class UsersService {
     private actionLog: ActionLogService,
   ) {}
 
+
+  private async addToTerritoryChannels(user: {
+    id: string;
+    role: UserRole;
+    parishId?: string | null;
+    districtId?: string | null;
+    regionId?: string | null;
+  }) {
+    type ConvWhere = { type: string; archivedAt: null; parishId?: string; districtId?: string; regionId?: string };
+    const orFilters: ConvWhere[] = [{ type: 'DIFFUSION', archivedAt: null }];
+    if (user.parishId && (user.role === UserRole.GUIDE || user.role === UserRole.GARDIEN)) {
+      orFilters.push({ type: 'PAROISSE', parishId: user.parishId, archivedAt: null });
+    }
+    if (user.districtId && (user.role === UserRole.SENTINELLE || user.role === UserRole.GUIDE)) {
+      orFilters.push({ type: 'DOYENNE', districtId: user.districtId, archivedAt: null });
+    }
+    if (user.regionId && (user.role === UserRole.REGION || user.role === UserRole.SENTINELLE)) {
+      orFilters.push({ type: 'REGION', regionId: user.regionId, archivedAt: null });
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channels = await this.prisma.conversation.findMany({ where: { OR: orFilters as any }, select: { id: true } });
+    if (!channels.length) return;
+    await Promise.all(
+      channels.map((c) =>
+        this.prisma.conversationMember.upsert({
+          where: { conversationId_userId: { conversationId: c.id, userId: user.id } },
+          create: { conversationId: c.id, userId: user.id, role: ConversationMemberRole.MEMBRE },
+          update: { leftAt: null },
+        }),
+      ),
+    );
+  }
 
   private noScope(): Prisma.UserWhereInput {
     return { id: '__no_scope__' };
@@ -138,11 +172,39 @@ export class UsersService {
     return user;
   }
 
-  /** Création manuelle réservée à l'ADMIN (cas exceptionnels) */
+  /** Création d'un membre — ADMIN/REGION → direct, GUIDE/SENTINELLE → EN_ATTENTE_VALIDATION */
   async create(dto: CreateUserDto, actor: AuthUser) {
-    if (actor.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('La création directe de membres est réservée à l\'administrateur. Utilisez le pré-enregistrement de matricule.');
+    const isGuide      = actor.role === UserRole.GUIDE;
+    const isSentinelle = actor.role === UserRole.SENTINELLE;
+
+    if (
+      actor.role !== UserRole.ADMIN &&
+      actor.role !== UserRole.REGION &&
+      !isGuide &&
+      !isSentinelle
+    ) {
+      throw new ForbiddenException(
+        'La création de membres est réservée à l\'administrateur, au régional, aux sentinelles ou aux guides.',
+      );
     }
+
+    // Guide : forcé sur le rôle GARDIEN dans sa propre paroisse
+    if (isGuide) {
+      dto.role      = UserRole.GARDIEN;
+      dto.parishId  = actor.parishId  ?? dto.parishId;
+      dto.districtId= actor.districtId?? dto.districtId;
+      dto.regionId  = actor.regionId  ?? dto.regionId;
+    }
+
+    // Sentinelle : GARDIEN ou GUIDE dans son district uniquement
+    if (isSentinelle) {
+      if (dto.role && dto.role !== UserRole.GARDIEN && dto.role !== UserRole.GUIDE) {
+        throw new ForbiddenException('Une sentinelle ne peut créer que des gardiens ou des guides.');
+      }
+      dto.role      = dto.role ?? UserRole.GARDIEN;
+      dto.districtId= actor.districtId ?? dto.districtId;
+    }
+
     if (dto.matricule) {
       const existing = await this.prisma.user.findUnique({
         where: { matricule: dto.matricule },
@@ -150,9 +212,17 @@ export class UsersService {
       if (existing)
         throw new ConflictException('Ce matricule est déjà enregistré');
     }
+
     const passwordHash = dto.password
       ? await bcrypt.hash(dto.password, 12)
       : undefined;
+
+    const awaitingValidation = isGuide || isSentinelle;
+    const statutProfil = awaitingValidation
+      ? ProfileStatus.EN_ATTENTE_VALIDATION
+      : dto.password
+        ? ProfileStatus.ACTIF
+        : ProfileStatus.EN_ATTENTE_ACTIVATION;
 
     const created = await this.prisma.user.create({
       data: {
@@ -169,19 +239,70 @@ export class UsersService {
         regionId: dto.regionId,
         districtId: dto.districtId,
         parishId: dto.parishId,
-        statutProfil: ProfileStatus.ACTIF,
+        statutProfil,
       },
       select: this.userSelect,
     });
+
     this.actionLog.record({
       action: AuditAction.CREATE,
       category: 'user',
-      summary: `Création du membre ${created.prenoms ?? ''} ${created.nom ?? ''} (${created.role})`,
-      actor: actor,
+      summary: `Création du membre ${created.prenoms ?? ''} ${created.nom ?? ''} (${created.role})${awaitingValidation ? ' — en attente de validation' : ''}`,
+      actor,
       target: { entityType: 'User', entityId: created.id },
-      metadata: { role: created.role, matricule: created.matricule },
+      metadata: { role: created.role, matricule: created.matricule, awaitingValidation },
     });
     return created;
+  }
+
+  /** Valide l'ajout d'un membre créé par un guide/sentinelle */
+  async valider(id: string, actor: AuthUser) {
+    const user = await this.prisma.user.findUnique({
+      where: { id, deletedAt: null },
+      select: { id: true, nom: true, prenoms: true, statutProfil: true },
+    });
+    if (!user) throw new NotFoundException('Membre introuvable');
+    if (user.statutProfil !== ProfileStatus.EN_ATTENTE_VALIDATION) {
+      throw new BadRequestException('Ce membre n\'est pas en attente de validation');
+    }
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { statutProfil: ProfileStatus.EN_ATTENTE_ACTIVATION },
+      select: this.userSelect,
+    });
+    this.actionLog.record({
+      action: AuditAction.VALIDATE,
+      category: 'user',
+      summary: `Validation de l'ajout de ${updated.prenoms ?? ''} ${updated.nom ?? ''}`,
+      actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { before: ProfileStatus.EN_ATTENTE_VALIDATION, after: ProfileStatus.EN_ATTENTE_ACTIVATION },
+    });
+    return updated;
+  }
+
+  /** Rejette et supprime un membre en attente de validation */
+  async rejeter(id: string, actor: AuthUser) {
+    const user = await this.prisma.user.findUnique({
+      where: { id, deletedAt: null },
+      select: { id: true, nom: true, prenoms: true, statutProfil: true },
+    });
+    if (!user) throw new NotFoundException('Membre introuvable');
+    if (user.statutProfil !== ProfileStatus.EN_ATTENTE_VALIDATION) {
+      throw new BadRequestException('Ce membre n\'est pas en attente de validation');
+    }
+    await this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    this.actionLog.record({
+      action: AuditAction.REJECT,
+      category: 'user',
+      summary: `Rejet de l'ajout de ${user.prenoms ?? ''} ${user.nom ?? ''}`,
+      actor,
+      target: { entityType: 'User', entityId: id },
+    });
+    return { message: 'Ajout rejeté et membre supprimé' };
   }
 
   /** Pré-enregistre un matricule — seul l'ADMIN peut le faire */
@@ -521,6 +642,26 @@ export class UsersService {
     return updated;
   }
 
+  async resetPassword(id: string, newPassword: string, actor: AuthUser) {
+    const user = await this.findOne(id, actor);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { passwordHash, statutProfil: ProfileStatus.ACTIF },
+      select: this.userSelect,
+    });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'user',
+      summary: `Réinitialisation du mot de passe de ${updated.prenoms ?? ''} ${updated.nom ?? ''}`,
+      actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { before: user.statutProfil, after: ProfileStatus.ACTIF },
+    });
+    void this.addToTerritoryChannels(updated);
+    return updated;
+  }
+
   async updateStatut(id: string, statut: ProfileStatus, actor: AuthUser) {
     const before = await this.findOne(id, actor);
     const updated = await this.prisma.user.update({
@@ -536,6 +677,9 @@ export class UsersService {
       target: { entityType: 'User', entityId: id },
       metadata: { before: before.statutProfil, after: statut },
     });
+    if (statut === ProfileStatus.ACTIF) {
+      void this.addToTerritoryChannels(updated);
+    }
     return updated;
   }
 
@@ -628,6 +772,35 @@ export class UsersService {
       target: { entityType: 'User', entityId: id },
     });
     return { message: 'Gardien archivé' };
+  }
+
+  /** Suppression définitive et irréversible — ADMIN ou REGION seulement */
+  async purger(id: string, actor: AuthUser) {
+    if (actor.id === id) {
+      throw new BadRequestException('Vous ne pouvez pas vous supprimer vous-même.');
+    }
+    const target = await this.findOne(id, actor);
+
+    if (actor.role === UserRole.REGION) {
+      if (target.role === UserRole.ADMIN || target.role === UserRole.REGION) {
+        throw new ForbiddenException('Le régional ne peut pas supprimer un administrateur ou un autre membre régional.');
+      }
+    }
+
+    const displayName = `${target.prenoms ?? ''} ${target.nom ?? ''}`.trim();
+    // Les relations Cascade (Adhesion, CampParticipant, ConversationMember, etc.)
+    // sont gérées automatiquement par Postgres via les contraintes onDelete: Cascade.
+    await this.prisma.user.delete({ where: { id } });
+
+    this.actionLog.record({
+      action: AuditAction.DELETE,
+      category: 'user',
+      summary: `Suppression définitive de ${displayName} (${target.role})`,
+      actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { role: target.role, permanent: true },
+    });
+    return { message: 'Membre supprimé définitivement' };
   }
 
   async updateAdhesion(
