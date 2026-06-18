@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MessagingService } from './messaging.service.js';
+import { MessagingGateway } from './messaging.gateway.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
@@ -20,7 +21,10 @@ import type { AuthUser } from '../common/types/auth-user.js';
 @UseGuards(JwtAuthGuard)
 @Controller('messaging')
 export class MessagingController {
-  constructor(private messagingService: MessagingService) {}
+  constructor(
+    private messagingService: MessagingService,
+    private gateway: MessagingGateway,
+  ) {}
 
   @Get('conversations')
   getMyConversations(@CurrentUser() user: AuthUser) {
@@ -32,17 +36,20 @@ export class MessagingController {
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
     @Query('page') page?: string,
+    @Query('since') since?: string,
   ) {
-    return this.messagingService.getMessages(id, user.id, page ? +page : 1);
+    return this.messagingService.getMessages(id, user.id, page ? +page : 1, 50, since);
   }
 
   @Post('conversations/:id/messages')
-  sendMessage(
+  async sendMessage(
     @Param('id') id: string,
     @Body() dto: SendMessageDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.messagingService.sendMessage(id, user.id, dto);
+    const message = await this.messagingService.sendMessage(id, user.id, dto);
+    this.gateway.broadcastMessage(id, message);
+    return message;
   }
 
   @Post('conversations/:id/read')
@@ -113,20 +120,24 @@ export class MessagingController {
   }
 
   @Patch('messages/:messageId')
-  editMessage(
+  async editMessage(
     @Param('messageId') messageId: string,
     @Body() dto: EditMessageDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.messagingService.editMessage(messageId, user.id, dto.contenu);
+    const message = await this.messagingService.editMessage(messageId, user.id, dto.contenu);
+    this.gateway.broadcastEdit(message.conversationId, message);
+    return message;
   }
 
   @Delete('messages/:messageId')
-  deleteMessage(
+  async deleteMessage(
     @Param('messageId') messageId: string,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.messagingService.deleteMessage(messageId, user.id);
+    const message = await this.messagingService.deleteMessage(messageId, user.id);
+    this.gateway.broadcastDelete(message.conversationId, message.id);
+    return message;
   }
 
   @Post('conversations/private')

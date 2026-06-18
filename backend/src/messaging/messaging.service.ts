@@ -169,19 +169,30 @@ export class MessagingService {
     userId: string,
     page = 1,
     limit = 50,
+    since?: string,
   ) {
     await this.assertMember(conversationId, userId);
+
+    const include = {
+      author: {
+        select: { id: true, nom: true, prenoms: true, avatarUrl: true },
+      },
+      attachments: { include: { media: true } },
+      replyTo: { include: { author: { select: { id: true, nom: true } } } },
+    };
+
+    if (since) {
+      return this.prisma.message.findMany({
+        where: { conversationId, deletedAt: null, createdAt: { gt: new Date(since) } },
+        include,
+        orderBy: { createdAt: 'asc' },
+      });
+    }
 
     const skip = (page - 1) * limit;
     return this.prisma.message.findMany({
       where: { conversationId, deletedAt: null },
-      include: {
-        author: {
-          select: { id: true, nom: true, prenoms: true, avatarUrl: true },
-        },
-        attachments: { include: { media: true } },
-        replyTo: { include: { author: { select: { id: true, nom: true } } } },
-      },
+      include,
       orderBy: { createdAt: 'asc' },
       skip,
       take: limit,

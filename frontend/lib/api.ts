@@ -258,7 +258,7 @@ export const badgesApi = {
 // ─── Messaging ────────────────────────────────────────────────────────────────
 export const messagingApi = {
   conversations: () => api.get('/messaging/conversations'),
-  messages: (id: string, page = 1) => api.get(`/messaging/conversations/${id}/messages`, { params: { page } }),
+  messages: (id: string, page = 1, since?: string) => api.get(`/messaging/conversations/${id}/messages`, { params: { page, ...(since ? { since } : {}) } }),
   send: (id: string, contenu: string, replyToId?: string) => api.post(`/messaging/conversations/${id}/messages`, { contenu, ...(replyToId ? { replyToId } : {}) }),
   markRead: (id: string) => api.post(`/messaging/conversations/${id}/read`),
   createPrivate: (userId: string) => api.post('/messaging/conversations/private', { userId }),

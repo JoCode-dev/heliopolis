@@ -151,6 +151,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const swipeStartId = useRef<string | null>(null);
   const [swipeOffset, setSwipeOffset] = useState<{ id: string; offset: number } | null>(null);
 
+  // Polling fallback: timestamp du dernier message connu
+  const lastMsgAtRef = useRef<string | null>(null);
+
   // Refs to scroll to a specific message
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -176,7 +179,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     messagingApi.messages(id)
       .then(r => {
-        setMessages(r.data);
+        const msgs = r.data as Message[];
+        setMessages(msgs);
+        if (msgs.length) lastMsgAtRef.current = msgs[msgs.length - 1].createdAt as string;
         return messagingApi.conversations();
       })
       .then(cr => {
@@ -198,25 +203,101 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     if (!accessToken) return;
     const socket = getSocket(accessToken);
-    socket.emit('join:conversation', id);
-    socket.on('new:message', (msg: Message) => {
-      setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
-    });
-    return () => { socket.emit('leave:conversation', id); socket.off('new:message'); };
+
+    const joinRoom = () => socket.emit('join:conversation', id);
+    // Rejoindre immédiatement + sur chaque reconnexion socket
+    joinRoom();
+    socket.on('connect', joinRoom);
+
+    const onNewMessage = (msg: Message) => {
+      setMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        lastMsgAtRef.current = msg.createdAt as string;
+        return [...prev, msg];
+      });
+    };
+    const onEditMessage = (msg: Message) => {
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, ...msg } : m));
+    };
+    const onDeleteMessage = ({ id: msgId }: { id: string }) => {
+      setMessages(prev => prev.map(m => m.id === msgId
+        ? { ...m, deletedAt: new Date().toISOString(), contenu: undefined }
+        : m));
+    };
+
+    socket.on('new:message', onNewMessage);
+    socket.on('edit:message', onEditMessage);
+    socket.on('delete:message', onDeleteMessage);
+
+    return () => {
+      socket.emit('leave:conversation', id);
+      socket.off('connect', joinRoom);
+      socket.off('new:message', onNewMessage);
+      socket.off('edit:message', onEditMessage);
+      socket.off('delete:message', onDeleteMessage);
+    };
   }, [id, accessToken]);
 
-  const sendMessage = async () => {
+  // Polling de secours : fenêtre glissante de 3 min pour capturer les messages manqués
+  useEffect(() => {
+    if (!accessToken) return;
+    const timer = setInterval(async () => {
+      try {
+        // On remonte 3 minutes en arrière pour couvrir les envois simultanés et les décalages
+        const since = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+        const r = await messagingApi.messages(id, 1, since);
+        const incoming = r.data as Message[];
+        if (!incoming.length) return;
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const fresh = incoming.filter(m => !existingIds.has(m.id));
+          if (!fresh.length) return prev;
+          lastMsgAtRef.current = fresh[fresh.length - 1].createdAt as string;
+          return [...prev, ...fresh];
+        });
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [id, accessToken]);
+
+  const sendMessage = () => {
     if (!input.trim() || sending) return;
-    const text = input;
+    const text = input.trim();
     const replyId = replyingTo?.id;
     setInput('');
     setReplyingTo(null);
     setSending(true);
-    try {
-      const { data } = await messagingApi.send(id, text, replyId);
-      setMessages(prev => [...prev, data]);
-    } catch { setInput(text); }
-    finally { setSending(false); }
+
+    const sock = getSocket(accessToken!);
+
+    const addMessage = (msg: Message) => {
+      setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
+      lastMsgAtRef.current = msg.createdAt as string;
+    };
+
+    if (sock.connected) {
+      // Envoi via WebSocket — le gateway broadcast directement depuis this.server
+      sock.emit(
+        'send:message',
+        { conversationId: id, contenu: text, replyToId: replyId },
+        (msg: Message | { message?: string } | null) => {
+          setSending(false);
+          if (msg && 'id' in msg) {
+            addMessage(msg as Message);
+          } else {
+            // Erreur gateway — fallback HTTP avec ajout local
+            messagingApi.send(id, text, replyId)
+              .then(({ data }) => addMessage(data as Message))
+              .catch(() => setInput(text));
+          }
+        },
+      );
+    } else {
+      // Socket non connecté — HTTP direct avec ajout local
+      messagingApi.send(id, text, replyId)
+        .then(({ data }) => { addMessage(data as Message); setSending(false); })
+        .catch(() => { setInput(text); setSending(false); });
+    }
   };
 
   const startEdit = useCallback((msg: Message) => {
@@ -230,22 +311,27 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 
   const confirmEdit = async () => {
     if (!editingId || !editText.trim()) return;
+    const savedId = editingId;
+    const savedText = editText.trim();
+    cancelEdit();
     try {
-      const { data } = await messagingApi.editMessage(editingId, editText.trim());
-      setMessages(prev => prev.map(m => m.id === editingId ? { ...m, ...data } : m));
-      cancelEdit();
+      const { data } = await messagingApi.editMessage(savedId, savedText);
+      // Mise à jour locale immédiate (WebSocket le propage aux autres)
+      setMessages(prev => prev.map(m => m.id === savedId ? { ...m, ...(data as Message) } : m));
     } catch { /* ignore */ }
   };
 
   const deleteForEveryone = async () => {
     if (!deleteTarget) return;
+    const targetId = deleteTarget.id;
+    setDeleteTarget(null);
     try {
-      await messagingApi.deleteMessage(deleteTarget.id);
-      setMessages(prev => prev.map(m => m.id === deleteTarget.id
+      await messagingApi.deleteMessage(targetId);
+      // Mise à jour locale immédiate (WebSocket le propage aux autres)
+      setMessages(prev => prev.map(m => m.id === targetId
         ? { ...m, deletedAt: new Date().toISOString(), contenu: undefined }
         : m));
     } catch { /* ignore */ }
-    setDeleteTarget(null);
   };
 
   // Swipe handlers

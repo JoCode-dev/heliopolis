@@ -1,11 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { SerwistProvider } from "@/components/pwa/serwist-provider";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/metadata";
-
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const APP_TITLE = `${SITE_NAME} — ${SITE_TAGLINE}`;
@@ -47,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={cn("h-full", "font-sans", inter.variable)} suppressHydrationWarning>
+    <html lang="fr" className={cn("h-full", "font-sans")} suppressHydrationWarning>
       <body className="min-h-full flex flex-col antialiased" suppressHydrationWarning>
         <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>
       </body>

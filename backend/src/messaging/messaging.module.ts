@@ -16,5 +16,6 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
   ],
   providers: [MessagingService, MessagingGateway],
   controllers: [MessagingController],
+  exports: [MessagingService, MessagingGateway],
 })
 export class MessagingModule {}

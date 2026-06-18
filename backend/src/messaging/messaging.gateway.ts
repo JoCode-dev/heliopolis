@@ -157,6 +157,18 @@ export class MessagingGateway
     await client.leave(`conv:${conversationId}`);
   }
 
+  broadcastMessage(conversationId: string, message: unknown) {
+    this.server.to(`conv:${conversationId}`).emit('new:message', message);
+  }
+
+  broadcastEdit(conversationId: string, message: unknown) {
+    this.server.to(`conv:${conversationId}`).emit('edit:message', message);
+  }
+
+  broadcastDelete(conversationId: string, messageId: string) {
+    this.server.to(`conv:${conversationId}`).emit('delete:message', { id: messageId });
+  }
+
   // ── Envoi de message ──────────────────────────────────────────────────────
 
   @SubscribeMessage('send:message')
