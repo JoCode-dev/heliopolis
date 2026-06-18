@@ -279,12 +279,12 @@ export class TerritoriesService {
         },
         orderBy: { nom: 'asc' },
       }),
-      this.prisma.$queryRaw<{ districtId: string; count: number }[]>`
+      this.prisma.$queryRawUnsafe<{ districtId: string; count: bigint }[]>(`
         SELECT "districtId", CAST(COUNT(id) AS INT) AS count
         FROM users
         WHERE "deletedAt" IS NULL AND role = 'GARDIEN' AND "districtId" IS NOT NULL
         GROUP BY "districtId"
-      `,
+      `),
       this.prisma.camp.findMany({
         where: { statut: { in: ['OUVERT', 'EN_COURS'] } },
         select: {
@@ -295,15 +295,15 @@ export class TerritoriesService {
         },
         orderBy: { dateDebut: 'desc' },
       }),
-      this.prisma.$queryRaw<{ statut: string; count: number }[]>`
+      this.prisma.$queryRawUnsafe<{ statut: string; count: bigint }[]>(`
         SELECT a.statut, CAST(COUNT(a.id) AS INT) AS count
         FROM adhesions a
         JOIN users u ON u.id = a."userId"
-        WHERE a.annee = ${annee}
+        WHERE a.annee = $1
           AND u."deletedAt" IS NULL
           AND u.role = 'GARDIEN'
         GROUP BY a.statut
-      `,
+      `, annee),
       this.prisma.challenge.findMany({
         select: {
           id: true,
@@ -315,14 +315,14 @@ export class TerritoriesService {
       }),
     ]);
 
-    const participantsByDistrict: { districtId: string; count: number }[] =
+    const participantsByDistrict: { districtId: string; count: bigint }[] =
       activeCamp != null
-        ? await this.prisma.$queryRaw`
+        ? await this.prisma.$queryRawUnsafe<{ districtId: string; count: bigint }[]>(`
             SELECT "districtId", CAST(COUNT(id) AS INT) AS count
             FROM camp_participants
-            WHERE "campId" = ${activeCamp.id}
+            WHERE "campId" = $1
             GROUP BY "districtId"
-          `
+          `, activeCamp.id)
         : [];
 
     const routiersMap = new Map(
