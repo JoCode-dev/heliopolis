@@ -4,7 +4,9 @@ let socket: Socket | null = null;
 let currentToken: string | null = null;
 
 export function getSocket(token: string): Socket {
-  if (socket && socket.connected && currentToken === token) {
+  // Ne recréer le socket QUE si le token change — pas à chaque déconnexion/reconnexion
+  // Recréer tuerait les listeners et sortirait le socket des rooms
+  if (socket && currentToken === token) {
     return socket;
   }
   if (socket) {

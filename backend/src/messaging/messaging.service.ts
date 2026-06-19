@@ -170,6 +170,7 @@ export class MessagingService {
     page = 1,
     limit = 50,
     since?: string,
+    last?: number,
   ) {
     await this.assertMember(conversationId, userId);
 
@@ -187,6 +188,17 @@ export class MessagingService {
         include,
         orderBy: { createdAt: 'asc' },
       });
+    }
+
+    if (last) {
+      // Retourne les N derniers messages triés du plus ancien au plus récent
+      const msgs = await this.prisma.message.findMany({
+        where: { conversationId, deletedAt: null },
+        include,
+        orderBy: { createdAt: 'desc' },
+        take: last,
+      });
+      return msgs.reverse();
     }
 
     const skip = (page - 1) * limit;

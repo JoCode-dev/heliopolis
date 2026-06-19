@@ -37,8 +37,9 @@ export class MessagingController {
     @CurrentUser() user: AuthUser,
     @Query('page') page?: string,
     @Query('since') since?: string,
+    @Query('last') last?: string,
   ) {
-    return this.messagingService.getMessages(id, user.id, page ? +page : 1, 50, since);
+    return this.messagingService.getMessages(id, user.id, page ? +page : 1, 50, since, last ? +last : undefined);
   }
 
   @Post('conversations/:id/messages')

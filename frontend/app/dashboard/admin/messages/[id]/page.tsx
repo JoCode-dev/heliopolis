@@ -238,14 +238,14 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     };
   }, [id, accessToken]);
 
-  // Polling de secours : fenêtre glissante de 3 min pour capturer les messages manqués
+  // Polling de secours + refresh sur visibilité de l'onglet
   useEffect(() => {
     if (!accessToken) return;
-    const timer = setInterval(async () => {
+
+    const fetchRecent = async () => {
       try {
-        // On remonte 3 minutes en arrière pour couvrir les envois simultanés et les décalages
-        const since = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-        const r = await messagingApi.messages(id, 1, since);
+        // Derniers 20 messages — fiable sans dépendance sur l'horodatage
+        const r = await messagingApi.messages(id, 1, undefined, 20);
         const incoming = r.data as Message[];
         if (!incoming.length) return;
         setMessages(prev => {
@@ -256,8 +256,20 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
           return [...prev, ...fresh];
         });
       } catch { /* ignore */ }
-    }, 3000);
-    return () => clearInterval(timer);
+    };
+
+    const timer = setInterval(fetchRecent, 3000);
+
+    // Fetch immédiat quand l'onglet redevient visible (ex: switch de fenêtre)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchRecent();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [id, accessToken]);
 
   const sendMessage = () => {
