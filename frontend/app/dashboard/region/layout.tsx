@@ -40,7 +40,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
     if (!user?.id) return;
     void refreshMessages();
     void refreshAnnonces(user.id);
-    const mi = setInterval(() => void refreshMessages(), 30_000);
+    const mi = setInterval(() => void refreshMessages(), 10_000);
     const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
     return () => { clearInterval(mi); clearInterval(ai); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

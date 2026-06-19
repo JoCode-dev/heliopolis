@@ -1,23 +1,28 @@
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
-let currentToken: string | null = null;
+// undefined = jamais initialisé (≠ null = cookie-only mode)
+let currentToken: string | null | undefined = undefined;
 
-export function getSocket(token: string): Socket {
+// token peut être null — l'authentification se fait via le cookie httpOnly access_token
+export function getSocket(token?: string | null): Socket {
   // Ne recréer le socket QUE si le token change — pas à chaque déconnexion/reconnexion
   // Recréer tuerait les listeners et sortirait le socket des rooms
-  if (socket && currentToken === token) {
+  const key = token ?? null;
+  if (socket && currentToken === key) {
     return socket;
   }
   if (socket) {
     socket.disconnect();
     socket = null;
   }
-  currentToken = token;
+  currentToken = key;
   socket = io(
     (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace('/api', '') + '/chat',
     {
-      auth: { token },
+      // withCredentials envoie le cookie access_token sur le handshake WebSocket
+      withCredentials: true,
+      ...(token ? { auth: { token } } : {}),
       transports: ['websocket'],
       autoConnect: true,
     }
@@ -28,5 +33,5 @@ export function getSocket(token: string): Socket {
 export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
-  currentToken = null;
+  currentToken = undefined;
 }

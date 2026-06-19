@@ -28,16 +28,20 @@ export default function AccueilPage() {
   []);
 
   useEffect(() => {
-    (async () => {
+    const loadConv = () =>
+      messagingApi.conversations().then(r => setConversations(r.data)).catch(() => {});
+
+    const init = async () => {
       try {
-        const [conv, p] = await Promise.all([
-          messagingApi.conversations(),
-          codexApi.pending(),
-        ]);
+        const [conv, p] = await Promise.all([messagingApi.conversations(), codexApi.pending()]);
         setConversations(conv.data);
         setPending(p.data);
       } catch { /* ignore */ }
-    })();
+    };
+
+    init();
+    const timer = setInterval(loadConv, 15000);
+    return () => clearInterval(timer);
   }, []);
 
   const handleApprove = async (id: string) => {

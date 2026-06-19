@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import { use, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { messagingApi, usersApi } from '@/lib/api';
+import { messagingApi, usersApi, authApi } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
 import { useUnreadCounts } from '@/store/unreadCounts';
@@ -153,6 +153,8 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
 
   // Polling fallback: timestamp du dernier message connu
   const lastMsgAtRef = useRef<string | null>(null);
+  // Token WS court-vécu fetchant depuis /auth/ws-token pour authentifier le socket
+  const wsTokenRef = useRef<string | null>(null);
 
   // Refs to scroll to a specific message
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -201,13 +203,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   }, [messages]);
 
   useEffect(() => {
-    if (!accessToken) return;
-    const socket = getSocket(accessToken);
-
-    const joinRoom = () => socket.emit('join:conversation', id);
-    // Rejoindre immédiatement + sur chaque reconnexion socket
-    joinRoom();
-    socket.on('connect', joinRoom);
+    if (!user) return;
+    let mounted = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     const onNewMessage = (msg: Message) => {
       setMessages(prev => {
@@ -215,6 +213,11 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         lastMsgAtRef.current = msg.createdAt as string;
         return [...prev, msg];
       });
+      // Marquer comme lu immédiatement si l'utilisateur est en train de lire
+      if (document.visibilityState === 'visible') {
+        messagingApi.markRead(id).catch(() => {});
+        refreshMessages();
+      }
     };
     const onEditMessage = (msg: Message) => {
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, ...msg } : m));
@@ -225,22 +228,50 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         : m));
     };
 
-    socket.on('new:message', onNewMessage);
-    socket.on('edit:message', onEditMessage);
-    socket.on('delete:message', onDeleteMessage);
+    let activeSocket: ReturnType<typeof getSocket> | null = null;
+
+    const joinRoom = () => {
+      if (!activeSocket || !mounted) return;
+      activeSocket.emit('join:conversation', id, (res: { joined: string | false } | null) => {
+        if (mounted && !res?.joined) {
+          retryTimer = setTimeout(joinRoom, 3000);
+        }
+      });
+    };
+
+    const setupSocket = (tok: string | null) => {
+      if (!mounted) return;
+      wsTokenRef.current = tok;
+      activeSocket = getSocket(tok);
+      joinRoom();
+      activeSocket.on('connect', joinRoom);
+      activeSocket.on('new:message', onNewMessage);
+      activeSocket.on('edit:message', onEditMessage);
+      activeSocket.on('delete:message', onDeleteMessage);
+    };
+
+    // Fetch d'un token WS dédié (cookie-based, court-vécu) puis connexion socket
+    authApi.wsToken()
+      .then(({ data }) => setupSocket(data.token))
+      .catch(() => setupSocket(null)); // Fallback : cookie withCredentials
 
     return () => {
-      socket.emit('leave:conversation', id);
-      socket.off('connect', joinRoom);
-      socket.off('new:message', onNewMessage);
-      socket.off('edit:message', onEditMessage);
-      socket.off('delete:message', onDeleteMessage);
+      mounted = false;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (activeSocket) {
+        activeSocket.emit('leave:conversation', id);
+        activeSocket.off('connect', joinRoom);
+        activeSocket.off('new:message', onNewMessage);
+        activeSocket.off('edit:message', onEditMessage);
+        activeSocket.off('delete:message', onDeleteMessage);
+      }
     };
-  }, [id, accessToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
 
   // Polling de secours + refresh sur visibilité de l'onglet
   useEffect(() => {
-    if (!accessToken) return;
+    if (!user) return;
 
     const fetchRecent = async () => {
       try {
@@ -248,21 +279,31 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
         const r = await messagingApi.messages(id, 1, undefined, 20);
         const incoming = r.data as Message[];
         if (!incoming.length) return;
+        let hasFresh = false;
         setMessages(prev => {
           const existingIds = new Set(prev.map(m => m.id));
           const fresh = incoming.filter(m => !existingIds.has(m.id));
           if (!fresh.length) return prev;
+          hasFresh = true;
           lastMsgAtRef.current = fresh[fresh.length - 1].createdAt as string;
           return [...prev, ...fresh];
         });
+        // Marquer comme lu si de nouveaux messages sont arrivés et qu'on est sur la page
+        if (hasFresh && document.visibilityState === 'visible') {
+          messagingApi.markRead(id).catch(() => {});
+          refreshMessages();
+        }
       } catch { /* ignore */ }
     };
 
     const timer = setInterval(fetchRecent, 3000);
 
-    // Fetch immédiat quand l'onglet redevient visible (ex: switch de fenêtre)
+    // Fetch immédiat + markRead quand l'onglet redevient visible
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') fetchRecent();
+      if (document.visibilityState === 'visible') {
+        fetchRecent();
+        messagingApi.markRead(id).then(() => refreshMessages()).catch(() => {});
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
@@ -270,7 +311,8 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [id, accessToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
 
   const sendMessage = () => {
     if (!input.trim() || sending) return;
@@ -280,7 +322,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     setReplyingTo(null);
     setSending(true);
 
-    const sock = getSocket(accessToken!);
+    const sock = getSocket(wsTokenRef.current);
 
     const addMessage = (msg: Message) => {
       setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);

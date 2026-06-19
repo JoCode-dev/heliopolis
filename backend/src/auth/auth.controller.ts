@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service.js';
 import { ActivateDto } from './dto/activate.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -29,7 +30,10 @@ interface RefreshBody {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private jwtService: JwtService,
+  ) {}
 
   /** Vérifier si un matricule est pré-enregistré et disponible */
   @Post('verifier-matricule')
@@ -114,6 +118,18 @@ export class AuthController {
   @Get('me')
   getMe(@CurrentUser() user: AuthUser) {
     return this.authService.getMe(user.id);
+  }
+
+  // Token court-vécu (5 min) pour authentifier la connexion WebSocket
+  // Le cookie httpOnly access_token n'est pas toujours transmis sur le handshake WS
+  @UseGuards(JwtAuthGuard)
+  @Get('ws-token')
+  getWsToken(@CurrentUser() user: AuthUser) {
+    const token = this.jwtService.sign(
+      { sub: user.id, role: user.role },
+      { secret: process.env.JWT_SECRET, expiresIn: '24h' },
+    );
+    return { token };
   }
 
   @UseGuards(JwtAuthGuard)

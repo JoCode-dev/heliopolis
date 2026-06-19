@@ -71,6 +71,11 @@ export default function DashboardGuidePage() {
       setConversations((conv as { data: Conversation[] }).data);
       if (gRes) setAllGardiens((gRes as { data: User[] }).data);
     }).catch(() => {}).finally(() => setLoading(false));
+
+    const convTimer = setInterval(() =>
+      messagingApi.conversations().then(r => setConversations(r.data)).catch(() => {}),
+    15000);
+    return () => clearInterval(convTimer);
   }, [user, isSentinelle]);
 
   const aJour    = directReports.filter(r => r.adhesions?.[0]?.statut === 'A_JOUR').length;

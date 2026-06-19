@@ -81,6 +81,11 @@ export default function DashboardGardienPage() {
         if (campsRes.status === 'fulfilled' && campsRes.value.data.length > 0) setCamp(campsRes.value.data[0]);
         if (convRes.status === 'fulfilled') setConversations(convRes.value.data);
     })();
+
+    const convTimer = setInterval(() =>
+      messagingApi.conversations().then(r => setConversations(r.data)).catch(() => {}),
+    15000);
+    return () => clearInterval(convTimer);
   }, []);
 
   const validated = submissions.filter(s => s.statut === 'VALIDE').length;

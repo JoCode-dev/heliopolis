@@ -61,44 +61,54 @@ export class MessagingGateway
   }
 
   async handleConnection(client: Socket) {
+    // Phase 1 : authentification — déconnecter si invalide
+    let userId: string;
     try {
       const auth = client.handshake.auth as { token?: unknown } | undefined;
       const header = client.handshake.headers?.authorization;
       const bearer =
         typeof header === 'string' ? header.split(' ')[1] : undefined;
-      const token = typeof auth?.token === 'string' ? auth.token : bearer;
+      let token: string | undefined =
+        typeof auth?.token === 'string' ? auth.token : bearer;
+
+      // Fallback : extraire le JWT depuis le cookie httpOnly access_token
       if (!token) {
-        client.disconnect();
-        return;
+        const cookieHeader = client.handshake.headers?.cookie;
+        if (typeof cookieHeader === 'string') {
+          const match = cookieHeader.match(/(?:^|;\s*)access_token=([^;]+)/);
+          if (match?.[1]) token = decodeURIComponent(match[1]);
+        }
       }
+
+      if (!token) { client.disconnect(); return; }
       const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) throw new Error('JWT_SECRET non configuré');
-      const payload = this.jwtService.verify<JwtPayload>(token, {
-        secret: jwtSecret,
-      });
-      const userId = payload.sub;
+      if (!jwtSecret) { client.disconnect(); return; }
+      const payload = this.jwtService.verify<JwtPayload>(token, { secret: jwtSecret });
+      userId = payload.sub;
+    } catch {
+      client.disconnect();
+      return;
+    }
 
-      // Toujours stocker dans socket.data (fallback si Redis hors-ligne)
-      (client.data as SocketData).userId = userId;
+    // Toujours stocker dans socket.data (fallback si Redis hors-ligne)
+    (client.data as SocketData).userId = userId;
 
-      // Stocker dans Redis si disponible (pour le multi-instance et la présence)
+    // Phase 2 : présence Redis — ne pas déconnecter si Redis / DB échoue
+    try {
       await this.redis.trackSocket(userId, client.id);
       await this.redis.setPresence(userId);
+    } catch { /* Redis indisponible — on continue */ }
 
-      // Rejoindre automatiquement les rooms des conversations
-      const convIds =
-        await this.messagingService.getUserConversationIds(userId);
+    // Phase 3 : rejoindre les rooms — ne pas déconnecter si DB temporairement hors-ligne
+    try {
+      const convIds = await this.messagingService.getUserConversationIds(userId);
       for (const convId of convIds) {
         await client.join(`conv:${convId}`);
       }
-
-      // Notifier que l'utilisateur est en ligne
       for (const convId of convIds) {
         client.to(`conv:${convId}`).emit('user:online', { userId });
       }
-    } catch {
-      client.disconnect();
-    }
+    } catch { /* DB indisponible — le client rejoint via join:conversation côté frontend */ }
   }
 
   async handleDisconnect(client: Socket) {
@@ -144,9 +154,14 @@ export class MessagingGateway
       client.disconnect();
       return { joined: false };
     }
-    await this.messagingService.assertMember(conversationId, userId);
-    await client.join(`conv:${conversationId}`);
-    return { joined: conversationId };
+    try {
+      await this.messagingService.assertMember(conversationId, userId);
+      await client.join(`conv:${conversationId}`);
+      return { joined: conversationId };
+    } catch {
+      // ForbiddenException (non-membre) ou erreur DB transitoire
+      return { joined: false };
+    }
   }
 
   @SubscribeMessage('leave:conversation')

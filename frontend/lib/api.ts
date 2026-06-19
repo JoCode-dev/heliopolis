@@ -54,6 +54,7 @@ export const authApi = {
   login: (identifier: string, password: string) => api.post('/auth/login', { identifier, password }),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
+  wsToken: () => api.get<{ token: string }>('/auth/ws-token'),
   changePassword: (ancienMotDePasse: string, nouveauMotDePasse: string) =>
     api.patch('/auth/change-password', { ancienMotDePasse, nouveauMotDePasse }),
 };

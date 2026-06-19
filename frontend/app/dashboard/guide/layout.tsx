@@ -44,7 +44,7 @@ export default function GuideLayout({ children }: { children: React.ReactNode })
     void refreshMessages();
     void refreshAnnonces(user.id);
     void refreshCampRequests();
-    const mi = setInterval(() => void refreshMessages(), 30_000);
+    const mi = setInterval(() => void refreshMessages(), 10_000);
     const ai = setInterval(() => void refreshAnnonces(user.id), 120_000);
     const ci = setInterval(() => void refreshCampRequests(), 60_000);
     return () => { clearInterval(mi); clearInterval(ai); clearInterval(ci); };
