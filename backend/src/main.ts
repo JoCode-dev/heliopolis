@@ -44,7 +44,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = Number(process.env.PORT) || 4000;
+  const port = Number(process.env.PORT) || 4002;
   await app.listen(port, '0.0.0.0');
   console.log(`Codex des Gardiens API — port ${port}`);
 }

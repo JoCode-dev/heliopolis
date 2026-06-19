@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import { withSerwist } from "@serwist/turbopack";
 
-const BACKEND = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace('/api', '');
+const BACKEND = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4002/api').replace('/api', '');
 
 const BACKEND_HOSTNAME = new URL(BACKEND).hostname;
 const BACKEND_PORT = new URL(BACKEND).port || undefined;

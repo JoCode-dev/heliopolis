@@ -6,7 +6,7 @@ import { formatDateFr } from '@/lib/format';
 import { Avatar, Pill } from '@/components/ui';
 import { getCodexReactionCount } from '@/hooks/useCodexReactions';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4002';
 
 function toRelativePath(url: string): string {
   try { return new URL(url).pathname; } catch { return url; }

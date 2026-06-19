@@ -5,7 +5,7 @@ import type { Camp, CampStatus } from '@/types';
 import { formatDateFr } from '@/lib/format';
 import { Pill } from '@/components/ui';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4002';
 
 const STATUS_LABELS: Record<CampStatus, { label: string; variant: 'vert' | 'or' | 'gris' | 'rouge' }> = {
   BROUILLON: { label: '● Brouillon', variant: 'gris' },

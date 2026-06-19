@@ -747,7 +747,7 @@ async function main() {
   console.log('  SEED_STRUCTURE=MYTHOLOGIQUE  npx prisma db seed  (structure de démo)');
   console.log('  SEED_STRUCTURE=CLASSIQUE     npx prisma db seed  (défaut — districts officiels)');
   console.log('');
-  console.log('  URL API  : http://localhost:4000/api');
+  console.log('  URL API  : http://localhost:4002/api');
   console.log('  URL App  : http://localhost:3000');
   console.log('');
 }

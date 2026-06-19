@@ -41,7 +41,6 @@ export class PrismaService
       connectionTimeoutMillis: 15_000,
       keepAlive: true,
       keepAliveInitialDelayMillis: 5_000,
-      // Coupe les requêtes bloquées après 15s (évite le gel de l'API quand la DB raccroche silencieusement)
       options: '-c statement_timeout=15000',
     });
 
@@ -69,8 +68,8 @@ export class PrismaService
       throw error;
     }
 
-    // Ping toutes les 15 s — bien en dessous du idleTimeoutMillis (30 s).
-    this.heartbeat = setInterval(() => void this.ping(), 15_000);
+    // Ping toutes les 20 s — health check et maintien de la connexion principale.
+    this.heartbeat = setInterval(() => void this.ping(), 20_000);
   }
 
   private async ping() {

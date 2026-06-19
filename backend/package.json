@@ -12,9 +12,9 @@
   "scripts": {
     "build": "rm -rf dist && npm run prisma:generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "npm run prismaerate && nest start --entryFile src/main.js",
-    "start:dev": "npm run prisma:generate && node scripts/sync-prisma-dev-url.mjs && nest start --watch --entryFile src/main.js",
-    "start:debug": "npm run prisma:generate && node scripts/sync-prisma-dev-url.mjs && nest start --debug --watch --entryFile src/main.js",
+    "start": "npm run prisma:generate && nest start --entryFile src/main.js",
+    "start:dev": "npm run prisma:generate && nest start --watch --entryFile src/main.js",
+    "start:debug": "npm run prisma:generate && nest start --debug --watch --entryFile src/main.js",
     "start:prod": "node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
@@ -24,10 +24,11 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "db:dev": "prisma dev",
+    "db:dev": "bash scripts/start-db.sh",
+    "db:dev:once": "prisma dev",
     "prisma:generate": "prisma generate && node scripts/fix-prisma-client.mjs",
     "db:sync": "node scripts/sync-prisma-dev-url.mjs",
-    "dev": "npm run prisma:generate && node scripts/sync-prisma-dev-url.mjs && nest start --watch --entryFile src/main.js"
+    "dev": "npm run prisma:generate && nest start --watch --entryFile src/main.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

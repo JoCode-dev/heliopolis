@@ -6,7 +6,7 @@ import { Pill, Card, SectionTitle } from '@/components/ui';
 import { CampAuthCTA } from '@/components/camps/CampAuthCTA';
 import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4002';
 
 const TYPE_LABEL: Record<CampType, string> = {
   REGIONAL:   'Régional',

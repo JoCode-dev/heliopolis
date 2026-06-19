@@ -22,7 +22,7 @@ const CAT_EMOJI: Record<string, string> = {
 type Tab = 'attente' | 'validees' | 'rejetees';
 const TAB_KEY = 'guide-missions-tab';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4002/api';
 
 function formatDate(d?: string | null) {
   if (!d) return '—';

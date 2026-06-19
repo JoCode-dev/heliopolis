@@ -10,7 +10,7 @@ import { CreateUserModal } from '@/components/users/CreateUserModal';
 import type { User, AdhesionStatus, Adhesion } from '@/types';
 
 const PER_PAGE = 20;
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4002';
 
 // ─── Config statuts ───────────────────────────────────────────────────────────
 

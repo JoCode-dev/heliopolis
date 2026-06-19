@@ -11,7 +11,7 @@ interface ProfileModalProps {
   onClose: () => void;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4002';
 
 function AvatarDisplay({
   avatarUrl,

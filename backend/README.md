@@ -43,6 +43,9 @@ $ npm run db:dev
 $ npm run dev
 ```
 
+The local API listens on `http://localhost:4002/api` by default so it does not
+conflict with Prisma dev database ports.
+
 If the Prisma dev server was restarted, run `npm run db:sync` before using
 `npm run start:dev`.
 

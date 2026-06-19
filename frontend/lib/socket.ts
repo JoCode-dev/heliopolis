@@ -18,7 +18,7 @@ export function getSocket(token?: string | null): Socket {
   }
   currentToken = key;
   socket = io(
-    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace('/api', '') + '/chat',
+    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4002/api').replace('/api', '') + '/chat',
     {
       // withCredentials envoie le cookie access_token sur le handshake WebSocket
       withCredentials: true,
