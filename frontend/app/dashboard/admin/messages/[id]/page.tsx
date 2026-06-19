@@ -208,6 +208,8 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     const onNewMessage = (msg: Message) => {
+      // Ignorer les messages d'autres conversations (socket rejoint toutes les rooms)
+      if (msg.conversationId !== id) return;
       setMessages(prev => {
         if (prev.some(m => m.id === msg.id)) return prev;
         lastMsgAtRef.current = msg.createdAt as string;
@@ -220,9 +222,11 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       }
     };
     const onEditMessage = (msg: Message) => {
+      if (msg.conversationId !== id) return;
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, ...msg } : m));
     };
-    const onDeleteMessage = ({ id: msgId }: { id: string }) => {
+    const onDeleteMessage = ({ id: msgId, conversationId: convId }: { id: string; conversationId?: string }) => {
+      if (convId && convId !== id) return;
       setMessages(prev => prev.map(m => m.id === msgId
         ? { ...m, deletedAt: new Date().toISOString(), contenu: undefined }
         : m));

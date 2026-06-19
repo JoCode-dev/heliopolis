@@ -181,7 +181,7 @@ export class MessagingGateway
   }
 
   broadcastDelete(conversationId: string, messageId: string) {
-    this.server.to(`conv:${conversationId}`).emit('delete:message', { id: messageId });
+    this.server.to(`conv:${conversationId}`).emit('delete:message', { id: messageId, conversationId });
   }
 
   // ── Envoi de message ──────────────────────────────────────────────────────

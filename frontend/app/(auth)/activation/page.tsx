@@ -124,11 +124,12 @@ function ActivationContent() {
       setUser(me);
       router.push(getHomeForRole(me.role));
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(
-        err.response?.data?.message ??
-          "Une erreur est survenue lors de l'inscription.",
-      );
+      const err = e as { code?: string; response?: { data?: { message?: string } } };
+      if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
+        setError("Serveur temporairement indisponible. Réessayez dans quelques secondes.");
+      } else {
+        setError(err.response?.data?.message ?? "Une erreur est survenue lors de l'inscription.");
+      }
     } finally {
       setLoading(false);
     }
@@ -145,8 +146,12 @@ function ActivationContent() {
       setUser(me);
       router.push(getHomeForRole(me.role));
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err.response?.data?.message ?? "Identifiants invalides.");
+      const err = e as { code?: string; response?: { data?: { message?: string } } };
+      if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
+        setError("Serveur temporairement indisponible. Réessayez dans quelques secondes.");
+      } else {
+        setError(err.response?.data?.message ?? "Identifiants invalides.");
+      }
     } finally {
       setLoading(false);
     }

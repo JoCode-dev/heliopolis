@@ -225,16 +225,6 @@ export class TerritoriesService {
       annee = new Date().getFullYear();
     }
 
-    const defaultResponse: DashboardStatsResponse = {
-      overview: { totalGardiens: 0, campsOuverts: 0, defisValides: 0, districts: 0, sentinelles: 0, guides: 0, conseilsAVenir: 0 },
-      activeCamp: null,
-      districts: [],
-      adhesions: { annee, aJour: 0, nonAJour: 0, enAttente: 0, total: 0 },
-      challenges: [],
-      camps: [],
-    };
-
-    try {
     const [
       totalGardiens,
       campsOuverts,
@@ -381,9 +371,6 @@ export class TerritoriesService {
         statut: c.statut,
       })),
     };
-    } catch {
-      return defaultResponse;
-    }
   }
 
   // ── Helpers matching flou ────────────────────────────────────────────────────

@@ -41,6 +41,8 @@ export class PrismaService
       connectionTimeoutMillis: 15_000,
       keepAlive: true,
       keepAliveInitialDelayMillis: 5_000,
+      // Coupe les requêtes bloquées après 15s (évite le gel de l'API quand la DB raccroche silencieusement)
+      options: '-c statement_timeout=15000',
     });
 
     pool.on('error', (err) => {
@@ -67,9 +69,8 @@ export class PrismaService
       throw error;
     }
 
-    // Ping toutes les 25 s — en dessous de l'idleTimeoutMillis (30 s),
-    // ce qui évite la fenêtre morte de 30-60 s source de P1017.
-    this.heartbeat = setInterval(() => void this.ping(), 25_000);
+    // Ping toutes les 15 s — bien en dessous du idleTimeoutMillis (30 s).
+    this.heartbeat = setInterval(() => void this.ping(), 15_000);
   }
 
   private async ping() {
@@ -80,6 +81,8 @@ export class PrismaService
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       PrismaService.logger.warn(`Heartbeat DB échoué : ${msg}`);
+      // Tenter une reconnexion immédiate pour réchauffer le pool
+      await this.$connect().catch(() => {});
     } finally {
       this.pinging = false;
     }

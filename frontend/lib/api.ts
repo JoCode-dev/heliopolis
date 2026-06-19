@@ -6,6 +6,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 export const api = axios.create({
   baseURL: BASE,
   withCredentials: true,
+  timeout: 20_000,
 });
 
 // On 401, tenter un refresh via cookie httpOnly puis rejouer la requête
