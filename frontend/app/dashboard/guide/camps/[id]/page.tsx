@@ -308,7 +308,7 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
               {isSentinelle && (
                 <div className="mt-2">
                   <div className="flex items-center justify-between mb-2">
-                    <SectionTitle className="mb-0">
+                    <SectionTitle>
                       Autorisations de sortie
                       {enAttente > 0 && (
                         <span className="ml-2 px-2 py-0.5 rounded-full bg-[#fff3d6] text-[#9c7218] text-[10px] font-bold">

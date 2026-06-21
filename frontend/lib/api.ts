@@ -275,6 +275,7 @@ export const messagingApi = {
   getConversation: (id: string) => api.get(`/messaging/conversations/${id}`),
   addMember: (id: string, userId: string) => api.post(`/messaging/conversations/${id}/members`, { userId }),
   removeMember: (id: string, userId: string) => api.delete(`/messaging/conversations/${id}/members/${userId}`),
+  restrictMember: (id: string, userId: string) => api.patch(`/messaging/conversations/${id}/members/${userId}/restrict`),
   togglePin: (id: string) => api.patch(`/messaging/conversations/${id}/pin`),
   deleteConversation: (id: string) => api.delete(`/messaging/conversations/${id}`),
   createGroup:           (nom: string, memberIds: string[]) => api.post('/messaging/conversations/group', { nom, memberIds }),

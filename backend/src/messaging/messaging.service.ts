@@ -218,20 +218,14 @@ export class MessagingService {
   ) {
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: { members: { where: { userId: authorId, leftAt: null }, select: { role: true } } },
+      include: { members: { where: { userId: authorId, leftAt: null }, select: { role: true, restrictedWrite: true } } },
     });
     if (!conv) throw new NotFoundException('Conversation introuvable');
     await this.assertMember(conversationId, authorId);
 
-    // Canal de diffusion — écriture réservée aux ADMIN et REGION
-    if (conv.type === ConversationType.DIFFUSION) {
-      const author = await this.prisma.user.findUnique({
-        where: { id: authorId },
-        select: { role: true },
-      });
-      if (!author || !([UserRole.ADMIN, UserRole.REGION] as UserRole[]).includes(author.role)) {
-        throw new ForbiddenException('Seuls les administrateurs et responsables régionaux peuvent écrire dans ce canal');
-      }
+    // Vérifier si le membre est restreint à l'écriture
+    if (conv.members[0]?.restrictedWrite) {
+      throw new ForbiddenException('Vous avez été restreint dans ce canal — vous ne pouvez pas écrire ici.');
     }
 
     const message = await this.prisma.message.create({
@@ -342,6 +336,7 @@ export class MessagingService {
               },
             },
           },
+          orderBy: { joinedAt: 'asc' },
         },
       },
     });
@@ -382,22 +377,53 @@ export class MessagingService {
   ) {
     if (targetUserId === actorId)
       throw new ForbiddenException('Vous ne pouvez pas vous retirer');
-    const actor = await this.prisma.conversationMember.findUnique({
-      where: { conversationId_userId: { conversationId, userId: actorId } },
+    const actorUser = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { role: true },
     });
-    if (!actor || actor.role !== ConversationMemberRole.OWNER) {
-      throw new ForbiddenException(
-        `Seul l'administrateur peut retirer des membres`,
-      );
+    const isAdminOrRegion = actorUser?.role === UserRole.ADMIN || actorUser?.role === UserRole.REGION;
+    if (!isAdminOrRegion) {
+      const actorMember = await this.prisma.conversationMember.findUnique({
+        where: { conversationId_userId: { conversationId, userId: actorId } },
+      });
+      if (!actorMember || actorMember.role !== ConversationMemberRole.OWNER) {
+        throw new ForbiddenException(`Seul l'administrateur peut retirer des membres`);
+      }
     }
     const result = await this.prisma.conversationMember.update({
-      where: {
-        conversationId_userId: { conversationId, userId: targetUserId },
-      },
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
       data: { leftAt: new Date() },
     });
     await this.redis.invalidateConvIds(targetUserId);
     return result;
+  }
+
+  async restrictWrite(
+    conversationId: string,
+    targetUserId: string,
+    actorId: string,
+  ) {
+    const actorUser = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { role: true },
+    });
+    const isAdminOrRegion = actorUser?.role === UserRole.ADMIN || actorUser?.role === UserRole.REGION;
+    if (!isAdminOrRegion) {
+      const actorMember = await this.prisma.conversationMember.findUnique({
+        where: { conversationId_userId: { conversationId, userId: actorId } },
+      });
+      if (!actorMember || actorMember.role !== ConversationMemberRole.OWNER) {
+        throw new ForbiddenException('Seuls les administrateurs et responsables peuvent restreindre des membres');
+      }
+    }
+    const member = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+    });
+    if (!member) throw new NotFoundException('Membre introuvable');
+    return this.prisma.conversationMember.update({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      data: { restrictedWrite: !member.restrictedWrite },
+    });
   }
 
   async togglePin(conversationId: string, userId: string) {

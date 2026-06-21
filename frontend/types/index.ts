@@ -216,6 +216,7 @@ export interface Conversation {
 }
 export interface ConversationMember {
   id: string; userId: string; role: string;
+  restrictedWrite?: boolean;
   lastReadAt?: string; joinedAt: string;
   user?: { id: string; nom: string; prenoms: string; avatarUrl?: string; role: string; parish?: { nom: string } };
 }

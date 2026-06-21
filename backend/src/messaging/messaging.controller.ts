@@ -81,6 +81,15 @@ export class MessagingController {
     return this.messagingService.removeMember(id, targetUserId, user.id);
   }
 
+  @Patch('conversations/:id/members/:userId/restrict')
+  restrictWrite(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.messagingService.restrictWrite(id, targetUserId, user.id);
+  }
+
   @Patch('conversations/:id/pin')
   togglePin(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.messagingService.togglePin(id, user.id);

@@ -120,6 +120,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const [groupMembers, setGroupMembers] = useState<ConversationMember[]>([]);
   const [convMembers, setConvMembers] = useState<ConversationMember[]>([]);
   const [myRole, setMyRole] = useState<string | null>(null);
+  const [myRestrictedWrite, setMyRestrictedWrite] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [addSearch, setAddSearch] = useState('');
   const [annuaire, setAnnuaire] = useState<User[]>([]);
@@ -129,7 +130,9 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
   const [applyingChanges, setApplyingChanges] = useState(false);
   const [syncingMembers, setSyncingMembers] = useState(false);
   const [syncResult, setSyncResult] = useState<number | null>(null);
+  const [modActionId, setModActionId] = useState<string | null>(null);
   const isOwner = myRole === 'OWNER';
+  const canModerate = user?.role === 'ADMIN' || user?.role === 'REGION' || isOwner;
 
   const TERRITORY_TYPES = ['PAROISSE', 'DOYENNE', 'REGION', 'DIFFUSION'];
 
@@ -175,6 +178,7 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       setConvMembers(conv.members ?? []);
       const me = (conv.members ?? []).find((m: ConversationMember) => m.userId === user?.id);
       setMyRole(me?.role ?? null);
+      setMyRestrictedWrite(me?.restrictedWrite ?? false);
     }).catch(() => {});
   }, [id, user?.id]);
 
@@ -657,10 +661,10 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
       )}
 
       {/* ── Barre d'input ── */}
-      {convType === 'DIFFUSION' && user?.role !== 'ADMIN' && user?.role !== 'REGION' ? (
+      {myRestrictedWrite ? (
         <div className="flex-shrink-0 bg-[#fef2f2] border-t border-[#fca5a5] px-4 py-3 flex items-center gap-2">
-          <span className="text-base">📣</span>
-          <p className="text-[12px] text-[#991b1b] font-medium">Canal en lecture seule — seuls les administrateurs et responsables régionaux peuvent écrire ici.</p>
+          <span className="text-base">🚫</span>
+          <p className="text-[12px] text-[#991b1b] font-medium">Vous avez été restreint dans ce canal — vous ne pouvez pas écrire ici.</p>
         </div>
       ) : (
         <div className="flex-shrink-0 bg-[#F0F2F5] px-2 py-2 flex items-center gap-2">
@@ -845,30 +849,75 @@ export default function AdminChatPage({ params }: { params: Promise<{ id: string
                   const canSelect = isGroupe && isOwner && !isMe && m.role !== 'OWNER';
                   const isSelected = selectedToRemove.includes(u.id);
                   const roleLabel = ROLE_LABELS[u.role as string] ?? u.role;
+                  const canMod = canModerate && !isMe && m.role !== 'OWNER';
+                  const isModTarget = modActionId === u.id;
                   return (
-                    <div
-                      key={m.id}
-                      onClick={() => canSelect && toggleRemove(u.id)}
-                      className={`flex items-center px-4 py-3 transition-colors ${canSelect ? 'cursor-pointer hover:bg-[#F5F5F5]' : ''} ${isSelected ? 'bg-[#fff5f5]' : ''}`}
-                    >
-                      <div className="relative flex-shrink-0">
-                        {u.avatarUrl
-                          ? <Image src={u.avatarUrl} width={50} height={50} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
-                          : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom?.[0] ?? ''}{u.prenoms?.[0] ?? ''}</div>
-                        }
-                        {m.role === 'OWNER' && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#F58A4B] border-2 border-white flex items-center justify-center text-[10px]">👑</div>
+                    <div key={m.id}>
+                      <div
+                        onClick={() => canSelect && toggleRemove(u.id)}
+                        className={`flex items-center px-4 py-3 transition-colors ${canSelect ? 'cursor-pointer hover:bg-[#F5F5F5]' : ''} ${isSelected ? 'bg-[#fff5f5]' : ''}`}
+                      >
+                        <div className="relative flex-shrink-0">
+                          {u.avatarUrl
+                            ? <Image src={u.avatarUrl} width={50} height={50} className="w-[50px] h-[50px] rounded-full object-cover" alt="" />
+                            : <div className={`w-[50px] h-[50px] rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-sm font-bold text-white`}>{u.nom?.[0] ?? ''}{u.prenoms?.[0] ?? ''}</div>
+                          }
+                          {m.role === 'OWNER' && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#F58A4B] border-2 border-white flex items-center justify-center text-[10px]">👑</div>
+                          )}
+                          {m.restrictedWrite && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#991b1b] border-2 border-white flex items-center justify-center text-[10px]">🚫</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1">
+                          <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}{isMe ? ' (moi)' : ''}</p>
+                          <p className="text-[13px] text-[#9b9ba8] truncate">
+                            {m.role === 'OWNER' ? 'Administrateur' : (u.parish?.nom ?? roleLabel)}
+                            {m.restrictedWrite && <span className="ml-1 text-[#991b1b] text-[11px] font-medium">· restreint</span>}
+                          </p>
+                        </div>
+                        {canSelect && (
+                          <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#E55A35] border-[#E55A35]' : 'border-[#d0d0d0]'}`}>
+                            {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
+                          </div>
+                        )}
+                        {canMod && !isGroupe && (
+                          <button
+                            onClick={() => setModActionId(isModTarget ? null : u.id)}
+                            className="ml-2 text-[#9b9ba8] w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f0f4]"
+                          >⋮</button>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0 ml-3 border-b border-[#F2F2F2] py-1">
-                        <p className="font-semibold text-[15px] text-[#1F1B2E] truncate">{u.prenoms} {u.nom}{isMe ? ' (moi)' : ''}</p>
-                        <p className="text-[13px] text-[#9b9ba8] truncate">
-                          {m.role === 'OWNER' ? 'Administrateur' : (u.parish?.nom ?? roleLabel)}
-                        </p>
-                      </div>
-                      {canSelect && (
-                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ml-3 flex items-center justify-center transition-colors ${isSelected ? 'bg-[#E55A35] border-[#E55A35]' : 'border-[#d0d0d0]'}`}>
-                          {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
+                      {canMod && isModTarget && !isGroupe && (
+                        <div className="mx-4 mb-2 rounded-xl border border-[#ececf0] overflow-hidden text-sm">
+                          <button
+                            onClick={async () => {
+                              setModActionId(null);
+                              try {
+                                await messagingApi.restrictMember(id, u.id);
+                                loadGroupDetails();
+                              } catch { /* ignore */ }
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fff8f0] text-left"
+                          >
+                            <span>{m.restrictedWrite ? '✓ Autoriser' : '🚫 Restreindre'}</span>
+                            <span className="flex-1 text-[#1F1B2E] font-medium">
+                              {m.restrictedWrite ? 'Autoriser à écrire' : 'Restreindre l\'écriture'}
+                            </span>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setModActionId(null);
+                              try {
+                                await messagingApi.removeMember(id, u.id);
+                                loadGroupDetails();
+                              } catch { /* ignore */ }
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fef2f2] text-left border-t border-[#ececf0]"
+                          >
+                            <span>✕</span>
+                            <span className="text-[#E55A35] font-medium">Retirer du canal</span>
+                          </button>
                         </div>
                       )}
                     </div>

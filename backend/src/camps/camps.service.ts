@@ -435,9 +435,12 @@ export class CampsService {
           : null;
     if (scopeWhere === null) return { total: 0, byCamp: {} as Record<string, number> };
 
+    // Pour GUIDE : ne compter que les demandes de GARDIEN (pas d'autres guides de la même paroisse)
+    const roleFilter = user.role === UserRole.GUIDE ? { roleAtCamp: UserRole.GARDIEN } : {};
+
     const grouped = await this.prisma.campParticipant.groupBy({
       by: ['campId'],
-      where: { participationStatus: 'EN_ATTENTE', ...scopeWhere },
+      where: { participationStatus: 'EN_ATTENTE', ...scopeWhere, ...roleFilter },
       _count: { id: true },
     });
     const byCamp: Record<string, number> = {};

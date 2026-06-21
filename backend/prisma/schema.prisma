@@ -820,11 +820,12 @@ model ConversationMember {
   conversationId String
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-  role           ConversationMemberRole @default(MEMBRE)
-  mutedUntil     DateTime?
-  lastReadAt     DateTime?
-  joinedAt       DateTime               @default(now())
-  leftAt         DateTime?
+  role             ConversationMemberRole @default(MEMBRE)
+  mutedUntil       DateTime?
+  restrictedWrite  Boolean               @default(false)
+  lastReadAt       DateTime?
+  joinedAt         DateTime              @default(now())
+  leftAt           DateTime?
 
   @@unique([conversationId, userId])
   @@index([userId])
