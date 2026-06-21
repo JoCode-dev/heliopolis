@@ -42,6 +42,12 @@ export const PARTICIPATION_FILTER_OPTIONS = Object.entries(PARTICIPATION_LABELS)
 export const ADHESION_FILTER_OPTIONS = Object.entries(ADHESION_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
+export const ROLE_FILTER_OPTIONS = [
+  { value: 'GARDIEN',   label: 'Gardiens' },
+  { value: 'GUIDE',     label: 'Guides' },
+  { value: 'SENTINELLE', label: 'Sentinelles' },
+  { value: 'REGION',    label: 'Membres région' },
+];
 
 export interface ParticipantColumnsOptions {
   onToggleSecurite?: (p: CampParticipant) => void;
@@ -178,10 +184,12 @@ export function filterParticipants(
   const search = (values.search ?? '').toLowerCase();
   const participation = values.participation ?? '';
   const adhesion = values.adhesion ?? '';
+  const role = values.role ?? '';
 
   return participants.filter(p => {
     if (participation && p.participationStatus !== participation) return false;
     if (adhesion && p.adhesionStatusSnapshot !== adhesion) return false;
+    if (role && p.roleAtCamp !== role) return false;
 
     if (!search) return true;
     const nom = `${p.user.prenoms ?? ''} ${p.user.nom ?? ''}`.toLowerCase();

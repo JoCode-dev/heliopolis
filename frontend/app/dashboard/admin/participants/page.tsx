@@ -20,6 +20,7 @@ import {
   createParticipantColumns,
   filterParticipants,
   PARTICIPATION_FILTER_OPTIONS,
+  ROLE_FILTER_OPTIONS,
 } from '@/components/data-table/columns/participant-columns';
 import type { Camp, CampParticipant, AdhesionStatus, ParticipationStatus } from '@/types';
 import type { ParticipantColumnsOptions } from '@/components/data-table/columns/participant-columns';
@@ -75,6 +76,7 @@ function ParticipantsContent() {
   const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
     [
       { id: 'search', type: 'search', placeholder: 'Rechercher par nom ou matricule…' },
+      { id: 'role', type: 'select', placeholder: 'Tous les rôles', options: ROLE_FILTER_OPTIONS },
       { id: 'participation', type: 'select', placeholder: 'Tous les statuts', options: PARTICIPATION_FILTER_OPTIONS },
       { id: 'adhesion', type: 'select', placeholder: 'Toutes adhésions', options: ADHESION_FILTER_OPTIONS },
     ],
@@ -152,6 +154,7 @@ function ParticipantsContent() {
 
   const filterConfigs = useMemo(() => [
     { id: 'search', type: 'search' as const, placeholder: 'Rechercher par nom ou matricule…' },
+    { id: 'role', type: 'select' as const, placeholder: 'Tous les rôles', options: ROLE_FILTER_OPTIONS },
     { id: 'participation', type: 'select' as const, placeholder: 'Tous les statuts', options: PARTICIPATION_FILTER_OPTIONS },
     { id: 'adhesion', type: 'select' as const, placeholder: 'Toutes adhésions', options: ADHESION_FILTER_OPTIONS },
   ], []);
