@@ -7,6 +7,7 @@ import { UserAvatar } from '@/components/profile/UserAvatar';
 import { useAuthStore } from '@/store/auth';
 import { useUnreadCounts } from '@/store/unreadCounts';
 import { ROLE_LABEL } from '@/lib/roles';
+import type { RegionRole } from '@/types';
 
 const ADMIN_NAV_GROUPS = [
   {
@@ -44,38 +45,52 @@ const ADMIN_NAV_GROUPS = [
   },
 ];
 
-const REGION_NAV_GROUPS = [
+type RegionNavItem = { href: string; icon: string; label: string; minRole?: RegionRole };
+
+const REGION_NAV_GROUPS_ALL: { label: string; items: RegionNavItem[] }[] = [
   {
     label: 'Tableau de bord',
     items: [
-      { href: '/dashboard/region',          icon: '🏠', label: 'Accueil' },
+      { href: '/dashboard/region',           icon: '🏠', label: 'Accueil' },
       { href: '/dashboard/region/camps',     icon: '⛺', label: 'Camps' },
-      { href: '/dashboard/region/annonces', icon: '📣', label: 'Annonces' },
-      { href: '/dashboard/region/conseils', icon: '🏛️', label: 'Conseils' },
-      { href: '/dashboard/region/codex',    icon: '🪶', label: 'Modération' },
-      { href: '/dashboard/region/messages', icon: '💬', label: 'Messagerie' },
-      { href: '/dashboard/region/export',   icon: '📤', label: 'Exports' },
+      { href: '/dashboard/region/annonces',  icon: '📣', label: 'Annonces' },
+      { href: '/dashboard/region/conseils',  icon: '🏛️', label: 'Conseils',    minRole: 'ADJOINT' },
+      { href: '/dashboard/region/codex',     icon: '🪶', label: 'Modération',  minRole: 'ADJOINT' },
+      { href: '/dashboard/region/messages',  icon: '💬', label: 'Messagerie' },
+      { href: '/dashboard/region/export',    icon: '📤', label: 'Exports',     minRole: 'ADJOINT' },
     ],
   },
   {
     label: 'Membres',
     items: [
-      { href: '/dashboard/region/participants', icon: '👥', label: 'Participants' },
-      { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens' },
-      { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants' },
-      { href: '/dashboard/region/districts',     icon: '🛡️', label: 'Districts' },
-      { href: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses' },
-      { href: '/dashboard/region/defis',        icon: '🎯', label: 'Quêtes & soumissions' },
-      { href: '/dashboard/region/artefacts',    icon: '🏅', label: 'Artefacts'           },
+      { href: '/dashboard/region/participants', icon: '👥', label: 'Participants',        minRole: 'ADJOINT' },
+      { href: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens',            minRole: 'ADJOINT' },
+      { href: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants',          minRole: 'ADJOINT' },
+      { href: '/dashboard/region/districts',    icon: '🛡️', label: 'Districts',           minRole: 'RESPONSABLE' },
+      { href: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses',            minRole: 'RESPONSABLE' },
+      { href: '/dashboard/region/defis',        icon: '🎯', label: 'Quêtes & soumissions',minRole: 'ADJOINT' },
+      { href: '/dashboard/region/artefacts',    icon: '🏅', label: 'Artefacts',           minRole: 'ADJOINT' },
     ],
   },
   {
     label: 'Système',
     items: [
-      { href: '/dashboard/region/parametres', icon: '⚙️', label: 'Paramètres' },
+      { href: '/dashboard/region/parametres', icon: '⚙️', label: 'Paramètres', minRole: 'RESPONSABLE' },
     ],
   },
 ];
+
+const REGION_ROLE_LEVEL: Record<RegionRole, number> = {
+  RESPONSABLE: 3, ADJOINT: 2, CHARGE_COMMUNICATION: 1,
+};
+
+function filterRegionNav(regionRole: RegionRole | null | undefined) {
+  const level = regionRole ? (REGION_ROLE_LEVEL[regionRole] ?? 3) : 3;
+  return REGION_NAV_GROUPS_ALL.map(g => ({
+    ...g,
+    items: g.items.filter(item => !item.minRole || level >= (REGION_ROLE_LEVEL[item.minRole] ?? 1)),
+  })).filter(g => g.items.length > 0);
+}
 
 interface AdminRegionSidebarProps {
   onProfileClick?: () => void;
@@ -88,7 +103,7 @@ export function AdminRegionSidebar({ onProfileClick, variant = 'admin' }: AdminR
   const unreadMessages = useUnreadCounts(s => s.messages);
   const unreadAnnonces = useUnreadCounts(s => s.annonces);
 
-  const navGroups = variant === 'region' ? REGION_NAV_GROUPS : ADMIN_NAV_GROUPS;
+  const navGroups = variant === 'region' ? filterRegionNav(user?.regionRole) : ADMIN_NAV_GROUPS;
 
   const getBadge = (href: string) => {
     if (href.endsWith('/messages')) return unreadMessages;

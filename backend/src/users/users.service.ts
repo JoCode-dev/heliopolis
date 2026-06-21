@@ -15,6 +15,7 @@ import {
   ConversationMemberRole,
   ConversationType,
   ProfileStatus,
+  RegionRole,
   UserRole,
 } from '../../generated/prisma/enums.js';
 import type { Prisma } from '../../generated/prisma/client.js';
@@ -23,6 +24,7 @@ import { ActionLogService } from '../logs/action-log.service.js';
 import * as bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
 import { determineRoleFromAge } from '../common/utils/role-from-age.util.js';
+import { requireResponsable } from '../common/utils/region-role.util.js';
 
 @Injectable()
 export class UsersService {
@@ -69,10 +71,7 @@ export class UsersService {
   }
 
   private scopeWhere(actor: AuthUser): Prisma.UserWhereInput {
-    if (actor.role === UserRole.ADMIN) return {};
-    if (actor.role === UserRole.REGION) {
-      return actor.regionId ? { regionId: actor.regionId } : this.noScope();
-    }
+    if (actor.role === UserRole.ADMIN || actor.role === UserRole.REGION) return {};
     if (actor.role === UserRole.SENTINELLE) {
       return actor.districtId ? { districtId: actor.districtId } : this.noScope();
     }
@@ -91,10 +90,7 @@ export class UsersService {
       parishId?: string | null;
     },
   ) {
-    if (actor.role === UserRole.ADMIN) return true;
-    if (actor.role === UserRole.REGION) {
-      return Boolean(actor.regionId && actor.regionId === target.regionId);
-    }
+    if (actor.role === UserRole.ADMIN || actor.role === UserRole.REGION) return true;
     if (actor.role === UserRole.SENTINELLE) {
       return Boolean(actor.districtId && actor.districtId === target.districtId);
     }
@@ -112,6 +108,8 @@ export class UsersService {
     email: true,
     telephone: true,
     role: true,
+    guideRole: true,
+    regionRole: true,
     statutProfil: true,
     avatarUrl: true,
     dateNaissance: true,
@@ -233,6 +231,7 @@ export class UsersService {
         telephone: dto.telephone,
         passwordHash,
         role: dto.role ?? UserRole.GARDIEN,
+        regionRole: dto.role === UserRole.REGION ? dto.regionRole : undefined,
         dateNaissance: dto.dateNaissance
           ? new Date(dto.dateNaissance)
           : undefined,
@@ -601,6 +600,35 @@ export class UsersService {
     return { importes, fusionnes, ignores, erreurs, districtsCrees, paroissesCrees };
   }
 
+  /** Attribution du sous-rôle régional — ADMIN ou REGION RESPONSABLE uniquement */
+  async setRegionRole(id: string, regionRole: RegionRole | null, actor: AuthUser) {
+    if (actor.role !== UserRole.ADMIN) {
+      requireResponsable(actor);
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id, deletedAt: null },
+      select: { id: true, role: true, nom: true, prenoms: true },
+    });
+    if (!user) throw new NotFoundException('Membre introuvable');
+    if (user.role !== UserRole.REGION) {
+      throw new BadRequestException('Le sous-rôle régional ne s\'applique qu\'aux membres de la région');
+    }
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { regionRole: regionRole ?? null },
+      select: this.userSelect,
+    });
+    this.actionLog.record({
+      action: AuditAction.UPDATE,
+      category: 'user',
+      summary: `Sous-rôle régional de ${user.prenoms ?? ''} ${user.nom ?? ''} défini : ${regionRole ?? 'aucun'}`,
+      actor,
+      target: { entityType: 'User', entityId: id },
+      metadata: { regionRole },
+    });
+    return updated;
+  }
+
   /** Promotion : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION */
   async promouvoir(id: string, targetRole: UserRole, actor: AuthUser) {
     if (actor.role !== UserRole.ADMIN) {
@@ -735,13 +763,21 @@ export class UsersService {
     if (actor.role !== UserRole.ADMIN && actor.role !== UserRole.REGION) {
       throw new ForbiddenException('Modification réservée à l\'administrateur ou au régional');
     }
-    const { password, dateNaissance: dateNaissanceStr, ...rest } = dto;
+    const { password, dateNaissance: dateNaissanceStr, regionRole, ...rest } = dto;
     const passwordHash = password ? await bcrypt.hash(password, 12) : undefined;
     const dateNaissance = dateNaissanceStr ? new Date(dateNaissanceStr) : undefined;
+
+    // regionRole only applies to REGION members
+    const targetUser = await this.prisma.user.findUnique({ where: { id }, select: { role: true } });
+    const effectiveRegionRole = (targetUser?.role === UserRole.REGION || dto.role === UserRole.REGION)
+      ? regionRole
+      : undefined;
+
     const updated = await this.prisma.user.update({
       where: { id },
       data: {
         ...rest,
+        ...(effectiveRegionRole !== undefined && { regionRole: effectiveRegionRole }),
         ...(passwordHash   && { passwordHash }),
         ...(dateNaissance  && { dateNaissance }),
       },

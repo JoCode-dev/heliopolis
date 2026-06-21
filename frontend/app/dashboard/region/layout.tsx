@@ -11,21 +11,40 @@ import { useAuthStore } from '@/store/auth';
 import { usePastoralYear } from '@/store/pastoralYear';
 import { useUnreadCounts } from '@/store/unreadCounts';
 
+import type { RegionRole } from '@/types';
+
 const HOME = '/dashboard/region';
 
-const NAV_LABELS: { prefix: string; icon: string; label: string }[] = [
-  { prefix: '/dashboard/region/camps',        icon: '⛺', label: 'Camps'              },
-  { prefix: '/dashboard/region/conseils',    icon: '🏛️', label: 'Conseils'           },
-  { prefix: '/dashboard/region/participants', icon: '👥', label: 'Participants'        },
-  { prefix: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens'           },
-  { prefix: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants'         },
-  { prefix: '/dashboard/region/districts',     icon: '🛡️', label: 'Districts'          },
-  { prefix: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses'           },
-  { prefix: '/dashboard/region/defis',        icon: '🎯', label: 'Quêtes & soumissions'},
-  { prefix: '/dashboard/region/codex',        icon: '🪶', label: 'Modération'         },
-  { prefix: '/dashboard/region/messages',     icon: '💬', label: 'Messagerie'         },
-  { prefix: '/dashboard/region/export',       icon: '📤', label: 'Exports'            },
+type NavItem = { prefix: string; icon: string; label: string; minRole?: RegionRole };
+
+const ALL_NAV: NavItem[] = [
+  { prefix: '/dashboard/region/camps',        icon: '⛺', label: 'Camps'               },
+  { prefix: '/dashboard/region/conseils',     icon: '🏛️', label: 'Conseils',           minRole: 'ADJOINT' },
+  { prefix: '/dashboard/region/participants', icon: '👥', label: 'Participants',        minRole: 'ADJOINT' },
+  { prefix: '/dashboard/region/gardiens',     icon: '🤝', label: 'Gardiens',            minRole: 'ADJOINT' },
+  { prefix: '/dashboard/region/guides',       icon: '📖', label: 'Encadrants',          minRole: 'ADJOINT' },
+  { prefix: '/dashboard/region/districts',    icon: '🛡️', label: 'Districts',           minRole: 'RESPONSABLE' },
+  { prefix: '/dashboard/region/paroisses',    icon: '⛪', label: 'Paroisses',            minRole: 'RESPONSABLE' },
+  { prefix: '/dashboard/region/defis',        icon: '🎯', label: 'Quêtes & soumissions',minRole: 'ADJOINT' },
+  { prefix: '/dashboard/region/codex',        icon: '🪶', label: 'Modération',          minRole: 'ADJOINT' },
+  { prefix: '/dashboard/region/messages',     icon: '💬', label: 'Messagerie'           },
+  { prefix: '/dashboard/region/export',       icon: '📤', label: 'Exports',             minRole: 'ADJOINT' },
 ];
+
+const ROLE_LEVEL: Record<RegionRole, number> = {
+  RESPONSABLE:          3,
+  ADJOINT:              2,
+  CHARGE_COMMUNICATION: 1,
+};
+const MIN_LEVEL: Record<RegionRole, number> = ROLE_LEVEL;
+
+function filterNav(regionRole: RegionRole | null | undefined): NavItem[] {
+  const level = regionRole ? (ROLE_LEVEL[regionRole] ?? 3) : 3;
+  return ALL_NAV.filter(item => {
+    if (!item.minRole) return true;
+    return level >= (MIN_LEVEL[item.minRole] ?? 1);
+  });
+}
 
 export default function RegionLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -46,6 +65,7 @@ export default function RegionLayout({ children }: { children: React.ReactNode }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const NAV_LABELS = filterNav(user?.regionRole);
   const isHome = pathname === HOME;
   const current = NAV_LABELS.find(n => pathname.startsWith(n.prefix));
 

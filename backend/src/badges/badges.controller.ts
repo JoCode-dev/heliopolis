@@ -46,7 +46,7 @@ export class BadgesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.REGION)
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.badgesService.remove(id, user);

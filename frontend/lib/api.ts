@@ -101,6 +101,12 @@ export const campsApi = {
   expressInterest:     (campId: string) => api.post(`/camps/${campId}/express-interest`),
   withdrawInterest:    (campId: string) => api.delete(`/camps/${campId}/withdraw`),
   pendingRequests:     () => api.get('/camps/requests-pending'),
+  toggleChargeSecurite: (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/charge-securite`),
+  validerDemande:       (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/valider-demande`),
+  autorisations:       (campId: string) => api.get(`/camps/${campId}/autorisations`),
+  createAutorisation:  (campId: string, data: { motif: string; personneIds: string[] }) => api.post(`/camps/${campId}/autorisations`, data),
+  validerAutorisation: (campId: string, id: string, reponse?: string) => api.patch(`/camps/${campId}/autorisations/${id}/valider`, { reponse }),
+  refuserAutorisation: (campId: string, id: string, reponse?: string) => api.patch(`/camps/${campId}/autorisations/${id}/refuser`, { reponse }),
 };
 
 // ─── Challenges ───────────────────────────────────────────────────────────────
@@ -306,6 +312,9 @@ export const usersApi = {
   /** Changer le rôle d'un membre (promotion ou rétrogradation entre GUIDE, SENTINELLE, REGION) */
   promouvoir: (id: string, role: 'GUIDE' | 'SENTINELLE' | 'REGION') =>
     api.patch(`/users/${id}/promouvoir`, { role }),
+  /** Attribuer ou retirer le sous-rôle régional (RESPONSABLE, ADJOINT, CHARGE_COMMUNICATION) */
+  setRegionRole: (id: string, regionRole: string | null) =>
+    api.patch(`/users/${id}/region-role`, { regionRole }),
   update: (id: string, data: Record<string, unknown>) => api.patch(`/users/${id}`, data),
   updateMe: (data: { nom?: string; prenoms?: string; email?: string; telephone?: string }) =>
     api.patch('/users/me', data),

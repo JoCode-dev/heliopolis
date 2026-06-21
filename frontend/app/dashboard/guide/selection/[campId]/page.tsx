@@ -460,18 +460,20 @@ function SentinelleView({ campId, user, toast }: {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const handle = async (action: 'remove' | 'block' | 'unblock' | 'select', userId: string, name: string) => {
+  const handle = async (action: 'remove' | 'block' | 'unblock' | 'select' | 'validate', userId: string, name: string) => {
     setActionId(userId + '-' + action);
     try {
       if (action === 'remove')   await campsApi.removeParticipant(campId, userId);
       if (action === 'block')    await campsApi.blockParticipant(campId, userId);
       if (action === 'unblock')  await campsApi.unblockParticipant(campId, userId);
       if (action === 'select')   await campsApi.selectParticipant(campId, userId);
+      if (action === 'validate') await campsApi.validerDemande(campId, userId);
       const msgs: Record<string, string> = {
-        remove: `${name} retiré du camp.`,
-        block:  `${name} bloqué pour ce camp.`,
-        unblock:`${name} débloqué.`,
-        select: `${name} sélectionné pour ce camp.`,
+        remove:   `${name} retiré du camp.`,
+        block:    `${name} bloqué pour ce camp.`,
+        unblock:  `${name} débloqué.`,
+        select:   `${name} sélectionné pour ce camp.`,
+        validate: `Demande de ${name} validée.`,
       };
       toast(msgs[action], true);
       reload();
@@ -496,13 +498,17 @@ function SentinelleView({ campId, user, toast }: {
 
   // ── Onglet Guides ──
   const guidePartsMap = new Map(
-    participants.filter(p => p.user?.role === 'GUIDE').map(p => [p.userId, p])
+    participants.filter(p => p.roleAtCamp === 'GUIDE').map(p => [p.userId, p])
   );
   const filteredGuides = guides.filter(g => {
     const q = search.trim().toLowerCase();
     return !q || `${g.nom} ${g.prenoms} ${g.matricule ?? ''}`.toLowerCase().includes(q);
   });
-  const nbGuidesSel  = guides.filter(g => guidePartsMap.has(g.id) && guidePartsMap.get(g.id)?.participationStatus !== 'BLOQUE').length;
+  const nbGuidesEnAttente = guides.filter(g => guidePartsMap.get(g.id)?.participationStatus === 'EN_ATTENTE').length;
+  const nbGuidesSel  = guides.filter(g => {
+    const s = guidePartsMap.get(g.id)?.participationStatus;
+    return s && s !== 'BLOQUE' && s !== 'EN_ATTENTE';
+  }).length;
   const nbGuidesBloq = guides.filter(g => guidePartsMap.get(g.id)?.participationStatus === 'BLOQUE').length;
 
   return (
@@ -514,12 +520,13 @@ function SentinelleView({ campId, user, toast }: {
         <p className="text-xs opacity-80 mt-0.5">{camp?.nom ?? 'Camp'} · {getTerritoryLabel(user)}</p>
 
         {!loading && (
-          <div className="grid grid-cols-4 gap-2 mt-3">
+          <div className="grid grid-cols-5 gap-1.5 mt-3">
             {[
-              { label: 'Sélect.',  value: nbSel,          color: 'bg-[#6A1B9A]/60' },
-              { label: 'Confirmés',value: nbConf,         color: 'bg-[#2E7D32]/60' },
-              { label: 'Bloqués',  value: nbBloq,         color: nbBloq > 0 ? 'bg-[#E55A35]/60' : 'bg-white/10' },
-              { label: 'Guides',   value: nbGuidesSel,    color: 'bg-white/15' },
+              { label: 'Sélect.',   value: nbSel,             color: 'bg-[#6A1B9A]/60' },
+              { label: 'Confirmés', value: nbConf,            color: 'bg-[#2E7D32]/60' },
+              { label: 'Bloqués',   value: nbBloq,            color: nbBloq > 0 ? 'bg-[#E55A35]/60' : 'bg-white/10' },
+              { label: 'Guides',    value: nbGuidesSel,       color: 'bg-white/15' },
+              { label: '⏳ Dem.',   value: nbGuidesEnAttente, color: nbGuidesEnAttente > 0 ? 'bg-[#D9A441]/80' : 'bg-white/10' },
             ].map(s => (
               <div key={s.label} className={`${s.color} rounded-xl p-2 text-center`}>
                 <div className="text-base font-black">{s.value}</div>
@@ -650,25 +657,36 @@ function SentinelleView({ campId, user, toast }: {
               <>
                 <div className="px-4 py-1.5 bg-[#F7F8FA] border-b border-[#f0f0f0]">
                   <span className="text-[11px] text-[#9b9ba8] font-semibold uppercase tracking-wider">
-                    {filteredGuides.length} guide{filteredGuides.length > 1 ? 's' : ''} · {nbGuidesSel} sélectionné{nbGuidesSel > 1 ? 's' : ''} · {nbGuidesBloq} bloqué{nbGuidesBloq > 1 ? 's' : ''}
+                    {filteredGuides.length} guide{filteredGuides.length > 1 ? 's' : ''}
+                    {nbGuidesEnAttente > 0 && <span className="ml-2 text-[#D9A441] animate-pulse">· ⏳ {nbGuidesEnAttente} demande{nbGuidesEnAttente > 1 ? 's' : ''}</span>}
                   </span>
                 </div>
                 <div className="divide-y divide-[#f5f5f7]">
                   {filteredGuides.map((g, idx) => {
-                    const part       = guidePartsMap.get(g.id);
-                    const isBlocked  = part?.participationStatus === 'BLOQUE';
-                    const isSelected = !!part && !isBlocked;
-                    const busy       = actionId?.startsWith(g.id);
-                    const statusCfg  = isBlocked ? STATUS_CFG.BLOQUE : isSelected ? STATUS_CFG.SELECTIONNE : null;
+                    const part        = guidePartsMap.get(g.id);
+                    const status      = part?.participationStatus ?? null;
+                    const isBlocked   = status === 'BLOQUE';
+                    const isEnAttente = status === 'EN_ATTENTE';
+                    const isSelected  = !!part && !isBlocked && !isEnAttente;
+                    const busy        = actionId?.startsWith(g.id);
+                    const statusCfg   = isBlocked ? STATUS_CFG.BLOQUE
+                      : isEnAttente ? STATUS_CFG.EN_ATTENTE
+                      : isSelected ? STATUS_CFG.SELECTIONNE
+                      : null;
 
                     return (
-                      <div key={g.id} className={`flex items-center gap-3 px-4 py-3 ${isBlocked ? 'bg-[#fff5f5] opacity-75' : isSelected ? 'bg-[#f5f0ff]' : 'hover:bg-[#fafafa]'}`}>
+                      <div key={g.id} className={`flex items-center gap-3 px-4 py-3 ${
+                        isBlocked ? 'bg-[#fff5f5] opacity-75'
+                        : isEnAttente ? 'bg-[#fffbef] border-l-4 border-[#D9A441]'
+                        : isSelected ? 'bg-[#f5f0ff]'
+                        : 'hover:bg-[#fafafa]'
+                      }`}>
                         <Avatar user={g} idx={idx} greyed={isBlocked} size="md" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`font-semibold text-sm ${isBlocked ? 'line-through text-[#9b9ba8]' : 'text-[#1F1B2E]'}`}>{g.prenoms} {g.nom}</span>
                             {statusCfg && (
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border} ${isEnAttente ? 'animate-pulse' : ''}`}>
                                 {statusCfg.icon} {statusCfg.label}
                               </span>
                             )}
@@ -686,6 +704,17 @@ function SentinelleView({ campId, user, toast }: {
                               className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-60 hover:bg-[#2E7D32] hover:text-white transition-colors">
                               {busy ? '…' : '↩ Débloquer'}
                             </button>
+                          ) : isEnAttente ? (
+                            <>
+                              <button onClick={() => handle('validate', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                                className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] disabled:opacity-60 hover:bg-[#2E7D32] hover:text-white transition-colors">
+                                {actionId === g.id + '-validate' ? '…' : '✓ Valider'}
+                              </button>
+                              <button onClick={() => handle('block', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#fff8f3] text-[#E55A35] border border-[#ef9a9a] disabled:opacity-60 hover:bg-[#E55A35] hover:text-white transition-colors">
+                                {actionId === g.id + '-block' ? '…' : '🚫 Refuser'}
+                              </button>
+                            </>
                           ) : isSelected ? (
                             <>
                               <button onClick={() => handle('remove', g.id, `${g.prenoms} ${g.nom}`)} disabled={!!busy}

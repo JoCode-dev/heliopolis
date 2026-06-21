@@ -43,8 +43,14 @@ export const ADHESION_FILTER_OPTIONS = Object.entries(ADHESION_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
 
-export function createParticipantColumns(): ColumnDef<CampParticipant>[] {
-  return [
+export interface ParticipantColumnsOptions {
+  onToggleSecurite?: (p: CampParticipant) => void;
+  secuLoadingId?: string | null;
+  canToggleSecurite?: boolean;
+}
+
+export function createParticipantColumns(opts: ParticipantColumnsOptions = {}): ColumnDef<CampParticipant>[] {
+  const cols: ColumnDef<CampParticipant>[] = [
     {
       id: 'nom',
       accessorFn: row => `${row.user.prenoms ?? ''} ${row.user.nom ?? ''}`.trim(),
@@ -124,7 +130,45 @@ export function createParticipantColumns(): ColumnDef<CampParticipant>[] {
         exportValue: row => PARTICIPATION_LABELS[row.participationStatus],
       },
     },
+    {
+      id: 'securite',
+      header: 'Sécu.',
+      cell: ({ row }) => {
+        const p = row.original;
+        const isLoading = opts.secuLoadingId === p.id;
+        const isGardien = p.roleAtCamp === 'GARDIEN';
+        if (isGardien) return <span className="text-[#d0d0d8] text-xs">—</span>;
+        if (opts.canToggleSecurite && opts.onToggleSecurite) {
+          return (
+            <button
+              type="button"
+              onClick={() => opts.onToggleSecurite!(p)}
+              disabled={isLoading}
+              title={p.chargeSecurite ? 'Retirer la charge sécurité' : 'Désigner chargé sécurité'}
+              className={`text-xs font-bold px-2 py-1 rounded-lg transition-colors disabled:opacity-40 ${
+                p.chargeSecurite
+                  ? 'bg-[#fde8e8] text-[#E55A35] hover:bg-[#fcd0d0]'
+                  : 'bg-[#f5f5f8] text-[#9b9ba8] hover:bg-[#ececf0] hover:text-[#1F1B2E]'
+              }`}
+            >
+              {isLoading ? '…' : p.chargeSecurite ? '🛡️ Sécu.' : '🛡️ —'}
+            </button>
+          );
+        }
+        if (!p.chargeSecurite) return <span className="text-[#d0d0d8]">—</span>;
+        return (
+          <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-[#fde8e8] text-[#E55A35]">
+            🛡️ Sécu.
+          </span>
+        );
+      },
+      meta: {
+        exportHeader: 'Chargé sécu.',
+        exportValue: row => row.chargeSecurite ? 'Oui' : '',
+      },
+    },
   ];
+  return cols;
 }
 
 export function filterParticipants(

@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { CreateCampDto } from './dto/create-camp.dto.js';
+import { CreateAutorisationDto } from './dto/create-autorisation.dto.js';
+import { RepondreAutorisationDto } from './dto/repondre-autorisation.dto.js';
 import {
   AdhesionStatus,
   AuditAction,
+  AutorisationStatut,
   CampStatus,
   CampType,
   UserRole,
@@ -24,6 +28,7 @@ export class CampsService {
     private prisma: PrismaService,
     private settings: SettingsService,
     private actionLog: ActionLogService,
+    private notifications: NotificationsService,
   ) {}
 
   private isRegionalManager(user?: AuthUser) {
@@ -38,10 +43,7 @@ export class CampsService {
     if (!user) {
       return { statut: { notIn: [CampStatus.BROUILLON, CampStatus.ARCHIVE] } };
     }
-    if (user.role === UserRole.ADMIN) return {};
-    if (user.role === UserRole.REGION) {
-      return user.regionId ? { regionId: user.regionId } : this.noScope();
-    }
+    if (user.role === UserRole.ADMIN || user.role === UserRole.REGION) return {};
     if (user.role === UserRole.SENTINELLE || user.role === UserRole.GUIDE) {
       let districtId = user.districtId;
       if (!districtId && user.parishId) {
@@ -64,12 +66,7 @@ export class CampsService {
   }
 
   private participantScopeWhere(user: AuthUser): Prisma.CampParticipantWhereInput {
-    if (user.role === UserRole.ADMIN) return {};
-    if (user.role === UserRole.REGION) {
-      return user.regionId
-        ? { district: { regionId: user.regionId } }
-        : { id: '__no_scope__' };
-    }
+    if (user.role === UserRole.ADMIN || user.role === UserRole.REGION) return {};
     if (user.role === UserRole.SENTINELLE) {
       return user.districtId ? { districtId: user.districtId } : { id: '__no_scope__' };
     }
@@ -89,10 +86,7 @@ export class CampsService {
       parishId: string | null;
     },
   ) {
-    if (actor.role === UserRole.ADMIN) return true;
-    if (actor.role === UserRole.REGION) {
-      return Boolean(actor.regionId && actor.regionId === user.regionId);
-    }
+    if (actor.role === UserRole.ADMIN || actor.role === UserRole.REGION) return true;
     if (actor.role === UserRole.SENTINELLE) {
       return Boolean(actor.districtId && actor.districtId === user.districtId);
     }
@@ -103,19 +97,12 @@ export class CampsService {
   }
 
   private async assertCampRegionalScope(campId: string, actor: AuthUser) {
-    if (actor.role === UserRole.ADMIN) return;
+    if (actor.role === UserRole.ADMIN || actor.role === UserRole.REGION) return;
     const camp = await this.prisma.camp.findUnique({
       where: { id: campId },
       select: { regionId: true },
     });
     if (!camp) throw new NotFoundException('Camp introuvable');
-    if (
-      actor.role === UserRole.REGION &&
-      camp.regionId &&
-      camp.regionId !== actor.regionId
-    ) {
-      throw new ForbiddenException('Camp hors périmètre régional');
-    }
   }
 
   private campSelect = {
@@ -171,10 +158,6 @@ export class CampsService {
 
   async create(dto: CreateCampDto, createdBy: AuthUser) {
     const { districtIds, ...rest } = dto;
-    if (createdBy.role === UserRole.REGION && !createdBy.regionId) {
-      throw new ForbiddenException('Aucune région rattachée à ce compte');
-    }
-
     const dateDebut = new Date(dto.dateDebut);
     const dateFin = new Date(dto.dateFin);
     if (isNaN(dateDebut.getTime()) || isNaN(dateFin.getTime())) {
@@ -182,15 +165,6 @@ export class CampsService {
     }
     if (dateFin <= dateDebut) {
       throw new BadRequestException('La date de fin doit être après la date de début');
-    }
-
-    if (districtIds?.length && createdBy.role === UserRole.REGION) {
-      const allowedCount = await this.prisma.district.count({
-        where: { id: { in: districtIds }, regionId: createdBy.regionId ?? '' },
-      });
-      if (allowedCount !== districtIds.length) {
-        throw new ForbiddenException('District hors périmètre régional');
-      }
     }
     const camp = await this.prisma.camp.create({
       data: {
@@ -247,6 +221,7 @@ export class CampsService {
             prenoms: true,
             matricule: true,
             avatarUrl: true,
+            role: true,
           },
         },
         district: { select: { id: true, nom: true } },
@@ -273,8 +248,8 @@ export class CampsService {
       },
     });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
-    if (user.role !== UserRole.GARDIEN && user.role !== UserRole.GUIDE) {
-      throw new ForbiddenException('Seuls les Gardiens et les Guides peuvent être sélectionnés');
+    if (user.role === UserRole.ADMIN) {
+      throw new ForbiddenException('Les administrateurs ne peuvent pas être sélectionnés comme participants');
     }
 
     const adhesionStatus =
@@ -283,23 +258,32 @@ export class CampsService {
       where: { id: selectedById },
     });
     if (!selector) throw new ForbiddenException('Sélecteur introuvable');
-    if (!this.userIsInActorScope(selector, user)) {
+
+    const isEncadrant = user.role === UserRole.SENTINELLE || user.role === UserRole.REGION;
+    // Vérifier le scope seulement pour les gardiens et guides
+    if (!isEncadrant && !this.userIsInActorScope(selector, user)) {
       throw new ForbiddenException('Gardien hors périmètre');
     }
+
     const districtId = user.districtId ?? user.parish?.districtId ?? null;
-    const parishId   = user.parishId;
-    if (!districtId || !parishId) {
+    const parishId   = user.parishId ?? null;
+
+    // Pour gardiens et guides, le territoire est obligatoire
+    if (!isEncadrant && (!districtId || !parishId)) {
       throw new ForbiddenException(`Territoire introuvable pour ${user.prenoms} ${user.nom} — vérifiez que la paroisse est bien renseignée.`);
     }
-    const campDistricts = await this.prisma.campDistrict.findMany({
-      where: { campId },
-      select: { districtId: true },
-    });
-    if (
-      campDistricts.length > 0 &&
-      !campDistricts.some((d) => d.districtId === districtId)
-    ) {
-      throw new ForbiddenException(`${user.prenoms} ${user.nom} — ce camp n'est pas ouvert au district de cette paroisse.`);
+
+    if (!isEncadrant && districtId) {
+      const campDistricts = await this.prisma.campDistrict.findMany({
+        where: { campId },
+        select: { districtId: true },
+      });
+      if (
+        campDistricts.length > 0 &&
+        !campDistricts.some((d) => d.districtId === districtId)
+      ) {
+        throw new ForbiddenException(`${user.prenoms} ${user.nom} — ce camp n'est pas ouvert au district de cette paroisse.`);
+      }
     }
 
     // Vérifier si le participant n'est pas bloqué par un supérieur
@@ -317,8 +301,9 @@ export class CampsService {
         campId,
         userId,
         selectedById,
-        districtId,
-        parishId,
+        districtId: districtId ?? undefined,
+        parishId: parishId ?? undefined,
+        roleAtCamp: user.role,
         adhesionStatusSnapshot: adhesionStatus,
         participationStatus: 'SELECTIONNE',
       },
@@ -442,12 +427,17 @@ export class CampsService {
   }
 
   async getPendingRequestsCount(user: AuthUser) {
-    if (user.role !== UserRole.GUIDE && user.role !== UserRole.SENTINELLE) {
-      return { total: 0, byCamp: {} as Record<string, number> };
-    }
+    const scopeWhere =
+      user.role === UserRole.ADMIN || user.role === UserRole.REGION
+        ? {}
+        : user.role === UserRole.SENTINELLE || user.role === UserRole.GUIDE
+          ? this.participantScopeWhere(user)
+          : null;
+    if (scopeWhere === null) return { total: 0, byCamp: {} as Record<string, number> };
+
     const grouped = await this.prisma.campParticipant.groupBy({
       by: ['campId'],
-      where: { participationStatus: 'EN_ATTENTE', ...this.participantScopeWhere(user) },
+      where: { participationStatus: 'EN_ATTENTE', ...scopeWhere },
       _count: { id: true },
     });
     const byCamp: Record<string, number> = {};
@@ -497,36 +487,50 @@ export class CampsService {
     if (existing && existing.participationStatus !== 'DESISTE')
       return existing;
 
-    const parishId = user.parishId;
+    const parishId = user.parishId ?? null;
     const districtId = user.districtId ?? user.parish?.districtId ?? null;
-    if (!districtId || !parishId)
+
+    const isEncadrant = user.role === UserRole.SENTINELLE || user.role === UserRole.REGION;
+
+    // Gardiens et guides doivent être rattachés à une paroisse
+    if (!isEncadrant && (!districtId || !parishId))
       throw new ForbiddenException('Ton compte n\'est pas encore rattaché à une paroisse. Contacte ton administrateur.');
 
-    const campDistricts = await this.prisma.campDistrict.findMany({
-      where: { campId },
-      select: { districtId: true },
-    });
-    if (campDistricts.length > 0 && !campDistricts.some((d) => d.districtId === districtId))
-      throw new ForbiddenException('Ce camp n\'est pas ouvert à ton district');
+    // Vérification du scope du camp par district (sauf pour REGION et encadrants sans district)
+    if (user.role !== UserRole.REGION && districtId) {
+      const campDistricts = await this.prisma.campDistrict.findMany({
+        where: { campId },
+        select: { districtId: true },
+      });
+      if (campDistricts.length > 0 && !campDistricts.some((d) => d.districtId === districtId))
+        throw new ForbiddenException('Ce camp n\'est pas ouvert à ton district');
+    }
 
     const adhesionStatus = user.adhesions[0]?.statut ?? AdhesionStatus.NON_A_JOUR;
+
+    // Sentinelles et membres de région : participation directe sans validation
+    const participationStatus = isEncadrant ? 'SELECTIONNE' : 'EN_ATTENTE';
 
     const participant = await this.prisma.campParticipant.upsert({
       where: { campId_userId: { campId, userId } },
       create: {
         campId, userId,
         selectedById: userId,
-        districtId, parishId,
+        districtId: districtId ?? undefined,
+        parishId: parishId ?? undefined,
+        roleAtCamp: user.role,
         adhesionStatusSnapshot: adhesionStatus,
-        participationStatus: 'EN_ATTENTE',
+        participationStatus,
       },
-      update: { participationStatus: 'EN_ATTENTE' },
+      update: { participationStatus },
     });
 
     this.actionLog.record({
       action: AuditAction.CREATE,
       category: 'camp',
-      summary: `${user.prenoms} ${user.nom} a manifesté son intérêt pour le camp « ${camp.nom} »`,
+      summary: isEncadrant
+        ? `${user.prenoms} ${user.nom} s'est inscrit(e) au camp « ${camp.nom} »`
+        : `${user.prenoms} ${user.nom} a manifesté son intérêt pour le camp « ${camp.nom} »`,
       actor: { id: userId, role: user.role, parishId, districtId } as AuthUser,
       target: { entityType: 'CampParticipant', entityId: participant.id },
       metadata: { campId, userId },
@@ -568,5 +572,243 @@ export class CampsService {
     }
 
     return { success: true };
+  }
+
+  async validerDemandeParticipation(campId: string, userId: string, actor: AuthUser) {
+    if (
+      actor.role !== UserRole.SENTINELLE &&
+      actor.role !== UserRole.REGION &&
+      actor.role !== UserRole.ADMIN
+    ) {
+      throw new ForbiddenException('Accès non autorisé');
+    }
+
+    const participant = await this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+      include: { user: { select: { id: true, nom: true, prenoms: true, role: true } } },
+    });
+    if (!participant) throw new NotFoundException('Demande de participation introuvable');
+    if (participant.participationStatus !== 'EN_ATTENTE') {
+      throw new BadRequestException('Ce participant n\'a pas de demande en attente');
+    }
+
+    const updated = await this.prisma.campParticipant.update({
+      where: { campId_userId: { campId, userId } },
+      data: { participationStatus: 'SELECTIONNE', selectedById: actor.id },
+      include: { user: { select: { id: true, nom: true, prenoms: true } } },
+    });
+
+    const camp = await this.prisma.camp.findUnique({ where: { id: campId }, select: { nom: true } });
+    await this.notifications.sendToUser(userId, {
+      title: 'Participation validée ✓',
+      body: `Ta demande de participation au camp « ${camp?.nom ?? '' } » a été acceptée.`,
+      url: `/dashboard/guide/camps/${campId}`,
+    });
+
+    this.actionLog.record({
+      action: AuditAction.STATUS_CHANGE,
+      category: 'camp',
+      summary: `Validation de la demande de ${participant.user.prenoms} ${participant.user.nom} pour le camp`,
+      actor,
+      target: { entityType: 'CampParticipant', entityId: participant.id },
+      metadata: { campId, userId },
+    });
+
+    return updated;
+  }
+
+  // ─── Autorisations de sortie ───────────────────────────────────────────────
+
+  async createAutorisation(campId: string, dto: CreateAutorisationDto, actor: AuthUser) {
+    if (actor.role !== UserRole.SENTINELLE) {
+      throw new ForbiddenException('Seules les Sentinelles peuvent demander une autorisation de sortie');
+    }
+
+    const camp = await this.prisma.camp.findUnique({ where: { id: campId } });
+    if (!camp) throw new NotFoundException('Camp introuvable');
+    if (camp.statut !== CampStatus.EN_COURS) {
+      throw new BadRequestException('Les autorisations ne peuvent être demandées que pendant un camp en cours');
+    }
+
+    const participants = await this.prisma.campParticipant.findMany({
+      where: { campId, userId: { in: dto.personneIds } },
+      include: { user: { select: { id: true, nom: true, prenoms: true } } },
+    });
+
+    if (participants.length !== dto.personneIds.length) {
+      throw new BadRequestException('Certaines personnes sélectionnées ne sont pas participants de ce camp');
+    }
+
+    const autorisation = await this.prisma.autorisationSortie.create({
+      data: {
+        campId,
+        demandeurId: actor.id,
+        motif: dto.motif,
+        personnes: {
+          create: participants.map(p => ({
+            userId: p.userId,
+            nomSnapshot: `${p.user.prenoms ?? ''} ${p.user.nom ?? ''}`.trim(),
+          })),
+        },
+      },
+      include: {
+        demandeur: { select: { id: true, nom: true, prenoms: true } },
+        personnes: { include: { user: { select: { id: true, nom: true, prenoms: true } } } },
+      },
+    });
+
+    // Notifier les régionaux rattachés au camp
+    const regionaux = await this.prisma.user.findMany({
+      where: { role: UserRole.REGION, regionId: camp.regionId ?? undefined },
+      select: { id: true },
+    });
+    for (const r of regionaux) {
+      await this.notifications.sendToUser(r.id, {
+        title: 'Demande d\'autorisation de sortie',
+        body: `Une Sentinelle demande une autorisation de sortie pour ${participants.length} personne(s) — motif : ${dto.motif}`,
+        url: `/dashboard/region/camps/${campId}`,
+      });
+    }
+
+    return autorisation;
+  }
+
+  async getAutorisations(campId: string, actor: AuthUser) {
+    const camp = await this.prisma.camp.findUnique({ where: { id: campId } });
+    if (!camp) throw new NotFoundException('Camp introuvable');
+
+    const where: Prisma.AutorisationSortieWhereInput = { campId };
+
+    // Une Sentinelle ne voit que ses propres demandes
+    if (actor.role === UserRole.SENTINELLE) {
+      where.demandeurId = actor.id;
+    } else if (actor.role !== UserRole.ADMIN && actor.role !== UserRole.REGION) {
+      throw new ForbiddenException('Accès non autorisé');
+    }
+
+    return this.prisma.autorisationSortie.findMany({
+      where,
+      include: {
+        demandeur: { select: { id: true, nom: true, prenoms: true } },
+        valideur: { select: { id: true, nom: true, prenoms: true } },
+        personnes: { include: { user: { select: { id: true, nom: true, prenoms: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async validerAutorisation(campId: string, autorisationId: string, dto: RepondreAutorisationDto, actor: AuthUser) {
+    if (actor.role !== UserRole.REGION && actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Seul le Régional peut valider une autorisation');
+    }
+
+    const autorisation = await this.prisma.autorisationSortie.findFirst({
+      where: { id: autorisationId, campId },
+      include: {
+        personnes: true,
+        demandeur: { select: { id: true, nom: true, prenoms: true } },
+      },
+    });
+    if (!autorisation) throw new NotFoundException('Autorisation introuvable');
+    if (autorisation.statut !== AutorisationStatut.EN_ATTENTE) {
+      throw new BadRequestException('Cette autorisation a déjà été traitée');
+    }
+
+    const result = await this.prisma.autorisationSortie.update({
+      where: { id: autorisationId },
+      data: { statut: AutorisationStatut.APPROUVEE, valideurId: actor.id, reponse: dto.reponse },
+      include: {
+        demandeur: { select: { id: true, nom: true, prenoms: true } },
+        valideur: { select: { id: true, nom: true, prenoms: true } },
+        personnes: { include: { user: { select: { id: true, nom: true, prenoms: true } } } },
+      },
+    });
+
+    await this.notifications.sendToUser(autorisation.demandeurId, {
+      title: 'Autorisation de sortie approuvée ✓',
+      body: dto.reponse ?? `Votre demande de sortie (${autorisation.personnes.length} personne(s)) a été approuvée`,
+      url: `/dashboard/guide/camps/${campId}`,
+    });
+
+    await this._notifierChargesSecurite(campId, autorisation.demandeurId, {
+      title: 'Sortie autorisée',
+      body: `Une sortie de ${autorisation.personnes.length} personne(s) a été approuvée`,
+      url: `/dashboard/guide/camps/${campId}`,
+    });
+
+    return result;
+  }
+
+  async refuserAutorisation(campId: string, autorisationId: string, dto: RepondreAutorisationDto, actor: AuthUser) {
+    if (actor.role !== UserRole.REGION && actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Seul le Régional peut refuser une autorisation');
+    }
+
+    const autorisation = await this.prisma.autorisationSortie.findFirst({
+      where: { id: autorisationId, campId },
+      include: { personnes: true },
+    });
+    if (!autorisation) throw new NotFoundException('Autorisation introuvable');
+    if (autorisation.statut !== AutorisationStatut.EN_ATTENTE) {
+      throw new BadRequestException('Cette autorisation a déjà été traitée');
+    }
+
+    const result = await this.prisma.autorisationSortie.update({
+      where: { id: autorisationId },
+      data: { statut: AutorisationStatut.REFUSEE, valideurId: actor.id, reponse: dto.reponse },
+      include: {
+        demandeur: { select: { id: true, nom: true, prenoms: true } },
+        valideur: { select: { id: true, nom: true, prenoms: true } },
+        personnes: { include: { user: { select: { id: true, nom: true, prenoms: true } } } },
+      },
+    });
+
+    await this.notifications.sendToUser(autorisation.demandeurId, {
+      title: 'Autorisation de sortie refusée',
+      body: dto.reponse ?? 'Votre demande de sortie a été refusée',
+      url: `/dashboard/guide/camps/${campId}`,
+    });
+
+    await this._notifierChargesSecurite(campId, autorisation.demandeurId, {
+      title: 'Sortie refusée',
+      body: `Une demande de sortie de ${autorisation.personnes.length} personne(s) a été refusée`,
+      url: `/dashboard/guide/camps/${campId}`,
+    });
+
+    return result;
+  }
+
+  async toggleChargeSecurite(campId: string, userId: string, actor: AuthUser) {
+    if (actor.role !== UserRole.REGION && actor.role !== UserRole.ADMIN && actor.role !== UserRole.SENTINELLE) {
+      throw new ForbiddenException('Accès non autorisé');
+    }
+
+    const participant = await this.prisma.campParticipant.findUnique({
+      where: { campId_userId: { campId, userId } },
+    });
+    if (!participant) throw new NotFoundException('Participant introuvable dans ce camp');
+    if (participant.roleAtCamp === UserRole.GARDIEN) {
+      throw new ForbiddenException('Un Gardien ne peut pas être désigné chargé à la sécurité');
+    }
+
+    return this.prisma.campParticipant.update({
+      where: { campId_userId: { campId, userId } },
+      data: { chargeSecurite: !participant.chargeSecurite },
+      include: { user: { select: { id: true, nom: true, prenoms: true } } },
+    });
+  }
+
+  private async _notifierChargesSecurite(
+    campId: string,
+    excludeUserId: string,
+    payload: { title: string; body: string; url: string },
+  ) {
+    const chargesSecurite = await this.prisma.campParticipant.findMany({
+      where: { campId, chargeSecurite: true, userId: { not: excludeUserId } },
+      select: { userId: true },
+    });
+    for (const cs of chargesSecurite) {
+      await this.notifications.sendToUser(cs.userId, payload);
+    }
   }
 }

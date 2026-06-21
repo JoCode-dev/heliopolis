@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { campsApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import { Pill, Select } from '@/components/ui';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePaginationUrl } from '@/hooks/usePaginationUrl';
@@ -21,6 +22,7 @@ import {
   PARTICIPATION_FILTER_OPTIONS,
 } from '@/components/data-table/columns/participant-columns';
 import type { Camp, CampParticipant, AdhesionStatus, ParticipationStatus } from '@/types';
+import type { ParticipantColumnsOptions } from '@/components/data-table/columns/participant-columns';
 
 const PER_PAGE = 10;
 
@@ -58,13 +60,17 @@ const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
 function ParticipantsContent() {
   const searchParams = useSearchParams();
   const initialCampId = searchParams.get('campId') ?? '';
+  const { user: actor } = useAuthStore();
 
   const [camps, setCamps] = useState<Camp[]>([]);
   const [selectedCampId, setSelectedCampId] = useState(initialCampId);
   const [participants, setParticipants] = useState<CampParticipant[]>([]);
   const [loadingCamps, setLoadingCamps] = useState(true);
   const [loadingParts, setLoadingParts] = useState(false);
+  const [secuLoadingId, setSecuLoadingId] = useState<string | null>(null);
   const [page, setPage] = usePaginationUrl();
+
+  const canToggleSecurite = actor?.role === 'ADMIN' || actor?.role === 'REGION' || actor?.role === 'SENTINELLE';
 
   const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
     [
@@ -98,12 +104,30 @@ function ParticipantsContent() {
     })();
   }, [selectedCampId]);
 
+  const handleToggleSecurite = async (p: CampParticipant) => {
+    if (!selectedCampId || secuLoadingId) return;
+    setSecuLoadingId(p.id);
+    try {
+      await campsApi.toggleChargeSecurite(selectedCampId, p.userId);
+      setParticipants(prev =>
+        prev.map(x => x.id === p.id ? { ...x, chargeSecurite: !x.chargeSecurite } : x)
+      );
+    } catch { /* ignore */ } finally { setSecuLoadingId(null); }
+  };
+
   const filtered = useMemo(
     () => filterParticipants(participants, values),
     [participants, values],
   );
 
-  const columns = useMemo(() => createParticipantColumns(), []);
+  const colOpts: ParticipantColumnsOptions = useMemo(() => ({
+    onToggleSecurite: handleToggleSecurite,
+    secuLoadingId,
+    canToggleSecurite,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [secuLoadingId, canToggleSecurite, selectedCampId]);
+
+  const columns = useMemo(() => createParticipantColumns(colOpts), [colOpts]);
 
   const { table } = useDataTable({
     data: filtered,
@@ -207,29 +231,58 @@ function ParticipantsContent() {
         ) : (
           <>
             <div className="lg:hidden flex flex-col gap-2">
-              {paginatedRows.map(({ original: p }) => (
-                <div key={p.id} className="bg-white border border-[#ececf0] rounded-xl p-3 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-xs font-bold shrink-0">
-                    {p.user.nom?.[0]}{p.user.prenoms?.[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#1F1B2E] truncate">
-                      {p.user.prenoms} {p.user.nom}
+              {paginatedRows.map(({ original: p }) => {
+                const isSecuLoading = secuLoadingId === p.id;
+                return (
+                  <div key={p.id} className="bg-white border border-[#ececf0] rounded-xl overflow-hidden">
+                    <div className="p-3 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#3d1163] flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {p.user.nom?.[0]}{p.user.prenoms?.[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-[#1F1B2E] truncate">
+                          {p.user.prenoms} {p.user.nom}
+                        </div>
+                        <div className="text-[11px] text-[#6b6b78] truncate">
+                          {p.user.matricule ?? '—'} · {p.parish?.nom ?? '—'}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Pill variant={ADHESION_PILL[p.adhesionStatusSnapshot]} className="text-[10px]">
+                          {ADHESION_LABELS[p.adhesionStatusSnapshot]}
+                        </Pill>
+                        <Pill variant={PARTICIPATION_PILL[p.participationStatus]} className="text-[10px]">
+                          {PARTICIPATION_LABELS[p.participationStatus]}
+                        </Pill>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[#6b6b78] truncate">
-                      {p.user.matricule ?? '—'} · {p.parish?.nom ?? '—'}
-                    </div>
+                    {p.roleAtCamp !== 'GARDIEN' && canToggleSecurite && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSecurite(p)}
+                        disabled={isSecuLoading}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 border-t border-[#f0f0f4] transition-colors disabled:opacity-50 ${
+                          p.chargeSecurite
+                            ? 'bg-[#fde8e8] hover:bg-[#fcd0d0]'
+                            : 'bg-[#fafafa] hover:bg-[#f0f0f4]'
+                        }`}
+                      >
+                        <span className={`text-xs font-semibold ${p.chargeSecurite ? 'text-[#E55A35]' : 'text-[#6b6b78]'}`}>
+                          🛡️ {p.chargeSecurite ? 'Chargé sécurité — retirer' : 'Désigner chargé sécurité'}
+                        </span>
+                        <span className={`text-xs font-bold ${p.chargeSecurite ? 'text-[#E55A35]' : 'text-[#9b9ba8]'}`}>
+                          {isSecuLoading ? '…' : p.chargeSecurite ? '✓' : '+'}
+                        </span>
+                      </button>
+                    )}
+                    {p.roleAtCamp !== 'GARDIEN' && !canToggleSecurite && p.chargeSecurite && (
+                      <div className="px-4 py-2 border-t border-[#f0f0f4] bg-[#fde8e8]">
+                        <span className="text-xs font-bold text-[#E55A35]">🛡️ Chargé sécurité</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <Pill variant={ADHESION_PILL[p.adhesionStatusSnapshot]} className="text-[10px]">
-                      {ADHESION_LABELS[p.adhesionStatusSnapshot]}
-                    </Pill>
-                    <Pill variant={PARTICIPATION_PILL[p.participationStatus]} className="text-[10px]">
-                      {PARTICIPATION_LABELS[p.participationStatus]}
-                    </Pill>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <DataTable

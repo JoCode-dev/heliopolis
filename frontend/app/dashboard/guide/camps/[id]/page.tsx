@@ -1,29 +1,116 @@
 'use client';
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { campsApi } from '@/lib/api';
 import { Pill, Card, SectionTitle, InfoBanner } from '@/components/ui';
 import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
-import type { Camp, CampParticipant } from '@/types';
+import { useAuthStore } from '@/store/auth';
+import type { Camp, CampParticipant, AutorisationSortie } from '@/types';
+
+const STATUT_AUTO = {
+  EN_ATTENTE: { label: 'En attente', color: 'bg-[#fff3d6] text-[#9c7218]' },
+  APPROUVEE:  { label: 'Approuvée',  color: 'bg-[#e1f4e3] text-[#2E7D32]' },
+  REFUSEE:    { label: 'Refusée',    color: 'bg-[#fde8e8] text-[#E55A35]' },
+} as const;
+
+type MyParticipationStatus = 'EN_ATTENTE' | 'SELECTIONNE' | 'CONFIRME' | 'PRESENT' | 'DESISTE' | 'BLOQUE' | null;
+
+const MY_PART_CFG: Record<string, { label: string; icon: string; bg: string; text: string }> = {
+  EN_ATTENTE:  { label: 'Demande en attente de validation', icon: '⏳', bg: 'bg-[#fff8e6] border-[#ffe082]',   text: 'text-[#9c7218]' },
+  SELECTIONNE: { label: 'Participation acceptée',           icon: '✓',  bg: 'bg-[#e8f5e9] border-[#a5d6a7]',  text: 'text-[#2E7D32]' },
+  CONFIRME:    { label: 'Participation confirmée',          icon: '✓✓', bg: 'bg-[#e8f5e9] border-[#a5d6a7]',  text: 'text-[#2E7D32]' },
+  PRESENT:     { label: 'Présent au camp',                  icon: '✓',  bg: 'bg-[#e8f5e9] border-[#a5d6a7]',  text: 'text-[#2E7D32]' },
+  BLOQUE:      { label: 'Participation non disponible',     icon: '🚫', bg: 'bg-[#fde8e8] border-[#ef9a9a]',  text: 'text-[#C62828]' },
+};
 
 export default function GuideCampDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isSentinelle = user?.role === 'SENTINELLE';
+  const isGuide      = user?.role === 'GUIDE';
+
   const [camp, setCamp] = useState<Camp | null>(null);
-  const [participantCount, setParticipantCount] = useState(0);
+  const [participants, setParticipants] = useState<CampParticipant[]>([]);
+  const [autorisations, setAutorisations] = useState<AutorisationSortie[]>([]);
+  const [myPartStatus, setMyPartStatus] = useState<MyParticipationStatus>(null);
+  const [partLoading, setPartLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      campsApi.get(id),
-      campsApi.participants(id),
-    ]).then(([c, p]) => {
+  // Modal autorisation
+  const [showModal, setShowModal] = useState(false);
+  const [motif, setMotif] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [modalError, setModalError] = useState('');
+
+  const reload = useCallback(async () => {
+    try {
+      const [c, p] = await Promise.all([
+        campsApi.get(id),
+        campsApi.participants(id),
+      ]);
       setCamp(c.data);
-      setParticipantCount((p.data as CampParticipant[]).length);
-    }).catch(() => {})
-      .finally(() => setLoading(false));
-  }, [id]);
+      setParticipants(p.data as CampParticipant[]);
+
+      if (isSentinelle) {
+        const a = await campsApi.autorisations(id);
+        setAutorisations(a.data as AutorisationSortie[]);
+      }
+      if (isGuide || isSentinelle) {
+        const mp = await campsApi.myParticipation(id);
+        setMyPartStatus((mp.data as { participationStatus: MyParticipationStatus } | null)?.participationStatus ?? null);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }, [id, isSentinelle, isGuide]);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  const togglePerson = (userId: string) => {
+    setSelectedIds(prev =>
+      prev.includes(userId) ? prev.filter(i => i !== userId) : [...prev, userId],
+    );
+  };
+
+  const handleExpressInterest = async () => {
+    setPartLoading(true);
+    try {
+      const res = await campsApi.expressInterest(id);
+      setMyPartStatus((res.data as { participationStatus: MyParticipationStatus })?.participationStatus ?? (isSentinelle ? 'SELECTIONNE' : 'EN_ATTENTE'));
+    } catch { /* ignore */ } finally { setPartLoading(false); }
+  };
+
+  const handleWithdraw = async () => {
+    setPartLoading(true);
+    try {
+      await campsApi.withdrawInterest(id);
+      setMyPartStatus(null);
+    } catch { /* ignore */ } finally { setPartLoading(false); }
+  };
+
+  const handleSubmitAutorisation = async () => {
+    if (!motif.trim()) { setModalError('Le motif est obligatoire.'); return; }
+    if (selectedIds.length === 0) { setModalError('Sélectionnez au moins une personne.'); return; }
+    setSubmitting(true);
+    setModalError('');
+    try {
+      await campsApi.createAutorisation(id, { motif: motif.trim(), personneIds: selectedIds });
+      setShowModal(false);
+      setMotif('');
+      setSelectedIds([]);
+      await reload();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setModalError(msg ?? 'Une erreur est survenue.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -58,6 +145,9 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
   })} – ${new Date(camp.dateFin).toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric',
   })}`;
+
+  const campEnCours = camp.statut === 'EN_COURS';
+  const enAttente = autorisations.filter(a => a.statut === 'EN_ATTENTE').length;
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -98,11 +188,13 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
 
             {/* Colonne gauche — infos */}
             <div>
-              {/* Bannière guide */}
+              {/* Bannière contextuelle */}
               <div className="flex items-center gap-3 bg-gradient-to-r from-[#6A1B9A]/10 to-[#4a1370]/10 border border-[#6A1B9A]/30 rounded-2xl p-3.5 mb-4">
-                <span className="text-xl">📋</span>
+                <span className="text-xl">{isSentinelle ? '🛡️' : '📋'}</span>
                 <p className="text-xs text-[#4a1370] leading-relaxed flex-1">
-                  Tu peux sélectionner les participants de ta paroisse pour ce camp.
+                  {isSentinelle
+                    ? 'En tant que Sentinelle, tu peux gérer les participants et demander des autorisations de sortie au Régional.'
+                    : 'Tu peux sélectionner les participants de ta paroisse pour ce camp.'}
                 </p>
               </div>
 
@@ -118,9 +210,69 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
                 </div>
               </div>
 
-              <InfoBanner icon="ℹ️">
-                Sélection ouverte jusqu&apos;au 30 juin. Les participants soumis sont transmis à la Sentinelle pour validation.
-              </InfoBanner>
+              {/* ── Ma participation personnelle (Guide + Sentinelle) ── */}
+              {(isGuide || isSentinelle) && camp.selectionOuverte && (
+                <div className="rounded-2xl border overflow-hidden mb-4">
+                  <div className="px-4 py-2.5 bg-[#1F1B2E] flex items-center gap-2">
+                    <span className="text-white text-xs font-bold uppercase tracking-wide">Ma participation</span>
+                  </div>
+                  <div className="px-4 py-3 bg-white">
+                    {myPartStatus && MY_PART_CFG[myPartStatus] ? (
+                      <div className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 mb-3 ${MY_PART_CFG[myPartStatus].bg}`}>
+                        <span className="text-lg">{MY_PART_CFG[myPartStatus].icon}</span>
+                        <span className={`text-xs font-semibold ${MY_PART_CFG[myPartStatus].text}`}>
+                          {MY_PART_CFG[myPartStatus].label}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#6b6b78] mb-3">
+                        {isSentinelle
+                          ? 'Tu n\'as pas encore marqué ta participation à ce camp.'
+                          : 'Tu n\'as pas encore demandé à participer à ce camp.'}
+                      </p>
+                    )}
+                    {(!myPartStatus || myPartStatus === 'DESISTE') && (
+                      <button
+                        type="button"
+                        onClick={handleExpressInterest}
+                        disabled={partLoading}
+                        className="w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                        style={{ background: 'linear-gradient(135deg,#1F1B2E,#4a1370)' }}
+                      >
+                        {partLoading ? 'Envoi…' : isSentinelle ? '✓ Marquer ma participation' : '🙋 Demander à participer'}
+                      </button>
+                    )}
+                    {/* Guide : retirer uniquement si EN_ATTENTE */}
+                    {isGuide && myPartStatus === 'EN_ATTENTE' && (
+                      <button
+                        type="button"
+                        onClick={handleWithdraw}
+                        disabled={partLoading}
+                        className="w-full py-2 rounded-xl text-xs font-semibold text-[#9c7218] bg-[#fff3d6] border border-[#ffe082] hover:bg-[#ffe08280] transition-colors disabled:opacity-50"
+                      >
+                        {partLoading ? '…' : 'Retirer ma demande'}
+                      </button>
+                    )}
+                    {/* Sentinelle : retirer si SELECTIONNE ou CONFIRME */}
+                    {isSentinelle && (myPartStatus === 'SELECTIONNE' || myPartStatus === 'CONFIRME') && (
+                      <button
+                        type="button"
+                        onClick={handleWithdraw}
+                        disabled={partLoading}
+                        className="w-full py-2 rounded-xl text-xs font-semibold text-[#9c7218] bg-[#fff3d6] border border-[#ffe082] hover:bg-[#ffe08280] transition-colors disabled:opacity-50"
+                      >
+                        {partLoading ? '…' : 'Retirer ma participation'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!isSentinelle && (
+                <InfoBanner icon="ℹ️">
+                  Sélection ouverte jusqu&apos;au 30 juin. Les participants soumis sont transmis à la Sentinelle pour validation.
+                </InfoBanner>
+              )}
 
               {camp.districts && camp.districts.length > 0 && (
                 <>
@@ -141,16 +293,85 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
               )}
 
               <Card className="text-center mb-4">
-                <div className="text-2xl font-black text-[#6A1B9A]">{participantCount}</div>
+                <div className="text-2xl font-black text-[#6A1B9A]">{participants.length}</div>
                 <div className="text-xs text-[#6b6b78] uppercase tracking-wide mt-0.5">Participants sélectionnés</div>
               </Card>
 
               <Link
                 href={`/dashboard/guide/selection/${camp.id}`}
-                className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-3.5 rounded-xl"
+                className="block w-full text-center bg-[#6A1B9A] text-white font-bold text-sm py-3.5 rounded-xl mb-4"
               >
                 📋 Sélectionner les participants
               </Link>
+
+              {/* ── Section Autorisations de sortie (Sentinelle uniquement) ── */}
+              {isSentinelle && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <SectionTitle className="mb-0">
+                      Autorisations de sortie
+                      {enAttente > 0 && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-[#fff3d6] text-[#9c7218] text-[10px] font-bold">
+                          {enAttente} en attente
+                        </span>
+                      )}
+                    </SectionTitle>
+                    {campEnCours && (
+                      <button
+                        onClick={() => setShowModal(true)}
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg text-white flex-shrink-0"
+                        style={{ background: 'linear-gradient(135deg,#F58A4B,#E55A35)' }}
+                      >
+                        + Demander
+                      </button>
+                    )}
+                  </div>
+
+                  {!campEnCours && (
+                    <p className="text-xs text-[#6b6b78] mb-3">
+                      Les autorisations sont disponibles uniquement pendant le camp (statut EN_COURS).
+                    </p>
+                  )}
+
+                  {autorisations.length === 0 ? (
+                    <Card className="text-center py-5 text-sm text-[#6b6b78]">
+                      <div className="text-2xl mb-1">🚪</div>
+                      <p>Aucune demande d&apos;autorisation.</p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-2">
+                      {autorisations.map(a => {
+                        const s = STATUT_AUTO[a.statut];
+                        return (
+                          <div key={a.id} className="bg-white border border-[#ececf0] rounded-2xl p-3">
+                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                              <p className="text-sm font-semibold text-[#1F1B2E] leading-snug flex-1">{a.motif}</p>
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${s.color}`}>
+                                {s.label}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#6b6b78]">
+                              {a.personnes.length} personne(s) — {new Date(a.createdAt).toLocaleDateString('fr-FR')}
+                            </p>
+                            {a.reponse && (
+                              <p className="text-[11px] mt-1.5 px-2 py-1 bg-[#f7f5fb] rounded-lg text-[#4a1370] italic">
+                                {a.reponse}
+                              </p>
+                            )}
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {a.personnes.map(p => (
+                                <span key={p.id} className="text-[10px] bg-[#f3f3f5] text-[#1F1B2E] px-2 py-0.5 rounded-full">
+                                  {p.nomSnapshot}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Colonne droite — publications */}
@@ -161,6 +382,92 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
       </div>
+
+      {/* ── Modal demande d'autorisation ── */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
+            <div className="px-5 pt-5 pb-3 border-b border-[#ececf0] flex-shrink-0">
+              <h2 className="text-base font-black text-[#1F1B2E]">Demande d&apos;autorisation de sortie</h2>
+              <p className="text-xs text-[#6b6b78] mt-0.5">Le Régional recevra la demande et devra la valider.</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              {/* Motif */}
+              <div>
+                <label className="text-xs font-semibold text-[#1F1B2E] uppercase tracking-wide block mb-1.5">
+                  Motif *
+                </label>
+                <textarea
+                  value={motif}
+                  onChange={e => setMotif(e.target.value)}
+                  rows={3}
+                  placeholder="Expliquez la raison de la sortie…"
+                  className="w-full border border-[#e6e6ea] rounded-xl px-3 py-2.5 text-sm text-[#1F1B2E] resize-none focus:outline-none focus:ring-2 focus:ring-[#6A1B9A]/30"
+                />
+              </div>
+
+              {/* Sélection des personnes */}
+              <div>
+                <label className="text-xs font-semibold text-[#1F1B2E] uppercase tracking-wide block mb-1.5">
+                  Personnes concernées * ({selectedIds.length} sélectionnée(s))
+                </label>
+                {participants.length === 0 ? (
+                  <p className="text-xs text-[#6b6b78]">Aucun participant dans ce camp.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto border border-[#e6e6ea] rounded-xl p-2">
+                    {participants.map(p => {
+                      const checked = selectedIds.includes(p.userId);
+                      return (
+                        <label
+                          key={p.userId}
+                          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
+                            checked ? 'bg-[#6A1B9A]/10' : 'hover:bg-[#f7f5fb]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => togglePerson(p.userId)}
+                            className="accent-[#6A1B9A] w-4 h-4 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-[#1F1B2E] truncate">
+                              {p.user.prenoms} {p.user.nom}
+                            </div>
+                            <div className="text-[10px] text-[#6b6b78]">{p.parish?.nom ?? '—'}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {modalError && (
+                <p className="text-xs text-[#E55A35] bg-[#fde8e8] px-3 py-2 rounded-lg">{modalError}</p>
+              )}
+            </div>
+
+            <div className="px-5 pb-5 pt-3 border-t border-[#ececf0] flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => { setShowModal(false); setMotif(''); setSelectedIds([]); setModalError(''); }}
+                className="flex-1 py-3 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78]"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSubmitAutorisation}
+                disabled={submitting}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg,#F58A4B,#E55A35)' }}
+              >
+                {submitting ? 'Envoi…' : 'Envoyer la demande'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

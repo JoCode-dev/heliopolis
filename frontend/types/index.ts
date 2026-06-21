@@ -1,5 +1,6 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export type UserRole = 'ADMIN' | 'REGION' | 'SENTINELLE' | 'GUIDE' | 'GARDIEN' | 'PHOTOGRAPHE';
+export type RegionRole = 'RESPONSABLE' | 'ADJOINT' | 'CHARGE_COMMUNICATION';
 export type ProfileStatus = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE_ACTIVATION' | 'EN_ATTENTE_VALIDATION' | 'SUSPENDU' | 'ARCHIVE';
 export type AdhesionStatus = 'A_JOUR' | 'NON_A_JOUR' | 'EN_ATTENTE';
 export type CampType = 'REGIONAL' | 'DISTRICT' | 'PAROISSIAL' | 'NATIONAL' | 'COMMUNAUTE';
@@ -23,7 +24,7 @@ export interface User {
   id: string; nom: string; prenoms: string; matricule?: string;
   email?: string; telephone?: string; avatarUrl?: string;
   dateNaissance?: string;
-  role: UserRole; statutProfil: ProfileStatus;
+  role: UserRole; regionRole?: RegionRole; statutProfil: ProfileStatus;
   notifPush?: boolean; notifEmail?: boolean;
   region?: Region; district?: District; parish?: Parish;
   adhesions?: Adhesion[];
@@ -68,8 +69,32 @@ export interface CampParticipant {
   user: Partial<User>; district: District; parish: Parish;
   adhesionStatusSnapshot: AdhesionStatus;
   participationStatus: ParticipationStatus;
+  chargeSecurite: boolean;
+  roleAtCamp: string;
   selectedAt: string;
   commentaireInterne?: string;
+}
+
+export type AutorisationStatut = 'EN_ATTENTE' | 'APPROUVEE' | 'REFUSEE';
+
+export interface AutorisationSortiePersonne {
+  id: string;
+  userId: string;
+  user: Partial<User>;
+  nomSnapshot: string;
+}
+
+export interface AutorisationSortie {
+  id: string;
+  campId: string;
+  demandeur: Partial<User>;
+  motif: string;
+  statut: AutorisationStatut;
+  reponse?: string;
+  valideur?: Partial<User>;
+  personnes: AutorisationSortiePersonne[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── Conseils de Communauté ───────────────────────────────────────────────────

@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { CampsService } from './camps.service.js';
 import { CreateCampDto } from './dto/create-camp.dto.js';
+import { CreateAutorisationDto } from './dto/create-autorisation.dto.js';
+import { RepondreAutorisationDto } from './dto/repondre-autorisation.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { OptionalJwtGuard } from '../common/guards/optional-jwt.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -76,14 +78,14 @@ export class CampsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.GARDIEN)
+  @Roles(UserRole.GARDIEN, UserRole.GUIDE, UserRole.SENTINELLE, UserRole.REGION)
   @Post(':id/express-interest')
   expressInterest(@Param('id') campId: string, @CurrentUser() user: AuthUser) {
     return this.campsService.expressInterest(campId, user.id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.GARDIEN)
+  @Roles(UserRole.GARDIEN, UserRole.GUIDE, UserRole.SENTINELLE, UserRole.REGION)
   @Delete(':id/withdraw')
   withdrawInterest(@Param('id') campId: string, @CurrentUser() user: AuthUser) {
     return this.campsService.withdrawInterest(campId, user.id);
@@ -138,5 +140,74 @@ export class CampsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.campsService.unblockParticipant(campId, userId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE)
+  @Patch(':campId/participants/:userId/valider-demande')
+  validerDemande(
+    @Param('campId') campId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.validerDemandeParticipation(campId, userId, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE)
+  @Patch(':campId/participants/:userId/charge-securite')
+  toggleChargeSecurite(
+    @Param('campId') campId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.toggleChargeSecurite(campId, userId, user);
+  }
+
+  // ─── Autorisations de sortie ─────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SENTINELLE)
+  @Post(':campId/autorisations')
+  createAutorisation(
+    @Param('campId') campId: string,
+    @Body() dto: CreateAutorisationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.createAutorisation(campId, dto, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION, UserRole.SENTINELLE)
+  @Get(':campId/autorisations')
+  getAutorisations(
+    @Param('campId') campId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.getAutorisations(campId, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Patch(':campId/autorisations/:id/valider')
+  validerAutorisation(
+    @Param('campId') campId: string,
+    @Param('id') id: string,
+    @Body() dto: RepondreAutorisationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.validerAutorisation(campId, id, dto, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Patch(':campId/autorisations/:id/refuser')
+  refuserAutorisation(
+    @Param('campId') campId: string,
+    @Param('id') id: string,
+    @Body() dto: RepondreAutorisationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.campsService.refuserAutorisation(campId, id, dto, user);
   }
 }

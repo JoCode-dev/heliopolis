@@ -29,12 +29,7 @@ export class ExportService {
   ) {}
 
   private participantScopeWhere(user: AuthUser): Prisma.CampParticipantWhereInput {
-    if (user.role === UserRole.ADMIN) return {};
-    if (user.role === UserRole.REGION) {
-      return user.regionId
-        ? { district: { regionId: user.regionId } }
-        : { id: '__no_scope__' };
-    }
+    if (user.role === UserRole.ADMIN || user.role === UserRole.REGION) return {};
     if (user.role === UserRole.SENTINELLE) {
       return user.districtId ? { districtId: user.districtId } : { id: '__no_scope__' };
     }
@@ -69,8 +64,8 @@ export class ExportService {
       Nom: p.user.nom,
       Prénoms: p.user.prenoms,
       Matricule: p.user.matricule ?? '',
-      District: p.district.nom,
-      Paroisse: p.parish.nom,
+      District: p.district?.nom ?? '—',
+      Paroisse: p.parish?.nom ?? '—',
       'Adhésion (statut)': p.adhesionStatusSnapshot,
       'Statut participation': p.participationStatus,
       'Statut présence': p.presenceStatus,
@@ -83,10 +78,7 @@ export class ExportService {
   }
 
   private userScopeWhere(actor: AuthUser): Prisma.UserWhereInput {
-    if (actor.role === UserRole.ADMIN) return {};
-    if (actor.role === UserRole.REGION) {
-      return actor.regionId ? { regionId: actor.regionId } : { id: '__no_scope__' };
-    }
+    if (actor.role === UserRole.ADMIN || actor.role === UserRole.REGION) return {};
     if (actor.role === UserRole.SENTINELLE) {
       return actor.districtId ? { districtId: actor.districtId } : { id: '__no_scope__' };
     }

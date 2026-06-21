@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { territoriesApi, usersApi } from '@/lib/api';
 import { deferEffect } from '@/lib/effects';
-import type { District, Parish, User } from '@/types';
+import type { District, Parish, RegionRole, User } from '@/types';
 
 // Rôles proposés selon l'acteur — hiérarchie stricte
 const ROLE_MATRIX: Record<string, { value: string; label: string; icon: string }[]> = {
@@ -31,6 +31,12 @@ const ROLE_COLOR: Record<string, string> = {
   SENTINELLE: 'from-[#D9A441] to-[#9c7218]',
   REGION:     'from-[#1F1B2E] to-[#3a1d4d]',
 };
+
+const REGION_ROLE_OPTIONS: { value: RegionRole; label: string; description: string }[] = [
+  { value: 'RESPONSABLE',        label: 'Premier responsable', description: 'Accès complet — tableau de bord quasi-admin' },
+  { value: 'ADJOINT',            label: 'Adjoint régional',    description: 'Accès étendu — quelques fonctions en moins' },
+  { value: 'CHARGE_COMMUNICATION', label: 'Chargé communication', description: 'Photos de camps et annonces' },
+];
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -60,6 +66,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
   const [email, setEmail]         = useState('');
   const [telephone, setTelephone] = useState('');
   const [role, setRole]           = useState(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+  const [regionRole, setRegionRole] = useState<RegionRole>('RESPONSABLE');
 
   const [districts, setDistricts] = useState<District[]>([]);
   const [parishes, setParishes]   = useState<Parish[]>([]);
@@ -100,6 +107,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
       setEmail(editUser.email ?? '');
       setTelephone(editUser.telephone ?? '');
       setRole(editUser.role ?? defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+      setRegionRole(editUser.regionRole ?? 'RESPONSABLE');
       setDistrictId(editUser.district?.id ?? '');
       setParishId(editUser.parish?.id ?? '');
       // Formater la date en YYYY-MM-DD pour l'input type="date"
@@ -113,6 +121,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
       setEmail(''); setTelephone(''); setDateNaissance('');
       setPassword(''); setConfirmPwd('');
       setRole(defaultRole ?? availableRoles[0]?.value ?? 'GARDIEN');
+      setRegionRole('RESPONSABLE');
       setDistrictId(''); setParishId('');
     }
     setError('');
@@ -171,6 +180,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
           dateNaissance: dateNaissance      || undefined,
           districtId:   districtId         || undefined,
           parishId:     parishId           || undefined,
+          ...(editUser.role === 'REGION' && { regionRole }),
         };
         const { data } = await usersApi.update(editUser.id, payload);
         onUpdated?.(data as User);
@@ -187,6 +197,7 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
           districtId: effectiveDistrict,
           parishId:   effectiveParish,
           password:   password.trim() || undefined,
+          ...(role === 'REGION' && { regionRole }),
         };
         const { data } = await usersApi.create(payload);
         onCreated(data as User);
@@ -277,6 +288,39 @@ export function CreateUserModal({ isOpen, onClose, onCreated, onUpdated, editUse
                     }`}>
                     <span className="text-base leading-none">{o.icon}</span>
                     {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Sous-rôle régional (visible uniquement quand role=REGION) ── */}
+          {role === 'REGION' && (
+            <div>
+              <label className="block text-xs font-semibold text-[#6b6b78] uppercase tracking-wide mb-2">
+                Fonction au sein de la région
+              </label>
+              <div className="flex flex-col gap-2">
+                {REGION_ROLE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setRegionRole(opt.value)}
+                    className={`flex items-start gap-3 py-2.5 px-3 rounded-xl text-sm border-2 transition-all text-left ${
+                      regionRole === opt.value
+                        ? 'bg-[#1F1B2E] text-white border-[#1F1B2E] shadow-sm'
+                        : 'bg-white text-[#1F1B2E] border-[#e0e0e8] hover:border-[#1F1B2E]'
+                    }`}
+                  >
+                    <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                      regionRole === opt.value ? 'border-white' : 'border-[#c0c0cc]'
+                    }`}>
+                      {regionRole === opt.value && <span className="w-2 h-2 rounded-full bg-white" />}
+                    </span>
+                    <div>
+                      <div className="font-semibold leading-tight">{opt.label}</div>
+                      <div className={`text-xs mt-0.5 ${regionRole === opt.value ? 'text-white/70' : 'text-[#9b9ba8]'}`}>{opt.description}</div>
+                    </div>
                   </button>
                 ))}
               </div>

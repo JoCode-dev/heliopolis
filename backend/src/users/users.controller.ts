@@ -24,8 +24,9 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { AdhesionStatus, ProfileStatus, UserRole } from '../../generated/prisma/enums.js';
+import { AdhesionStatus, ProfileStatus, RegionRole, UserRole } from '../../generated/prisma/enums.js';
 import type { AuthUser } from '../common/types/auth-user.js';
+import { requireResponsable } from '../common/utils/region-role.util.js';
 import { R2StorageService } from '../storage/r2-storage.service.js';
 import {
   ADHESION_MIME_TYPES,
@@ -75,8 +76,8 @@ export class UsersController {
     return this.usersService.updateAvatar(user.id, avatarUrl);
   }
 
-  /** Pré-enregistrement d'un seul matricule (ADMIN) */
-  @Roles(UserRole.ADMIN)
+  /** Pré-enregistrement d'un seul matricule (ADMIN/REGION) */
+  @Roles(UserRole.ADMIN, UserRole.REGION)
   @Post('pre-enregistrer')
   preEnregistrer(
     @Body() dto: PreEnregistrerDto,
@@ -85,8 +86,8 @@ export class UsersController {
     return this.usersService.preEnregistrer(dto, user);
   }
 
-  /** Import en masse depuis un fichier CSV ou Excel (ADMIN) */
-  @Roles(UserRole.ADMIN)
+  /** Import en masse depuis un fichier CSV ou Excel (ADMIN/REGION RESPONSABLE) */
+  @Roles(UserRole.ADMIN, UserRole.REGION)
   @Post('importer')
   @UseInterceptors(
     FileInterceptor(
@@ -102,6 +103,7 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
     @Body('forceRole') forceRole?: string,
   ) {
+    requireResponsable(user);
     if (!file) {
       throw new BadRequestException('Fichier CSV ou Excel manquant');
     }
@@ -109,6 +111,17 @@ export class UsersController {
       ? (forceRole as UserRole)
       : undefined;
     return this.usersService.importerMatricules(file.buffer, user, role);
+  }
+
+  /** Attribution du sous-rôle régional — ADMIN ou REGION RESPONSABLE */
+  @Roles(UserRole.ADMIN, UserRole.REGION)
+  @Patch(':id/region-role')
+  setRegionRole(
+    @Param('id') id: string,
+    @Body() body: { regionRole: RegionRole | null },
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.usersService.setRegionRole(id, body.regionRole ?? null, actor);
   }
 
   /** Promotion d'un membre : GUIDE → SENTINELLE, ou GUIDE/SENTINELLE → REGION (ADMIN) */
@@ -171,7 +184,7 @@ export class UsersController {
     return this.usersService.resetPassword(id, dto.password, user);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.REGION)
   @Patch(':id/statut')
   updateStatut(
     @Param('id') id: string,

@@ -4,40 +4,65 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api';
+import type { RegionRole } from '@/types';
 
 const PRIMARY = [
   { href: '/dashboard/region',             icon: '🏠', label: 'Accueil',  prefetch: true,  exact: true  },
   { href: '/dashboard/region/camps',       icon: '⛺', label: 'Camps',    prefetch: true,  exact: false },
   { href: '/dashboard/region/messages',    icon: '💬', label: 'Messages', prefetch: false, exact: false },
-  { href: '/dashboard/region/defis',       icon: '🎯', label: 'Quêtes',    prefetch: true,  exact: false },
+  { href: '/dashboard/region/defis',       icon: '🎯', label: 'Quêtes',   prefetch: true,  exact: false, minRole: 'ADJOINT' as RegionRole },
 ];
 
-const DRAWER_SECTIONS = [
+type DrawerItem = { href: string; icon: string; label: string; prefetch: boolean; minRole?: RegionRole };
+type DrawerSection = { group: string; items: DrawerItem[] };
+
+const ALL_DRAWER_SECTIONS: DrawerSection[] = [
   {
     group: 'Membres',
     items: [
-      { href: '/dashboard/region/gardiens',  icon: '🤝', label: 'Gardiens',   prefetch: true },
-      { href: '/dashboard/region/guides',    icon: '📖', label: 'Encadrants', prefetch: true },
-      { href: '/dashboard/region/districts',  icon: '🛡️', label: 'Districts',  prefetch: true },
+      { href: '/dashboard/region/gardiens',  icon: '🤝', label: 'Gardiens',   prefetch: true,  minRole: 'ADJOINT' },
+      { href: '/dashboard/region/guides',    icon: '📖', label: 'Encadrants', prefetch: true,  minRole: 'ADJOINT' },
+      { href: '/dashboard/region/districts', icon: '🛡️', label: 'Districts',  prefetch: true,  minRole: 'RESPONSABLE' },
     ],
   },
   {
     group: 'Contenu & Outils',
     items: [
-      { href: '/dashboard/region/annonces',   icon: '📣', label: 'Annonces',   prefetch: true },
-      { href: '/dashboard/region/conseils',  icon: '🏛️', label: 'Conseils',   prefetch: true },
-      { href: '/dashboard/region/paroisses', icon: '⛪', label: 'Paroisses',  prefetch: true },
-      { href: '/dashboard/region/codex',     icon: '🪶', label: 'Modération', prefetch: true },
-      { href: '/dashboard/region/export',    icon: '📤', label: 'Exports',    prefetch: false },
+      { href: '/dashboard/region/annonces',  icon: '📣', label: 'Annonces',   prefetch: true },
+      { href: '/dashboard/region/conseils',  icon: '🏛️', label: 'Conseils',   prefetch: true,  minRole: 'ADJOINT' },
+      { href: '/dashboard/region/paroisses', icon: '⛪', label: 'Paroisses',  prefetch: true,  minRole: 'RESPONSABLE' },
+      { href: '/dashboard/region/codex',     icon: '🪶', label: 'Modération', prefetch: true,  minRole: 'ADJOINT' },
+      { href: '/dashboard/region/export',    icon: '📤', label: 'Exports',    prefetch: false, minRole: 'ADJOINT' },
     ],
   },
 ];
 
+const ROLE_LEVEL: Record<RegionRole, number> = {
+  RESPONSABLE: 3, ADJOINT: 2, CHARGE_COMMUNICATION: 1,
+};
+
+function filterSections(sections: DrawerSection[], regionRole: RegionRole | null | undefined): DrawerSection[] {
+  const level = regionRole ? (ROLE_LEVEL[regionRole] ?? 3) : 3;
+  return sections.map(s => ({
+    ...s,
+    items: s.items.filter(item => !item.minRole || level >= (ROLE_LEVEL[item.minRole] ?? 1)),
+  })).filter(s => s.items.length > 0);
+}
+
+function filterPrimary(regionRole: RegionRole | null | undefined) {
+  const level = regionRole ? (ROLE_LEVEL[regionRole] ?? 3) : 3;
+  return PRIMARY.filter(item => !item.minRole || level >= (ROLE_LEVEL[item.minRole] ?? 1));
+}
+
 export function RegionMobileNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
+
+  const regionRole = user?.regionRole;
+  const DRAWER_SECTIONS = filterSections(ALL_DRAWER_SECTIONS, regionRole);
+  const PRIMARY_FILTERED = filterPrimary(regionRole);
 
   const handleLogout = async () => {
     try { await authApi.logout(); } catch { /* ignore */ }
@@ -121,7 +146,7 @@ export function RegionMobileNav() {
 
       {/* BottomNav principal */}
       <nav className="bg-white border-t border-[#e6e6ea] flex justify-around safe-area-bottom">
-        {PRIMARY.map(item => {
+        {PRIMARY_FILTERED.map(item => {
           const active = item.exact
             ? pathname === item.href
             : pathname.startsWith(item.href);

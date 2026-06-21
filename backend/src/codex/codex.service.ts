@@ -99,9 +99,7 @@ export class CodexService {
   }
 
   private pendingScopeWhere(actor?: { role: string; parishId?: string; districtId?: string; regionId?: string }) {
-    if (!actor || actor.role === 'ADMIN') return {};
-    if (actor.role === 'REGION' && actor.regionId)
-      return { gardien: { regionId: actor.regionId } };
+    if (!actor || actor.role === 'ADMIN' || actor.role === 'REGION') return {};
     if (actor.role === 'SENTINELLE' && actor.districtId)
       return { gardien: { districtId: actor.districtId } };
     if (actor.role === 'GUIDE' && actor.parishId)

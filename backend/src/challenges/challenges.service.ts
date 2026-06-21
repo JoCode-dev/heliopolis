@@ -27,12 +27,7 @@ export class ChallengesService {
   ) {}
 
   private submissionScopeWhere(actor: AuthUser): Prisma.SubmissionWhereInput {
-    if (actor.role === UserRole.ADMIN) return {};
-    if (actor.role === UserRole.REGION) {
-      return actor.regionId
-        ? { gardien: { regionId: actor.regionId } }
-        : { id: '__no_scope__' };
-    }
+    if (actor.role === UserRole.ADMIN || actor.role === UserRole.REGION) return {};
     if (actor.role === UserRole.SENTINELLE) {
       return actor.districtId
         ? { gardien: { districtId: actor.districtId } }

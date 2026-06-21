@@ -53,9 +53,7 @@ export class CouncilsService {
   private readonly participantInclude = participantInclude;
 
   private scopeWhere(user: AuthUser) {
-    if (user.role === UserRole.ADMIN) return {};
-    if (user.role === UserRole.REGION && user.regionId)
-      return { regionId: user.regionId };
+    if (user.role === UserRole.ADMIN || user.role === UserRole.REGION) return {};
     if (user.role === UserRole.SENTINELLE && user.districtId)
       return { districtId: user.districtId };
     if (user.role === UserRole.GUIDE && user.parishId)

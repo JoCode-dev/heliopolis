@@ -1,6 +1,7 @@
 'use client';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { territoriesApi, usersApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import { Pill } from '@/components/ui';
 import { Pagination } from '@/components/ui/Pagination';
 import { UserAvatar } from '@/components/profile/UserAvatar';
@@ -25,7 +26,7 @@ import {
   STATUT_PILL,
 } from '@/components/data-table/columns/user-columns';
 import { filterUsers } from '@/components/data-table/utils/filter-users';
-import type { District, Parish, User } from '@/types';
+import type { District, Parish, RegionRole, User } from '@/types';
 
 const PER_PAGE = 10;
 const ROLE_ALL = 'TOUS';
@@ -33,7 +34,20 @@ const ROLE_ALL = 'TOUS';
 const STATUT_OPTIONS = Object.entries(STATUT_LABEL).map(([value, label]) => ({ value, label }));
 const ADHESION_OPTIONS = Object.entries(ADHESION_LABEL).map(([value, label]) => ({ value, label }));
 
+const REGION_ROLE_OPTIONS: { value: RegionRole; label: string; icon: string; desc: string }[] = [
+  { value: 'RESPONSABLE',          label: 'Premier responsable',   icon: '👑', desc: 'Accès complet — dashboard quasi-admin' },
+  { value: 'ADJOINT',              label: 'Adjoint régional',       icon: '🤝', desc: 'Accès étendu, quelques fonctions en moins' },
+  { value: 'CHARGE_COMMUNICATION', label: 'Chargé communication',   icon: '📸', desc: 'Photos de camps et annonces' },
+];
+
+const REGION_ROLE_LABEL: Record<RegionRole, string> = {
+  RESPONSABLE:          'Premier responsable',
+  ADJOINT:              'Adjoint',
+  CHARGE_COMMUNICATION: 'Chargé comm.',
+};
+
 function GuidesContent() {
+  const { user: actor } = useAuthStore();
   const [guides, setGuides] = useState<User[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
@@ -43,7 +57,10 @@ function GuidesContent() {
   const [pendingSuspend, setPendingSuspend] = useState<string | null>(null);
   const [promoting, setPromoting] = useState<User | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
+  const [regionRoleTarget, setRegionRoleTarget] = useState<User | null>(null);
+  const [regionRoleLoading, setRegionRoleLoading] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [openActionsId, setOpenActionsId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [resetPwdTarget, setResetPwdTarget] = useState<User | null>(null);
   const [resetPwdValue, setResetPwdValue] = useState('');
@@ -51,6 +68,11 @@ function GuidesContent() {
   const [resetPwdLoading, setResetPwdLoading] = useState(false);
   const [resetPwdError, setResetPwdError] = useState('');
   const [page, setPage] = usePaginationUrl();
+
+  // Peut attribuer un sous-rôle régional : ADMIN ou REGION RESPONSABLE (ou sans regionRole = legacy responsable)
+  const canSetRegionRole =
+    actor?.role === 'ADMIN' ||
+    (actor?.role === 'REGION' && (!actor.regionRole || actor.regionRole === 'RESPONSABLE'));
 
   const { values, setFilter, resetFilters, hasActiveFilters } = useTableFilters(
     [
@@ -138,6 +160,17 @@ function GuidesContent() {
       setPromoting(null);
     } catch { /* ignore */ }
     finally { setPromoteLoading(false); }
+  };
+
+  const handleSetRegionRole = async (userId: string, regionRole: RegionRole) => {
+    setRegionRoleLoading(true);
+    try {
+      const { data } = await usersApi.setRegionRole(userId, regionRole);
+      setGuides(prev => prev.map(u => u.id === userId ? { ...u, regionRole: (data as User).regionRole } : u));
+      setRegionRoleTarget(null);
+      setPromoting(null);
+    } catch { /* ignore */ }
+    finally { setRegionRoleLoading(false); }
   };
 
   const handlePurger = async (user: User) => {
@@ -356,21 +389,25 @@ function GuidesContent() {
         <>
           <div className="lg:hidden flex flex-col gap-2">
             {paginatedRows.map(({ original: u }) => {
-              const isLoading  = actionLoading === u.id;
-              const isPending  = pendingSuspend === u.id;
-              const isPendDel  = pendingDelete === u.id;
+              const isLoading     = actionLoading === u.id;
+              const isPending     = pendingSuspend === u.id;
+              const isPendDel     = pendingDelete === u.id;
+              const actionsOpen   = openActionsId === u.id;
               const canSuspend    = u.statutProfil === 'ACTIF';
               const canReactivate = u.statutProfil === 'SUSPENDU';
               const canActivate   = u.statutProfil === 'EN_ATTENTE_ACTIVATION';
+              const avatarBg      = u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : u.role === 'REGION' ? 'bg-[#1F1B2E]' : 'bg-[#D9A441]';
 
               return (
-                <div key={u.id} className="bg-white border border-[#ececf0] rounded-xl p-3">
-                  <div className="flex items-center gap-3">
+                <div key={u.id} className="bg-white border border-[#ececf0] rounded-xl overflow-hidden">
+
+                  {/* ── En-tête : identité + pills ── */}
+                  <div className="flex items-center gap-3 p-3">
                     <UserAvatar
                       avatarUrl={u.avatarUrl}
                       initials={`${u.nom?.[0] ?? ''}${u.prenoms?.[0] ?? ''}`}
                       sizeClass="w-10 h-10"
-                      bgClass={u.role === 'GUIDE' ? 'bg-[#6A1B9A]' : u.role === 'REGION' ? 'bg-[#1F1B2E]' : 'bg-[#D9A441]'}
+                      bgClass={avatarBg}
                       textClass="text-xs font-bold text-white"
                     />
                     <div className="flex-1 min-w-0">
@@ -393,67 +430,116 @@ function GuidesContent() {
                       )}
                     </div>
                   </div>
-                  {((canSuspend || canReactivate || canActivate) || (u.role === 'GUIDE' || u.role === 'SENTINELLE' || u.role === 'REGION')) && (
-                    <div className="mt-2.5 pt-2.5 border-t border-[#f0f0f4] flex flex-col gap-1.5">
-                      {!isPending && (
-                        <button type="button" onClick={() => setPromoting(u)} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] transition-colors disabled:opacity-50">
-                          Changer le rôle
+
+                  {/* ── Fonction régionale (REGION uniquement) ── */}
+                  {u.role === 'REGION' && canSetRegionRole && (
+                    <button
+                      type="button"
+                      onClick={() => setPromoting(u)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 border-t border-[#f0f0f4] bg-[#1F1B2E]/[0.03] hover:bg-[#1F1B2E]/[0.07] transition-colors"
+                    >
+                      <span className="text-xs text-[#6b6b78]">Fonction régionale</span>
+                      <span className="text-xs font-semibold text-[#1F1B2E] flex items-center gap-1">
+                        {u.regionRole ? REGION_ROLE_LABEL[u.regionRole] : <span className="text-[#9b9ba8]">Non définie</span>}
+                        <span className="text-[#9b9ba8]">›</span>
+                      </span>
+                    </button>
+                  )}
+
+                  {/* ── Bouton toggle Actions ── */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionsId(actionsOpen ? null : u.id);
+                      if (!actionsOpen) { setPendingSuspend(null); setPendingDelete(null); }
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-2.5 border-t border-[#f0f0f4] hover:bg-[#f7f7fb] transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-[#1F1B2E]">
+                      {isLoading ? 'Chargement…' : 'Actions'}
+                    </span>
+                    <span className={`text-[#6b6b78] text-xs transition-transform duration-200 ${actionsOpen ? 'rotate-180' : ''}`}>▾</span>
+                  </button>
+
+                  {/* ── Contenu déroulant ── */}
+                  {actionsOpen && (
+                    <div className="flex flex-col gap-1.5 px-3 pb-3 pt-1 border-t border-[#f0f0f4] bg-[#fafafa]">
+
+                      {/* Changer le rôle */}
+                      {!isPending && !isPendDel && (
+                        <button type="button" onClick={() => { setOpenActionsId(null); setPromoting(u); }} disabled={isLoading}
+                          className="w-full flex items-center gap-2 text-xs font-semibold py-2 px-3 rounded-lg bg-[#e8f0fe] text-[#1a56db] hover:bg-[#d0e0fc] transition-colors disabled:opacity-50">
+                          <span>↕</span> Changer le rôle
                         </button>
                       )}
-                      {!isPending && (
-                        <button type="button" onClick={() => openResetPwd(u)} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#fff3e0] text-[#e65100] hover:bg-[#ffe0b2] transition-colors disabled:opacity-50">
+
+                      {/* Réinitialiser MDP */}
+                      {!isPending && !isPendDel && (
+                        <button type="button" onClick={() => { setOpenActionsId(null); openResetPwd(u); }} disabled={isLoading}
+                          className="w-full flex items-center gap-2 text-xs font-semibold py-2 px-3 rounded-lg bg-[#fff3e0] text-[#e65100] hover:bg-[#ffe0b2] transition-colors disabled:opacity-50">
                           🔑 Réinitialiser le mot de passe
                         </button>
                       )}
-                      {canActivate && (
+
+                      {/* Activer */}
+                      {canActivate && !isPendDel && (
                         <button type="button" onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
-                          {isLoading ? '…' : '✓ Activer le compte'}
+                          className="w-full flex items-center gap-2 text-xs font-semibold py-2 px-3 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
+                          ✓ {isLoading ? '…' : 'Activer le compte'}
                         </button>
                       )}
-                      {canReactivate && (
+
+                      {/* Réactiver */}
+                      {canReactivate && !isPendDel && (
                         <button type="button" onClick={() => handleStatut(u, 'ACTIF')} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
-                          {isLoading ? '…' : '✓ Réactiver le compte'}
+                          className="w-full flex items-center gap-2 text-xs font-semibold py-2 px-3 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
+                          ✓ {isLoading ? '…' : 'Réactiver le compte'}
                         </button>
                       )}
-                      {canSuspend && !isPending && (
+
+                      {/* Suspendre */}
+                      {canSuspend && !isPending && !isPendDel && (
                         <button type="button" onClick={() => setPendingSuspend(u.id)} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50">
-                          Suspendre le compte
+                          className="w-full flex items-center gap-2 text-xs font-semibold py-2 px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50">
+                          ⏸ Suspendre le compte
                         </button>
                       )}
-                      {canSuspend && isPending && (
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => setPendingSuspend(null)}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#f6f6fa] text-[#6b6b78] hover:bg-[#ececf0] transition-colors">
-                            Annuler
-                          </button>
-                          <button type="button" onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
-                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#E55A35] text-white hover:bg-[#a82020] transition-colors disabled:opacity-50">
-                            {isLoading ? '…' : 'Confirmer'}
-                          </button>
+                      {isPending && (
+                        <div className="rounded-xl border border-[#f0d0c8] bg-[#fff5f0] p-3 flex flex-col gap-2">
+                          <p className="text-xs font-semibold text-[#C62828] text-center">Suspendre ce compte ?</p>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => setPendingSuspend(null)}
+                              className="flex-1 text-xs font-semibold py-2 rounded-lg bg-white border border-[#e0e0e8] text-[#6b6b78]">
+                              Annuler
+                            </button>
+                            <button type="button" onClick={() => handleStatut(u, 'SUSPENDU')} disabled={isLoading}
+                              className="flex-1 text-xs font-semibold py-2 rounded-lg bg-[#C62828] text-white disabled:opacity-50">
+                              {isLoading ? '…' : 'Confirmer'}
+                            </button>
+                          </div>
                         </div>
                       )}
+
+                      {/* Supprimer */}
                       {!isPendDel && !isPending && (
                         <button type="button" onClick={() => setPendingDelete(u.id)} disabled={isLoading}
-                          className="w-full text-xs font-semibold py-1.5 rounded-lg bg-[#fff0f0] text-[#C62828] hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-50">
+                          className="w-full flex items-center gap-2 text-xs font-semibold py-2 px-3 rounded-lg bg-[#fff0f0] text-[#C62828] hover:bg-[#C62828] hover:text-white transition-colors disabled:opacity-50">
                           🗑 Supprimer définitivement
                         </button>
                       )}
                       {isPendDel && (
-                        <div className="flex gap-2">
-                          <span className="flex-1 text-[11px] text-[#C62828] font-semibold flex items-center">Supprimer ?</span>
-                          <button type="button" onClick={() => setPendingDelete(null)}
-                            className="py-1.5 px-3 rounded-lg text-xs font-semibold bg-[#f6f6fa] text-[#6b6b78]">
-                            Annuler
-                          </button>
-                          <button type="button" onClick={() => handlePurger(u)} disabled={isLoading}
-                            className="py-1.5 px-3 rounded-lg text-xs font-bold bg-[#C62828] text-white hover:bg-[#a82020] disabled:opacity-50">
-                            {isLoading ? '…' : 'Confirmer'}
-                          </button>
+                        <div className="rounded-xl border border-[#f0d0c8] bg-[#fff5f0] p-3 flex flex-col gap-2">
+                          <p className="text-xs font-semibold text-[#C62828] text-center">Supprimer définitivement ?</p>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => setPendingDelete(null)}
+                              className="flex-1 text-xs font-semibold py-2 rounded-lg bg-white border border-[#e0e0e8] text-[#6b6b78]">
+                              Annuler
+                            </button>
+                            <button type="button" onClick={() => handlePurger(u)} disabled={isLoading}
+                              className="flex-1 text-xs font-semibold py-2 rounded-lg bg-[#C62828] text-white disabled:opacity-50">
+                              {isLoading ? '…' : 'Confirmer'}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -549,8 +635,37 @@ function GuidesContent() {
                 <p className="text-[11px] text-[#9b9ba8] mb-0.5">{promoting.prenoms} {promoting.nom}</p>
                 <p className="text-sm font-bold text-[#1F1B2E]">Changer le rôle · actuellement <span className="text-[#6A1B9A]">{ROLES[role].label}</span></p>
               </div>
-              <div className="flex flex-col p-3 gap-2">
-                {promotions.length > 0 && (
+              <div className="flex flex-col p-3 gap-2 max-h-[70vh] overflow-y-auto">
+                {/* ── Section : Fonction régionale (visible uniquement pour les membres REGION) ── */}
+                {role === 'REGION' && canSetRegionRole && (
+                  <>
+                    <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1">Fonction dans la région</p>
+                    {REGION_ROLE_OPTIONS.map(opt => {
+                      const isActive = (promoting.regionRole ?? 'RESPONSABLE') === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => handleSetRegionRole(promoting.id, opt.value)}
+                          disabled={promoteLoading || regionRoleLoading}
+                          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border text-left transition-all disabled:opacity-60 ${
+                            isActive
+                              ? 'bg-[#1F1B2E] border-[#1F1B2E] text-white'
+                              : 'bg-white border-[#e6e6ea] hover:border-[#1F1B2E] hover:bg-[#f5f5fa]'
+                          }`}
+                        >
+                          <span className={`w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 ${isActive ? 'bg-white/20' : 'bg-[#f0f0f4]'}`}>{opt.icon}</span>
+                          <div className="flex-1">
+                            <div className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-[#1F1B2E]'}`}>{opt.label}</div>
+                            <div className={`text-xs ${isActive ? 'text-white/70' : 'text-[#9b9ba8]'}`}>{opt.desc}</div>
+                          </div>
+                          {isActive && <span className="text-white text-sm">✓</span>}
+                        </button>
+                      );
+                    })}
+                    {actor?.role === 'ADMIN' && retrogrades.length > 0 && <div className="border-t border-[#f0f0f4] my-1" />}
+                  </>
+                )}
+                {actor?.role === 'ADMIN' && promotions.length > 0 && (
                   <>
                     <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1">Promouvoir</p>
                     {promotions.map(target => {
@@ -569,7 +684,7 @@ function GuidesContent() {
                     })}
                   </>
                 )}
-                {retrogrades.length > 0 && (
+                {actor?.role === 'ADMIN' && retrogrades.length > 0 && (
                   <>
                     <p className="text-[10px] font-bold text-[#9b9ba8] uppercase tracking-widest px-1 mt-1">Rétrograder</p>
                     {retrogrades.map(target => {

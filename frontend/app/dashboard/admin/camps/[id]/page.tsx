@@ -3,6 +3,7 @@ import { use, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { campsApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import { deferEffect } from '@/lib/effects';
 import { Pill } from '@/components/ui';
 import { CampPhotosSection } from '@/components/camps/CampPhotosSection';
@@ -37,10 +38,14 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 export default function AdminCampDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user: actor } = useAuthStore();
   const [camp, setCamp] = useState<Camp | null>(null);
   const [participants, setParticipants] = useState<CampParticipant[]>([]);
   const [updating, setUpdating] = useState(false);
+  const [secuLoadingId, setSecuLoadingId] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const canToggleSecurite = actor?.role === 'ADMIN' || actor?.role === 'REGION' || actor?.role === 'SENTINELLE';
 
   const reload = useCallback(async () => {
     try {
@@ -57,6 +62,17 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
     setUpdating(true);
     try { await campsApi.updateStatus(id, statut); await reload(); }
     catch { /* ignore */ } finally { setUpdating(false); }
+  };
+
+  const handleToggleSecurite = async (p: CampParticipant) => {
+    if (secuLoadingId) return;
+    setSecuLoadingId(p.id);
+    try {
+      await campsApi.toggleChargeSecurite(id, p.userId);
+      setParticipants(prev =>
+        prev.map(x => x.id === p.id ? { ...x, chargeSecurite: !x.chargeSecurite } : x)
+      );
+    } catch { /* ignore */ } finally { setSecuLoadingId(null); }
   };
 
   if (!camp) return (
@@ -199,20 +215,61 @@ export default function AdminCampDetailPage({ params }: { params: Promise<{ id: 
                 </div>
               ) : (
                 <div className="divide-y divide-[#f5f5f8] max-h-72 overflow-y-auto">
-                  {participants.map(p => (
-                    <div key={p.id} className="flex items-center gap-2.5 px-4 py-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                        {p.user.nom?.[0]}{p.user.prenoms?.[0]}
+                  {participants.map(p => {
+                    const isSecuLoading = secuLoadingId === p.id;
+                    return (
+                      <div key={p.id} className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors ${p.chargeSecurite ? 'bg-[#fffaf9]' : ''}`}>
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#6A1B9A] to-[#E55A35] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                          {p.user.nom?.[0]}{p.user.prenoms?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#1F1B2E] truncate">{p.user.prenoms} {p.user.nom}</p>
+                          <p className="text-[11px] text-[#9b9ba8] truncate">{p.parish?.nom ?? '—'}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {p.participationStatus === 'EN_ATTENTE' ? (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setSecuLoadingId(p.id);
+                                try {
+                                  await campsApi.validerDemande(id, p.userId);
+                                  setParticipants(prev => prev.map(x => x.id === p.id ? { ...x, participationStatus: 'SELECTIONNE' as const } : x));
+                                } catch { /* ignore */ } finally { setSecuLoadingId(null); }
+                              }}
+                              disabled={secuLoadingId === p.id}
+                              title="Valider la demande de participation"
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[#e8f5e9] text-[#2E7D32] border border-[#a5d6a7] hover:bg-[#2E7D32] hover:text-white transition-colors disabled:opacity-40"
+                            >
+                              {secuLoadingId === p.id ? '…' : '✓ Valider'}
+                            </button>
+                          ) : (
+                            <Pill variant={p.adhesionStatusSnapshot === 'A_JOUR' ? 'vert' : 'or'} className="text-[10px]">
+                              {p.adhesionStatusSnapshot === 'A_JOUR' ? 'À jour' : 'En attente'}
+                            </Pill>
+                          )}
+                          {p.roleAtCamp !== 'GARDIEN' && p.participationStatus !== 'EN_ATTENTE' && canToggleSecurite && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSecurite(p)}
+                              disabled={isSecuLoading}
+                              title={p.chargeSecurite ? 'Retirer charge sécurité' : 'Désigner chargé sécurité'}
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-lg transition-colors disabled:opacity-40 ${
+                                p.chargeSecurite
+                                  ? 'bg-[#fde8e8] text-[#E55A35] hover:bg-[#fcd0d0]'
+                                  : 'bg-[#f5f5f8] text-[#c0c0c8] hover:bg-[#e8e8f0] hover:text-[#6b6b78]'
+                              }`}
+                            >
+                              {isSecuLoading ? '…' : '🛡️'}
+                            </button>
+                          )}
+                          {p.roleAtCamp !== 'GARDIEN' && p.participationStatus !== 'EN_ATTENTE' && !canToggleSecurite && p.chargeSecurite && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-lg bg-[#fde8e8] text-[#E55A35]">🛡️</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#1F1B2E] truncate">{p.user.prenoms} {p.user.nom}</p>
-                        <p className="text-[11px] text-[#9b9ba8] truncate">{p.parish?.nom ?? '—'}</p>
-                      </div>
-                      <Pill variant={p.adhesionStatusSnapshot === 'A_JOUR' ? 'vert' : 'or'} className="text-[10px] flex-shrink-0">
-                        {p.adhesionStatusSnapshot === 'A_JOUR' ? 'À jour' : 'En attente'}
-                      </Pill>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               <div className="border-t border-[#f5f5f8] p-3">

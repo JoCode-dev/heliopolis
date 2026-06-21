@@ -85,6 +85,13 @@ enum PresenceStatus {
   NON_RENSEIGNE
 }
 
+/// Statut d'une autorisation de sortie de camp (§camp-autorisations)
+enum AutorisationStatut {
+  EN_ATTENTE
+  APPROUVEE
+  REFUSEE
+}
+
 /// Catégorie de défi (§11.1)
 enum ChallengeCategory {
   PERSONNEL
@@ -166,6 +173,13 @@ enum GuideRole {
   PLEIN /// Guide responsable principal
   ADJOINT /// Guide adjoint
   ASSISTANT /// Coordinateur de communauté
+}
+
+/// Sous-rôle des membres de l'équipe régionale
+enum RegionRole {
+  RESPONSABLE       /// Premier responsable — accès quasi-admin
+  ADJOINT           /// Adjoint régional — fonctionnalités légèrement réduites
+  CHARGE_COMMUNICATION /// Chargé à la communication — photos et annonces
 }
 
 enum MessageStatus {
@@ -337,7 +351,8 @@ model User {
   dateNaissance DateTime?     @db.Date
   sexe          String?       @db.Char(1)
   role          UserRole      @default(GARDIEN)
-  guideRole     GuideRole? /// PLEIN · ADJOINT · ASSISTANT (null pour les non-guides)
+  guideRole     GuideRole?  /// PLEIN · ADJOINT · ASSISTANT (null pour les non-guides)
+  regionRole    RegionRole? /// RESPONSABLE · ADJOINT · CHARGE_COMMUNICATION (null pour les non-région)
   statutProfil  ProfileStatus @default(EN_ATTENTE_ACTIVATION)
 
   // Rattachements territoriaux
@@ -356,12 +371,15 @@ model User {
   paroisseDirigee Parish?   @relation("ParishGuide")
 
   // Adhésions, camps, défis
-  adhesions            Adhesion[]        @relation("UserAdhesions")
-  adhesionsValidated   Adhesion[]        @relation("AdhesionValidator")
-  campsCreated         Camp[]            @relation("CampCreator")
-  participations       CampParticipant[]
-  selectionsMade       CampParticipant[] @relation("CampSelectedBy")
-  presenceMarks        PresenceLog[]     @relation("PresenceMarkedBy")
+  adhesions              Adhesion[]               @relation("UserAdhesions")
+  adhesionsValidated     Adhesion[]               @relation("AdhesionValidator")
+  campsCreated           Camp[]                   @relation("CampCreator")
+  participations         CampParticipant[]
+  selectionsMade         CampParticipant[]        @relation("CampSelectedBy")
+  presenceMarks          PresenceLog[]            @relation("PresenceMarkedBy")
+  autorisationsDemandees AutorisationSortie[]     @relation("AutorisationsDemandees")
+  autorisationsValidees  AutorisationSortie[]     @relation("AutorisationsValidees")
+  autorisationsPersonne  AutorisationSortiePersonne[] @relation("AutorisationsPersonne")
   submissions          Submission[]      @relation("SubmissionAuthor")
   submissionsValidated Submission[]      @relation("SubmissionValidator")
   badges               UserBadge[]
@@ -474,8 +492,9 @@ model Camp {
 
   /// Districts concernés (n-n)
   districts     CampDistrict[]
-  participants  CampParticipant[]
-  presences     PresenceLog[]
+  participants   CampParticipant[]
+  autorisations  AutorisationSortie[]
+  presences      PresenceLog[]
   challenges    Challenge[]       @relation("CampChallenges")
   media         Media[]
   conversations Conversation[]
@@ -585,12 +604,13 @@ model CampParticipant {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  /// Snapshot territorial au moment de la sélection (immutable)
-  district   District @relation(fields: [districtId], references: [id])
-  districtId String
-  parish     Parish   @relation(fields: [parishId], references: [id])
-  parishId   String
-  roleAtCamp UserRole @default(GARDIEN)
+  /// Snapshot territorial au moment de la sélection (immutable, nullable pour sentinelles/région)
+  district   District? @relation(fields: [districtId], references: [id])
+  districtId String?
+  parish     Parish?   @relation(fields: [parishId], references: [id])
+  parishId   String?
+  roleAtCamp     UserRole @default(GARDIEN)
+  chargeSecurite Boolean  @default(false)
 
   /// Snapshot du statut d'adhésion au moment de la sélection (§17.5)
   /// Permet de conserver l'état même si l'adhésion change après
@@ -1079,4 +1099,46 @@ model CampPhoto {
   @@index([publicationId])
   @@index([uploaderId])
   @@map("camp_photos")
+}
+
+// =============================================================
+//  AUTORISATIONS DE SORTIE DE CAMP (§camp-autorisations)
+// =============================================================
+
+/// Demande d'autorisation de sortie de camp émise par une Sentinelle
+model AutorisationSortie {
+  id      String             @id @default(cuid())
+  camp    Camp               @relation(fields: [campId], references: [id], onDelete: Cascade)
+  campId  String
+
+  demandeur   User   @relation("AutorisationsDemandees", fields: [demandeurId], references: [id])
+  demandeurId String
+
+  motif   String
+  statut  AutorisationStatut @default(EN_ATTENTE)
+  reponse String?
+
+  valideur   User?   @relation("AutorisationsValidees", fields: [valideurId], references: [id])
+  valideurId String?
+
+  personnes AutorisationSortiePersonne[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campId, statut])
+  @@map("autorisations_sortie")
+}
+
+/// Personne désignée dans une autorisation de sortie
+model AutorisationSortiePersonne {
+  id             String             @id @default(cuid())
+  autorisation   AutorisationSortie @relation(fields: [autorisationId], references: [id], onDelete: Cascade)
+  autorisationId String
+  user           User               @relation("AutorisationsPersonne", fields: [userId], references: [id])
+  userId         String
+  nomSnapshot    String
+
+  @@unique([autorisationId, userId])
+  @@map("autorisation_sortie_personnes")
 }
