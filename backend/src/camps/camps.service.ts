@@ -647,6 +647,8 @@ export class CampsService {
         campId,
         demandeurId: actor.id,
         motif: dto.motif,
+        heureSortie: new Date(dto.heureSortie),
+        dateHeureRetour: new Date(dto.dateHeureRetour),
         personnes: {
           create: participants.map(p => ({
             userId: p.userId,
@@ -702,7 +704,7 @@ export class CampsService {
 
   async validerAutorisation(campId: string, autorisationId: string, dto: RepondreAutorisationDto, actor: AuthUser) {
     if (actor.role !== UserRole.REGION && actor.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Seul le Régional peut valider une autorisation');
+      throw new ForbiddenException('Seuls le Régional et l\'Admin peuvent valider une autorisation');
     }
 
     const autorisation = await this.prisma.autorisationSortie.findFirst({
@@ -744,7 +746,7 @@ export class CampsService {
 
   async refuserAutorisation(campId: string, autorisationId: string, dto: RepondreAutorisationDto, actor: AuthUser) {
     if (actor.role !== UserRole.REGION && actor.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Seul le Régional peut refuser une autorisation');
+      throw new ForbiddenException('Seuls le Régional et l\'Admin peuvent refuser une autorisation');
     }
 
     const autorisation = await this.prisma.autorisationSortie.findFirst({

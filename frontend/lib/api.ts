@@ -104,7 +104,7 @@ export const campsApi = {
   toggleChargeSecurite: (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/charge-securite`),
   validerDemande:       (campId: string, userId: string) => api.patch(`/camps/${campId}/participants/${userId}/valider-demande`),
   autorisations:       (campId: string) => api.get(`/camps/${campId}/autorisations`),
-  createAutorisation:  (campId: string, data: { motif: string; personneIds: string[] }) => api.post(`/camps/${campId}/autorisations`, data),
+  createAutorisation:  (campId: string, data: { motif: string; heureSortie: string; dateHeureRetour: string; personneIds: string[] }) => api.post(`/camps/${campId}/autorisations`, data),
   validerAutorisation: (campId: string, id: string, reponse?: string) => api.patch(`/camps/${campId}/autorisations/${id}/valider`, { reponse }),
   refuserAutorisation: (campId: string, id: string, reponse?: string) => api.patch(`/camps/${campId}/autorisations/${id}/refuser`, { reponse }),
 };

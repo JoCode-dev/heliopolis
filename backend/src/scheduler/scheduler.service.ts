@@ -115,10 +115,32 @@ export class SchedulerService implements OnModuleInit {
     }
   }
 
+  // ── Autorisations de sortie ────────────────────────────────────────────────
+  // Logique : APPROUVEE → EXPIREE dès que dateHeureRetour < maintenant
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async expireAutorisations() {
+    try {
+      const now = new Date();
+      const expired = await this.withDbRetry('Autorisations EXPIREE', () =>
+        this.prisma.autorisationSortie.updateMany({
+          where: { statut: 'APPROUVEE', dateHeureRetour: { lt: now } },
+          data: { statut: 'EXPIREE' },
+        }),
+      );
+      if (expired.count > 0) {
+        this.logger.log(`Autorisations expirées : ${expired.count}`);
+      }
+    } catch (err) {
+      this.logger.error('Échec expiration autorisations', err instanceof Error ? err.stack : String(err));
+    }
+  }
+
   // Exécuté au démarrage pour synchroniser immédiatement sans attendre le prochain cron
   async onModuleInit() {
     await this.updateCampStatuses();
     await this.updateCouncilStatuses();
+    await this.expireAutorisations();
   }
 }
 

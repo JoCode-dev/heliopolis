@@ -12,6 +12,7 @@ const STATUT_AUTO = {
   EN_ATTENTE: { label: 'En attente', color: 'bg-[#fff3d6] text-[#9c7218]' },
   APPROUVEE:  { label: 'Approuvée',  color: 'bg-[#e1f4e3] text-[#2E7D32]' },
   REFUSEE:    { label: 'Refusée',    color: 'bg-[#fde8e8] text-[#E55A35]' },
+  EXPIREE:    { label: 'Expirée',    color: 'bg-[#f0f0f3] text-[#6b6b78]' },
 } as const;
 
 type MyParticipationStatus = 'EN_ATTENTE' | 'SELECTIONNE' | 'CONFIRME' | 'PRESENT' | 'DESISTE' | 'BLOQUE' | null;
@@ -41,6 +42,8 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
   // Modal autorisation
   const [showModal, setShowModal] = useState(false);
   const [motif, setMotif] = useState('');
+  const [heureSortie, setHeureSortie] = useState('');
+  const [dateHeureRetour, setDateHeureRetour] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
@@ -95,13 +98,26 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
 
   const handleSubmitAutorisation = async () => {
     if (!motif.trim()) { setModalError('Le motif est obligatoire.'); return; }
+    if (!heureSortie) { setModalError("L'heure de sortie est obligatoire."); return; }
+    if (!dateHeureRetour) { setModalError("La date et heure de retour sont obligatoires."); return; }
+    if (new Date(dateHeureRetour) <= new Date(heureSortie)) {
+      setModalError('La date de retour doit être postérieure à l\'heure de sortie.');
+      return;
+    }
     if (selectedIds.length === 0) { setModalError('Sélectionnez au moins une personne.'); return; }
     setSubmitting(true);
     setModalError('');
     try {
-      await campsApi.createAutorisation(id, { motif: motif.trim(), personneIds: selectedIds });
+      await campsApi.createAutorisation(id, {
+        motif: motif.trim(),
+        heureSortie: new Date(heureSortie).toISOString(),
+        dateHeureRetour: new Date(dateHeureRetour).toISOString(),
+        personneIds: selectedIds,
+      });
       setShowModal(false);
       setMotif('');
+      setHeureSortie('');
+      setDateHeureRetour('');
       setSelectedIds([]);
       await reload();
     } catch (e: unknown) {
@@ -351,7 +367,14 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
                               </span>
                             </div>
                             <p className="text-[11px] text-[#6b6b78]">
-                              {a.personnes.length} personne(s) — {new Date(a.createdAt).toLocaleDateString('fr-FR')}
+                              Demande : {new Date(a.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            <p className="text-[11px] text-[#6b6b78]">
+                              Sortie : <span className="font-semibold text-[#1F1B2E]">{new Date(a.heureSortie).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
+                              {' · '}Retour : <span className="font-semibold text-[#1F1B2E]">{new Date(a.dateHeureRetour).toLocaleString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                            </p>
+                            <p className="text-[11px] text-[#6b6b78]">
+                              {a.personnes.length} personne(s)
                             </p>
                             {a.reponse && (
                               <p className="text-[11px] mt-1.5 px-2 py-1 bg-[#f7f5fb] rounded-lg text-[#4a1370] italic">
@@ -407,6 +430,32 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
                 />
               </div>
 
+              {/* Heure de sortie */}
+              <div>
+                <label className="text-xs font-semibold text-[#1F1B2E] uppercase tracking-wide block mb-1.5">
+                  Heure de sortie *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={heureSortie}
+                  onChange={e => setHeureSortie(e.target.value)}
+                  className="w-full border border-[#e6e6ea] rounded-xl px-3 py-2.5 text-sm text-[#1F1B2E] focus:outline-none focus:ring-2 focus:ring-[#6A1B9A]/30"
+                />
+              </div>
+
+              {/* Date et heure de retour */}
+              <div>
+                <label className="text-xs font-semibold text-[#1F1B2E] uppercase tracking-wide block mb-1.5">
+                  Date et heure de retour *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={dateHeureRetour}
+                  onChange={e => setDateHeureRetour(e.target.value)}
+                  className="w-full border border-[#e6e6ea] rounded-xl px-3 py-2.5 text-sm text-[#1F1B2E] focus:outline-none focus:ring-2 focus:ring-[#6A1B9A]/30"
+                />
+              </div>
+
               {/* Sélection des personnes */}
               <div>
                 <label className="text-xs font-semibold text-[#1F1B2E] uppercase tracking-wide block mb-1.5">
@@ -451,7 +500,7 @@ export default function GuideCampDetailPage({ params }: { params: Promise<{ id: 
 
             <div className="px-5 pb-5 pt-3 border-t border-[#ececf0] flex gap-2 flex-shrink-0">
               <button
-                onClick={() => { setShowModal(false); setMotif(''); setSelectedIds([]); setModalError(''); }}
+                onClick={() => { setShowModal(false); setMotif(''); setHeureSortie(''); setDateHeureRetour(''); setSelectedIds([]); setModalError(''); }}
                 className="flex-1 py-3 rounded-xl border border-[#e6e6ea] text-sm font-semibold text-[#6b6b78]"
               >
                 Annuler

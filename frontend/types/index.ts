@@ -75,7 +75,7 @@ export interface CampParticipant {
   commentaireInterne?: string;
 }
 
-export type AutorisationStatut = 'EN_ATTENTE' | 'APPROUVEE' | 'REFUSEE';
+export type AutorisationStatut = 'EN_ATTENTE' | 'APPROUVEE' | 'REFUSEE' | 'EXPIREE';
 
 export interface AutorisationSortiePersonne {
   id: string;
@@ -89,6 +89,8 @@ export interface AutorisationSortie {
   campId: string;
   demandeur: Partial<User>;
   motif: string;
+  heureSortie: string;
+  dateHeureRetour: string;
   statut: AutorisationStatut;
   reponse?: string;
   valideur?: Partial<User>;

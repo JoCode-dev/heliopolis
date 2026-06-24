@@ -1,9 +1,15 @@
-import { IsString, IsArray, ArrayMinSize, IsNotEmpty } from 'class-validator';
+import { IsString, IsArray, ArrayMinSize, IsNotEmpty, IsDateString } from 'class-validator';
 
 export class CreateAutorisationDto {
   @IsString()
   @IsNotEmpty()
   motif!: string;
+
+  @IsDateString()
+  heureSortie!: string;
+
+  @IsDateString()
+  dateHeureRetour!: string;
 
   @IsArray()
   @ArrayMinSize(1)

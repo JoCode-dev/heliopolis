@@ -20,6 +20,7 @@ const STATUT_AUTO = {
   EN_ATTENTE: { label: 'En attente', color: 'bg-[#fff3d6] text-[#9c7218]' },
   APPROUVEE:  { label: 'Approuvée',  color: 'bg-[#e1f4e3] text-[#2E7D32]' },
   REFUSEE:    { label: 'Refusée',    color: 'bg-[#fde8e8] text-[#E55A35]' },
+  EXPIREE:    { label: 'Expirée',    color: 'bg-[#f0f0f3] text-[#6b6b78]' },
 } as const;
 
 function formatDate(d?: string) {
@@ -408,8 +409,13 @@ export default function RegionCampDetailPage({ params }: { params: Promise<{ id:
                           ))}
                         </div>
 
+                        <div className="text-[10px] text-[#6b6b78] mb-1">
+                          Demande : {new Date(a.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </div>
                         <div className="text-[10px] text-[#6b6b78] mb-2">
-                          {a.personnes.length} personne(s) · {new Date(a.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                          Sortie : <span className="font-semibold text-[#1F1B2E]">{new Date(a.heureSortie).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
+                          {' · '}Retour : <span className="font-semibold text-[#1F1B2E]">{new Date(a.dateHeureRetour).toLocaleString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          {' · '}{a.personnes.length} personne(s)
                         </div>
 
                         {a.reponse && (

@@ -90,6 +90,7 @@ enum AutorisationStatut {
   EN_ATTENTE
   APPROUVEE
   REFUSEE
+  EXPIREE
 }
 
 /// Catégorie de défi (§11.1)
@@ -1115,9 +1116,11 @@ model AutorisationSortie {
   demandeur   User   @relation("AutorisationsDemandees", fields: [demandeurId], references: [id])
   demandeurId String
 
-  motif   String
-  statut  AutorisationStatut @default(EN_ATTENTE)
-  reponse String?
+  motif           String
+  heureSortie     DateTime
+  dateHeureRetour DateTime
+  statut          AutorisationStatut @default(EN_ATTENTE)
+  reponse         String?
 
   valideur   User?   @relation("AutorisationsValidees", fields: [valideurId], references: [id])
   valideurId String?
