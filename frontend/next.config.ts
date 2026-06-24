@@ -19,21 +19,21 @@ if (r2PublicUrl) {
   });
 }
 
+const backendProtocol = new URL(BACKEND).protocol.replace(':', '') as 'http' | 'https';
+const backendUploadPattern = {
+  protocol: backendProtocol,
+  hostname: BACKEND_HOSTNAME,
+  ...(BACKEND_PORT ? { port: BACKEND_PORT } : {}),
+  pathname: '/uploads/**' as const,
+};
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ['esbuild-wasm', 'esbuild'],
   output: 'standalone',
   allowedDevOrigins: ['host.docker.internal'],
   images: {
     unoptimized: isDev,
-    remotePatterns: isDev ? [...r2Patterns] : [
-      {
-        protocol: 'https',
-        hostname: BACKEND_HOSTNAME,
-        port: BACKEND_PORT,
-        pathname: '/uploads/**',
-      },
-      ...r2Patterns,
-    ],
+    remotePatterns: [backendUploadPattern, ...r2Patterns],
   },
   async rewrites() {
     return [

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { DashboardStats } from '@/types/dashboard-stats';
+import { rewriteMediaUrls } from '@/lib/media';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4002/api';
 
@@ -14,7 +15,11 @@ let _refreshing = false;
 let _refreshFailed = false;
 
 api.interceptors.response.use(
-  (r) => { _refreshFailed = false; return r; },
+  (r) => {
+    _refreshFailed = false;
+    if (r.data) r.data = rewriteMediaUrls(r.data);
+    return r;
+  },
   async (err) => {
     const original = err.config;
     if (err.response?.status === 401 && !original._retry && !_refreshFailed) {

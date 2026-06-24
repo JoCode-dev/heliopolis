@@ -1,7 +1,6 @@
 'use client';
 import Image from 'next/image';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:4002';
+import { resolveMediaUrl } from '@/lib/media';
 
 interface UserAvatarProps {
   avatarUrl?: string | null;
@@ -19,7 +18,7 @@ export function UserAvatar({
   bgClass = 'bg-white/20',
 }: UserAvatarProps) {
   if (avatarUrl) {
-    const src = avatarUrl.startsWith('http') ? avatarUrl : `${API_BASE}${avatarUrl}`;
+    const src = resolveMediaUrl(avatarUrl);
     return (
       <Image
         src={src}

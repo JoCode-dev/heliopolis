@@ -63,8 +63,8 @@ export class R2StorageService implements OnModuleInit {
       const uploadsDir = join(process.cwd(), 'uploads', prefix);
       mkdirSync(uploadsDir, { recursive: true });
       writeFileSync(join(uploadsDir, filename), file.buffer);
-      const port = this.config.get('PORT') ?? 4000;
-      return `http://localhost:${port}/uploads/${prefix}/${filename}`;
+      // Chemin relatif : le frontend proxifie /uploads/* vers le backend (next.config rewrites)
+      return `/uploads/${prefix}/${filename}`;
     }
 
     const key = `${prefix}/${filename}`;
