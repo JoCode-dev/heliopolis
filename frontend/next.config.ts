@@ -40,7 +40,12 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       backendUploadPattern,
       ...r2Patterns,
-      "https://pub-a28fad04cb9c449fa1795bfbd12e8b3d.r2.dev",
+      {
+        protocol: "https",
+        hostname: "pub-a28fad04cb9c449fa1795bfbd12e8b3d.r2.dev",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
